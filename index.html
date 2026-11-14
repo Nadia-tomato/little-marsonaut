@@ -32,6 +32,20 @@
     .animate-float {
       animation: floatBadge 2.2s ease-in-out infinite;
     }
+    @keyframes launchRocket {
+      0% { transform: translate(0, 80px) rotate(-8deg); opacity: 0; }
+      18% { opacity: 1; }
+      100% { transform: translate(760px, -330px) rotate(8deg); opacity: 1; }
+    }
+    .animate-launch-rocket { animation: launchRocket 6.5s cubic-bezier(.18,.72,.32,1) forwards; }
+    @keyframes confettiFall {
+      0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+      15% { opacity: 1; }
+      100% { transform: translateY(360px) rotate(260deg); opacity: 0; }
+    }
+    .confetti-piece { animation: confettiFall 2.4s ease-in forwards; }
+    @keyframes unreadBounce { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-5px) scale(1.08); } }
+    .unread-badge { animation: unreadBounce 1s ease-in-out infinite; }
     @keyframes roverCruise {
       0%, 100% { transform: translateX(0px) translateY(0px); }
       50% { transform: translateX(18px) translateY(-2px); }
@@ -58,7 +72,8 @@
     // [Module 1: Game Constants & Elementary-Friendly English Text]
     // =========================================================================
     const MAX_TOMATO_GROWTH = 10;
-    const DAY_DURATION_SECONDS = 120;
+    const TEST_CLOCK_SECONDS = Math.max(0, Number(new URLSearchParams(window.location.search).get('testClock')) || 0);
+    const DAY_DURATION_SECONDS = TEST_CLOCK_SECONDS || 120;
     const TOMATO_HARVEST_FOOD_GAIN = 24; // Reduced from 35 to 24
 
     const INITIAL_RESOURCES = {
@@ -734,7 +749,7 @@
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
                 <div className="text-xs font-bold text-slate-200 text-center sm:text-left">
-                  ⏱️ Each Mars day is <span className="text-amber-300 font-black">2 minutes</span> (or tap the center <span className="text-indigo-300 font-black">End Day Dome</span>).
+                  ⏱️ Each Mars day is <span className="text-amber-300 font-black">2 minutes</span>. The mission clock runs automatically.
                 </div>
 
                 <button
@@ -752,6 +767,41 @@
             <span>2026 NASA HACKATHON</span>
             <span className="text-slate-400 font-bold">Ages 7–12 Science Mission</span>
           </footer>
+        </div>
+      );
+    }
+
+    function MarsLaunchTransition({ fact, onSkip, onComplete }) {
+      useEffect(() => {
+        const timer = window.setTimeout(onComplete, 6500);
+        return () => window.clearTimeout(timer);
+      }, [onComplete]);
+
+      return (
+        <div className="min-h-screen bg-[#060911] text-white flex items-center justify-center relative overflow-hidden p-5">
+          <svg viewBox="0 0 1200 700" className="absolute inset-0 w-full h-full" aria-hidden="true">
+            <rect width="1200" height="700" fill="#060911" />
+            {Array.from({ length: 36 }).map((_, i) => (
+              <circle key={i} cx={(i * 173) % 1200} cy={(i * 97) % 680 + 10} r={i % 3 === 0 ? 2.5 : 1.5} fill="#fef3c7" opacity=".9" />
+            ))}
+            <circle cx="1020" cy="500" r="155" fill="#9c3d1e" opacity=".35" />
+            <circle cx="1020" cy="500" r="120" fill="#d96b38" stroke="#f39c6b" strokeWidth="8" />
+            <path d="M950 475 Q1020 430 1095 470 M970 535 Q1040 500 1100 530" fill="none" stroke="#9c3d1e" strokeWidth="18" opacity=".55" />
+            <g className="animate-launch-rocket" transform="translate(150 500)">
+              <path d="M0 65 Q30 0 70 -18 Q110 0 140 65 Z" fill="#f8fafc" stroke="#475569" strokeWidth="5" />
+              <path d="M50 4 Q70 -18 90 4 L70 24 Z" fill="#ef4444" />
+              <circle cx="70" cy="35" r="17" fill="#38bdf8" stroke="#475569" strokeWidth="5" />
+              <path d="M5 56 L-30 92 L15 78 M135 56 L170 92 L125 78" fill="#ef4444" stroke="#475569" strokeWidth="5" />
+              <path d="M48 62 L58 118 L70 82 L82 118 L92 62 Z" fill="#facc15" stroke="#b45309" strokeWidth="4" />
+            </g>
+          </svg>
+          <div className="relative z-10 max-w-lg w-full text-center space-y-5">
+            <p className="text-amber-200 font-black tracking-[.25em] text-xs">MISSION LAUNCH</p>
+            <h1 className="text-3xl md:text-5xl font-black">Flying to Mars...</h1>
+            <p className="text-amber-100 text-sm md:text-base">{fact}</p>
+            <div className="h-2 rounded-full bg-white/20 overflow-hidden"><div className="h-full w-full bg-amber-400 origin-left animate-[pulse_6.5s_ease-in-out]" /></div>
+            <button onClick={onSkip} className="px-5 py-2 rounded-xl bg-white/15 border border-white/40 hover:bg-white/25 font-black text-sm">Skip</button>
+          </div>
         </div>
       );
     }
@@ -1192,7 +1242,7 @@
       showGreenhouseDot,
       showRoverDot,
       onEnterRoom,
-      onRequestEndSol,
+      roverResultUnread,
     }) {
       const palette = getDayNightPalette(nightFactor);
       const isNight = nightFactor >= 0.55;
@@ -1254,7 +1304,7 @@
               ))}
             </g>
 
-            {/* Center Dome = End Day Dome */}
+            {/* Center Dome = Mission Control */}
             <g transform="translate(345, 140)">
               <ellipse cx="155" cy="215" rx="150" ry="30" fill="#2d1e12" opacity="0.35" />
               <path d="M35,150 C35,40 275,40 275,150 L295,205 C295,225 15,225 15,205 Z" fill="#f5ede0" stroke="#7c6855" strokeWidth="5" />
@@ -1266,7 +1316,7 @@
               <rect x="65" y="172" width="26" height="22" rx="5" fill="#fef08a" stroke="#5a4636" strokeWidth="3" />
               <rect x="218" y="172" width="26" height="22" rx="5" fill="#fef08a" stroke="#5a4636" strokeWidth="3" />
               <rect x="70" y="124" width="170" height="32" rx="16" fill="#4f46e5" stroke="#fff" strokeWidth="3" />
-              <text x="155" y="145" textAnchor="middle" fill="#ffffff" fontSize="15" fontWeight="900">🌙 End Day {sol}</text>
+              <text x="155" y="145" textAnchor="middle" fill="#ffffff" fontSize="15" fontWeight="900">MISSION CONTROL</text>
             </g>
 
             {/* Power Dome */}
@@ -1353,10 +1403,10 @@
           </div>
 
           <button
-            onClick={onRequestEndSol}
+              onClick={() => onEnterRoom('CONTROL')}
             style={{ left: '35%', top: '22%', width: '30%', height: '35%' }}
             className="absolute rounded-3xl border-2 border-transparent hover:border-indigo-300 hover:bg-indigo-300/20 active:scale-95 transition cursor-pointer"
-            title="Tap Center Dome to End Today"
+            title="Open Mission Control"
           />
 
           <button
@@ -1371,6 +1421,16 @@
               </span>
             )}
           </button>
+
+          {roverResultUnread && (
+            <button
+              onClick={() => onEnterRoom('ROVER')}
+              className="absolute left-1/2 -translate-x-1/2 bottom-3 md:bottom-5 px-3 py-1 rounded-full bg-red-600 text-white font-black text-sm shadow-lg unread-badge z-20"
+              title="New rover result"
+            >
+              ! New Rover Result
+            </button>
+          )}
 
           <button
             onClick={() => onEnterRoom('GREENHOUSE')}
@@ -1941,12 +2001,16 @@
       roverStatus,
       damageSolLeft,
       pendingExpedition,
+      latestRoverResult,
+      roverResultUnread,
       samples,
       onBack,
+      onViewLatestResult,
       onRequestDispatchRover,
     }) {
       const [selectedBarsCost, setSelectedBarsCost] = useState(2);
       const [showRockBox, setShowRockBox] = useState(false);
+      const [showLatestResult, setShowLatestResult] = useState(false);
 
       const palette = getDayNightPalette(nightFactor);
       const radInfo = RADIATION_LABELS[weather?.radiationLevel || 1];
@@ -2142,6 +2206,14 @@
             </div>
           )}
 
+          {latestRoverResult && (roverResultUnread || showLatestResult) && (
+            <div className="top-24 left-4 right-4 absolute bg-amber-100/95 border-2 border-amber-500 text-amber-950 px-3 py-2 rounded-2xl text-xs font-black shadow z-20 flex flex-wrap items-center gap-2">
+              {latestRoverResult.photo && <img src={latestRoverResult.photo.imageUrl} alt="Latest Mars photo" className="w-12 h-10 object-cover rounded-lg" />}
+              <span className="flex-1 text-left">Latest result: {latestRoverResult.sample?.name || 'No sample found'}{showLatestResult && latestRoverResult.sample?.chosenExplanation ? ` — ${latestRoverResult.sample.chosenExplanation}` : ''}</span>
+              {!showLatestResult && <button onClick={() => { setShowLatestResult(true); onViewLatestResult(); }} className="underline shrink-0">Open</button>}
+            </div>
+          )}
+
           <button
             onClick={cycleBarsCost}
             style={{ left: '5%', top: '30%', width: '22%', height: '46%' }}
@@ -2219,6 +2291,84 @@
               </div>
             </div>
           )}
+        </div>
+      );
+    }
+
+    function MissionControlModule({
+      sol,
+      weather,
+      dailyReport,
+      yesterdayReport,
+      samples,
+      totalScore,
+      expeditionLogs,
+      dailyPhotoAlbum,
+      resources,
+      onBack,
+    }) {
+      const [tab, setTab] = useState('NEWS');
+      const ownedRocks = SAMPLE_CATALOG.filter((item) => item.id !== 'NONE' && samples[item.id] > 0);
+      const tabs = ['NEWS', 'DISCOVERIES', 'PHOTOS', 'STATUS'];
+      return (
+        <div className="w-full rounded-3xl border-4 border-[#d9c2a3] bg-[#f5ede0] shadow-xl p-4 md:p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <button onClick={onBack} className="px-4 py-2 rounded-full bg-white border-2 border-[#d9c2a3] font-black text-sm">‹ Back to Base</button>
+            <h2 className="text-xl md:text-2xl font-black text-[#4a3525]">Mission Control</h2>
+            <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-900 font-black">Day {sol}/20</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {tabs.map((item) => <button key={item} onClick={() => setTab(item)} className={`rounded-xl py-2 text-xs font-black border-2 ${tab === item ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white text-[#4a3525] border-[#d9c2a3]'}`}>{item}</button>)}
+          </div>
+          {tab === 'NEWS' && (
+            <section className="bg-white rounded-2xl border-2 border-amber-200 p-4 space-y-3">
+              <h3 className="font-black text-amber-900">News</h3>
+              {dailyReport.length === 0 && !yesterdayReport && <p className="text-sm text-[#7a5a40]">No new updates.</p>}
+              {dailyReport.slice(-5).reverse().map((item, index) => <p key={`${item}-${index}`} className="text-sm border-b border-amber-100 pb-2">{item}</p>)}
+              {yesterdayReport && <div className="rounded-xl bg-sky-50 p-3 text-sm"><b>Latest rover report:</b> {yesterdayReport.sample ? yesterdayReport.sample.name : 'No sample found'}.</div>}
+            </section>
+          )}
+          {tab === 'DISCOVERIES' && (
+            <section className="bg-white rounded-2xl border-2 border-emerald-200 p-4 space-y-3">
+              <div className="flex justify-between items-center"><h3 className="font-black text-emerald-900">Discoveries</h3><b className="text-amber-700">{totalScore} Science Points</b></div>
+              {ownedRocks.length === 0 ? <p className="text-sm text-[#7a5a40]">No rocks collected yet.</p> : <div className="grid sm:grid-cols-2 gap-2">{ownedRocks.map((item) => <div key={item.id} className="rounded-xl bg-emerald-50 p-3"><b>{item.name}</b><br /><span className="text-xs">× {samples[item.id]} · {item.scientificNote}</span></div>)}</div>}
+              <p className="text-xs text-[#7a5a40]">Game sample chances are game rules, not NASA measurements.</p>
+            </section>
+          )}
+          {tab === 'PHOTOS' && (
+            <section className="bg-white rounded-2xl border-2 border-sky-200 p-4 space-y-3">
+              <h3 className="font-black text-sky-900">Photo Gallery</h3>
+              {dailyPhotoAlbum.length === 0 ? <p className="text-sm text-[#7a5a40]">No rover photos yet.</p> : <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{dailyPhotoAlbum.map((entry, index) => <figure key={`${entry.photo.id}-${index}`} className="rounded-xl overflow-hidden border border-sky-200 bg-sky-50"><img src={entry.photo.imageUrl} alt={entry.photo.title} className="w-full h-28 object-cover" /><figcaption className="p-2 text-[11px]"><b>Day {entry.sol}</b><br />{entry.photo.nasaCaption}<br /><span className="text-sky-800">{entry.photo.credit}</span></figcaption></figure>)}</div>}
+            </section>
+          )}
+          {tab === 'STATUS' && (
+            <section className="bg-white rounded-2xl border-2 border-violet-200 p-4 space-y-3">
+              <h3 className="font-black text-violet-900">Mission Status</h3>
+              <p className="text-sm">Current Sol: <b>{sol} / 20</b></p>
+              <p className="text-sm">Mars Weather: <b>{weather?.isDustStorm ? 'Dust Storm (game event)' : 'Clear (game simulation)'}</b></p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-black">{[['Water', resources.water], ['Food', resources.food], ['Power', resources.power], ['Air', resources.oxygen]].map(([name, value]) => <div key={name} className="rounded-xl bg-violet-50 p-2">{name}<br />{Math.round(value)}</div>)}</div>
+              <p className="text-sm">Returned rover missions: <b>{expeditionLogs.length}</b></p>
+              <p className="text-xs text-[#7a5a40]">NASA weather is historical data. Alerts and rover damage are game simulations.</p>
+            </section>
+          )}
+        </div>
+      );
+    }
+
+    function SpecialDiscoveryModal({ record, onReturnToEarth }) {
+      const colors = ['#facc15', '#fb7185', '#38bdf8', '#34d399', '#c084fc'];
+      return (
+        <div className="fixed inset-0 z-[70] bg-[#2d1e12]/80 flex items-center justify-center p-4 overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">{Array.from({ length: 28 }).map((_, index) => <span key={index} className="confetti-piece absolute w-2.5 h-5 rounded-sm" style={{ left: `${(index * 37) % 100}%`, top: '-20px', background: colors[index % colors.length], animationDelay: `${(index % 8) * 80}ms` }} />)}</div>
+          <div className="relative max-w-md w-full rounded-3xl border-4 border-amber-300 bg-[#fdf6e9] p-6 text-center shadow-2xl space-y-4">
+            <div className="text-5xl">🌟</div>
+            <p className="text-xs font-black uppercase tracking-[.25em] text-amber-700">Rare Discovery!</p>
+            <h2 className="text-3xl font-black text-[#4a3525]">Amazing Find!</h2>
+            <p className="font-black text-sky-900">{record?.sample?.name || 'A special Mars sample'}</p>
+            <p className="text-sm text-[#5a4636]">{record?.sample?.chosenExplanation}</p>
+            <p className="text-xs text-amber-800">This is a fictional game story, not proof of life on Mars.</p>
+            <button onClick={onReturnToEarth} className="w-full rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white py-3 font-black">Return to Earth</button>
+          </div>
         </div>
       );
     }
@@ -2542,8 +2692,17 @@
     // =========================================================================
     // [Module 11: Main App Controller]
     // =========================================================================
+    const MARS_FACTS = [
+      'Did you know? Mars has two small moons: Phobos and Deimos.',
+      'A day on Mars is a little longer than a day on Earth.',
+      'Mars looks red because its dust contains rusty iron minerals.',
+      'Mars has the biggest volcano in our solar system: Olympus Mons.',
+    ];
+
     function App() {
       const [showCoverPage, setShowCoverPage] = useState(true);
+      const [showLaunchTransition, setShowLaunchTransition] = useState(false);
+      const [launchFact, setLaunchFact] = useState(MARS_FACTS[0]);
       const [sol, setSol] = useState(1);
       const [secondsLeftInDay, setSecondsLeftInDay] = useState(DAY_DURATION_SECONDS);
       const [resources, setResources] = useState(INITIAL_RESOURCES);
@@ -2595,8 +2754,11 @@
       const [pendingConfirmAction, setPendingConfirmAction] = useState(null);
       const [ending, setEnding] = useState(null);
       const [abortReason, setAbortReason] = useState('');
+      const [specialDiscoveryPending, setSpecialDiscoveryPending] = useState(null);
+      const [roverResultUnread, setRoverResultUnread] = useState(false);
 
       const executeEndSolRef = useRef(null);
+      const settlingRef = useRef(false);
 
       const elapsedSeconds = DAY_DURATION_SECONDS - secondsLeftInDay;
       const nightFactor = Math.max(0, Math.min(1, elapsedSeconds / DAY_DURATION_SECONDS));
@@ -2607,7 +2769,6 @@
         const env = await NasaService.generateDailyMarsEnvironment(targetSol);
         setWeather(env);
         setLoadingNasa(false);
-        setShowMorningBriefing(true);
       };
 
       useEffect(() => {
@@ -2623,7 +2784,7 @@
       const showGreenhouseDot =
         tomatoProgress >= MAX_TOMATO_GROWTH ||
         ((!todayTempOption || !todayWaterOption || !plantMiniGamePlayedToday) && tomatoProgress < MAX_TOMATO_GROWTH);
-      const showRoverDot = roverStatus === 'READY' && !pendingExpedition && batteryBars >= 1;
+      const showRoverDot = roverResultUnread || (roverStatus === 'READY' && !pendingExpedition && batteryBars >= 1);
 
       const handleCompleteSolarGame = (caughtCount) => {
         const gainedPower = GameLogicModule.calculateSolarGameReward(caughtCount, weather?.isDustStorm);
@@ -2768,20 +2929,6 @@
         });
       };
 
-      const handleRequestEndSol = () => {
-        if (!weather || ending) return;
-        setPendingConfirmAction({
-          icon: '🌙',
-          title: `Sleep & End Day ${sol}?`,
-          costText: null,
-          gainText: `Moves to Day ${sol + 1} and checks plants & rover`,
-          note: 'Ready to finish today and go to sleep?',
-          onExecute: () => {
-            executeEndSol();
-          },
-        });
-      };
-
       const executeEndSol = async () => {
         if (!weather || ending) return;
         setPendingConfirmAction(null);
@@ -2856,6 +3003,7 @@
               photo,
               sample: null,
             };
+            setRoverResultUnread(true);
           } else {
             if (hazardEval.wasHazardous) setBraveMissions((b) => b + 1);
             nextRoverStatus = 'READY';
@@ -2871,10 +3019,13 @@
             };
             setExpeditionLogs((prev) => [...prev, record]);
             generatedYesterdayReport = record;
+            setRoverResultUnread(true);
 
             if (found.id === 'ANCIENT_BIOSIGNATURE') {
               setResources({ oxygen: nextOxygen, power: nextPower, water: nextWater, food: nextFood });
-              setEnding('SPECIAL_DISCOVERY');
+              setSpecialDiscoveryPending(record);
+              setRoverStatus('READY');
+              setPendingExpedition(null);
               return;
             }
           }
@@ -2924,18 +3075,23 @@
       executeEndSolRef.current = executeEndSol;
 
       useEffect(() => {
-        if (showCoverPage || ending || showMorningBriefing || loadingNasa) return;
+        if (showCoverPage || showLaunchTransition || ending || specialDiscoveryPending) return;
         const interval = setInterval(() => {
           setSecondsLeftInDay((prev) => {
-            if (prev <= 1) {
-              if (executeEndSolRef.current) executeEndSolRef.current();
+            if (prev <= 1 && !settlingRef.current) {
+              settlingRef.current = true;
+              if (executeEndSolRef.current) {
+                Promise.resolve(executeEndSolRef.current()).finally(() => {
+                  settlingRef.current = false;
+                });
+              }
               return DAY_DURATION_SECONDS;
             }
             return prev - 1;
           });
         }, 1000);
         return () => clearInterval(interval);
-      }, [showCoverPage, ending, showMorningBriefing, loadingNasa]);
+      }, [showCoverPage, showLaunchTransition, ending, specialDiscoveryPending]);
 
       const handleRestart = () => {
         setSol(1);
@@ -2975,6 +3131,8 @@
         setPendingConfirmAction(null);
         setEnding(null);
         setAbortReason('');
+        setSpecialDiscoveryPending(null);
+        setRoverResultUnread(false);
         setShowCoverPage(true);
         loadWeatherForSol(1);
       };
@@ -2984,8 +3142,20 @@
           <TitleCoverPage
             onStartMission={() => {
               setShowCoverPage(false);
-              setShowMorningBriefing(true);
+              setLaunchFact(MARS_FACTS[Math.floor(Math.random() * MARS_FACTS.length)]);
+              setShowMorningBriefing(false);
+              setShowLaunchTransition(true);
             }}
+          />
+        );
+      }
+
+      if (showLaunchTransition) {
+        return (
+          <MarsLaunchTransition
+            fact={launchFact}
+            onSkip={() => setShowLaunchTransition(false) || setShowMorningBriefing(true)}
+            onComplete={() => setShowLaunchTransition(false) || setShowMorningBriefing(true)}
           />
         );
       }
@@ -3024,6 +3194,21 @@
         );
       }
 
+      if (specialDiscoveryPending) {
+        return (
+          <>
+            <div className="min-h-screen bg-[#fdf6e9]" />
+            <SpecialDiscoveryModal
+              record={specialDiscoveryPending}
+              onReturnToEarth={() => {
+                setSpecialDiscoveryPending(null);
+                setEnding('SPECIAL_DISCOVERY');
+              }}
+            />
+          </>
+        );
+      }
+
       const radInfo = RADIATION_LABELS[weather?.radiationLevel || 1];
       const mins = Math.floor(secondsLeftInDay / 60);
       const secs = String(secondsLeftInDay % 60).padStart(2, '0');
@@ -3043,7 +3228,7 @@
                   </span>
                 </div>
                 <button
-                  onClick={() => setShowMorningBriefing(true)}
+                  onClick={() => setCurrentScene('CONTROL')}
                   className="bg-amber-200 hover:bg-amber-300 border-2 border-amber-400 rounded-2xl px-3 py-1.5 text-xs font-black text-amber-950 shadow-sm"
                 >
                   📋 News
@@ -3093,8 +3278,8 @@
                 showPowerDot={showPowerDot}
                 showGreenhouseDot={showGreenhouseDot}
                 showRoverDot={showRoverDot}
+                roverResultUnread={roverResultUnread}
                 onEnterRoom={(room) => setCurrentScene(room)}
-                onRequestEndSol={handleRequestEndSol}
               />
             )}
 
@@ -3138,9 +3323,27 @@
                 roverStatus={roverStatus}
                 damageSolLeft={damageSolLeft}
                 pendingExpedition={pendingExpedition}
+                latestRoverResult={yesterdayReport}
+                roverResultUnread={roverResultUnread}
                 samples={samples}
                 onBack={() => setCurrentScene('EXTERIOR')}
+                onViewLatestResult={() => setRoverResultUnread(false)}
                 onRequestDispatchRover={handleRequestDispatchRover}
+              />
+            )}
+
+            {currentScene === 'CONTROL' && (
+              <MissionControlModule
+                sol={sol}
+                weather={weather}
+                dailyReport={dailyReport}
+                yesterdayReport={yesterdayReport}
+                samples={samples}
+                totalScore={totalScore}
+                expeditionLogs={expeditionLogs}
+                dailyPhotoAlbum={dailyPhotoAlbum}
+                resources={resources}
+                onBack={() => setCurrentScene('EXTERIOR')}
               />
             )}
           </main>
