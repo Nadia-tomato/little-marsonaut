@@ -81,7 +81,7 @@
       : 0;
     const DAY_DURATION_SECONDS = TEST_CLOCK_SECONDS || 120;
     const TOMATO_HARVEST_FOOD_GAIN = 24; // Reduced from 35 to 24
-    const ROVER_POWER_PER_BAR = 12;
+    const ROVER_POWER_PER_BAR = 10;
 
     const INITIAL_RESOURCES = {
       oxygen: 70,
@@ -628,7 +628,7 @@
     // =========================================================================
 
     /** Compact mission briefing that keeps the original warm vector style. */
-    function TitleCoverPage({ onStartMission }) {
+    function TitleCoverPage({ onStartMission, isGuide = false }) {
       const guideCards = [
         ['🍅', 'Grow tomatoes'],
         ['☀️', 'Collect solar power'],
@@ -715,7 +715,7 @@
                   className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-base md:text-lg shadow-[0_0_25px_rgba(251,191,36,0.6)] active:scale-95 transition flex items-center justify-center gap-2"
                 >
                   <span>🚀</span>
-                  <span>START MISSION</span>
+                  <span>{isGuide ? 'RETURN TO MISSION' : 'START MISSION'}</span>
                 </button>
               </div>
             </div>
@@ -745,13 +745,6 @@
               <circle cx="1020" cy="500" r="155" fill="#9c3d1e" opacity=".35" />
               <circle cx="1020" cy="500" r="120" fill="#d96b38" stroke="#f39c6b" strokeWidth="8" />
               <path d="M950 475 Q1020 430 1095 470 M970 535 Q1040 500 1100 530" fill="none" stroke="#9c3d1e" strokeWidth="18" opacity=".55" />
-            </g>
-            <g transform="translate(300 290)">
-              <path d="M0 24 Q45 0 105 24 Q45 48 0 24 Z" fill="#f8fafc" stroke="#475569" strokeWidth="5" />
-              <path d="M78 7 Q101 24 78 41 L108 24 Z" fill="#ef4444" stroke="#475569" strokeWidth="4" />
-              <circle cx="48" cy="24" r="13" fill="#38bdf8" stroke="#475569" strokeWidth="4" />
-              <path d="M10 10 L-18 -8 L-6 18 M10 38 L-18 56 L-6 30" fill="#ef4444" stroke="#475569" strokeWidth="4" />
-              <path d="M-2 18 L-38 24 L-2 30 Z" fill="#facc15" stroke="#b45309" strokeWidth="3" />
             </g>
           </svg>
           <div className="relative z-10 max-w-lg w-full text-center space-y-5">
@@ -795,7 +788,7 @@
             <div className="flex items-center gap-3 border-b-2 border-[#eadbc5] pb-3">
               <span className="text-3xl">{pendingAction.icon}</span>
               <div>
-                <div className="text-xs font-extrabold text-amber-700">Check Before You Go</div>
+                <div className="text-xs font-extrabold text-amber-700">ACTION</div>
                 <h3 className="text-lg font-black text-[#4a3525]">{pendingAction.title}</h3>
               </div>
             </div>
@@ -813,7 +806,7 @@
                   <span className="font-black text-emerald-700 text-right">{pendingAction.gainText}</span>
                 </div>
               )}
-              {pendingAction.note && (
+              {false && pendingAction.note && (
                 <p className="text-xs text-[#6b4c35] bg-white p-2.5 rounded-xl border border-[#e6d5bc]">
                   {pendingAction.note}
                 </p>
@@ -986,7 +979,6 @@
                 ☀️ Move the Solar Panel to Catch Sunbeams!
               </span>
               <div className="flex items-center gap-2 font-bold">
-                <span className="text-[#6b4c35]">{timeLeft}s left</span>
                 <span className="px-2.5 py-0.5 rounded-full bg-amber-300 text-amber-950 font-black">
                   Power: +{livePowerPreview} ⚡
                 </span>
@@ -1409,8 +1401,8 @@
           >
             {showRoverDot && (
               <span className="flex h-9 w-9 items-center justify-center">
-                <span className="animate-ping absolute inline-flex h-9 w-9 rounded-full bg-red-400 opacity-60" />
-                <span className="relative inline-flex rounded-full h-8 w-8 bg-red-600 border-2 border-white shadow text-white font-black text-xl leading-none">!</span>
+                {roverResultUnread && <span className="animate-ping absolute inline-flex h-9 w-9 rounded-full bg-red-400 opacity-60" />}
+                <span className="relative inline-flex rounded-full h-8 w-8 bg-red-600 border-2 border-white shadow text-white font-black text-xl leading-none items-center justify-center">{roverResultUnread ? '!' : '•'}</span>
               </span>
             )}
           </button>
@@ -1496,7 +1488,7 @@
 
             <path d="M520,120 L520,60 L790,60 L790,150" fill="none" stroke="#eab308" strokeWidth="18" strokeLinejoin="round" />
 
-            <g transform="translate(715, 145)">
+            <g transform="translate(565, 145)">
               <rect x="20" y="0" width="170" height="310" rx="65" fill="#e2e8f0" stroke="#5a4636" strokeWidth="6" />
               <rect x="42" y="65" width="126" height="170" rx="20" fill="#38bdf8" stroke="#0284c7" strokeWidth="4" />
               <circle cx="105" cy="145" r="44" fill="#fff" stroke="#0284c7" strokeWidth="4" />
@@ -1511,7 +1503,7 @@
               className="px-3.5 py-1.5 rounded-full bg-[#fdf6e9]/95 hover:bg-amber-200 border-2 border-[#d9c2a3] font-black text-xs text-[#4a3525] shadow-md flex items-center gap-1"
             >
               <span className="text-base leading-none">‹</span>
-              <span>Power Lab | Back</span>
+              <span>Back</span>
             </button>
             <div className="bg-white/95 border-2 border-[#d9c2a3] px-3 py-1 rounded-full text-xs font-black text-[#5a3e28] shadow">
               ⚡ {resources.power} | 💧 {resources.water} | 🫧 {resources.oxygen}
@@ -1534,7 +1526,7 @@
           <button
             onClick={onRequestElectrolysis}
             disabled={resources.water < 10 || resources.power < 15}
-            style={{ left: '70%', top: '22%', width: '23%', height: '52%' }}
+            style={{ left: '57%', top: '22%', width: '28%', height: '52%' }}
             className="absolute rounded-2xl border-2 border-transparent hover:border-sky-300 hover:bg-sky-300/20 disabled:opacity-75 transition cursor-pointer flex flex-col items-center justify-end pb-2 px-1"
           >
             <span className="px-2.5 py-1 rounded-full bg-sky-500 text-white border-2 border-white text-[11px] font-black shadow-md text-center max-w-full">
@@ -1560,6 +1552,7 @@
       plantMiniGamePlayedToday,
       onBack,
       onWaterTomatoes,
+      onPlantSeeds,
       onRequestSelectTempOption,
       onRequestSelectWaterOption,
       onOpenPlantMiniGame,
@@ -1763,19 +1756,21 @@
             </div>
           )}
 
-          <button
+          <div
+            draggable={!todayWaterOption && tomatoProgress < MAX_TOMATO_GROWTH}
+            onDragStart={(event) => event.dataTransfer.setData('text/plain', 'water')}
             onClick={onWaterTomatoes}
-            disabled={tomatoProgress >= MAX_TOMATO_GROWTH || Boolean(todayWaterOption)}
-            style={{ left: '5%', top: '31%', width: '14%', height: '32%' }}
-            className="absolute rounded-2xl border-2 border-transparent hover:border-sky-400 hover:bg-sky-200/25 transition cursor-pointer flex items-end justify-center pb-1 px-0.5"
+            className="absolute left-6 bottom-5 z-20 w-28 h-20 rounded-2xl border-2 border-sky-400 bg-sky-100 shadow-md flex flex-col items-center justify-center cursor-grab"
+            title="Drag the watering can to the plants"
           >
-            <span className="px-2 py-0.5 rounded-full bg-sky-500 text-white border border-white text-[10px] font-black shadow text-center max-w-full truncate">
-              {todayWaterOption ? '✅ Watered' : '💧 Water (-4)'}
-            </span>
-          </button>
+            <span className="text-3xl">💧</span>
+            <span className="text-[10px] font-black text-sky-900">{todayWaterOption ? 'Watered' : 'Water Can (-2)'}</span>
+          </div>
 
           <button
             onClick={handlePlanterBoxClick}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => { event.preventDefault(); event.dataTransfer.getData('text/plain') === 'seed' ? onPlantSeeds() : onWaterTomatoes(); }}
             disabled={tomatoProgress < MAX_TOMATO_GROWTH && plantMiniGamePlayedToday}
             style={{ left: '21%', top: '36%', width: '52%', height: '42%' }}
             className="absolute rounded-3xl border-2 border-transparent hover:border-emerald-400 hover:bg-emerald-200/15 transition cursor-pointer flex flex-col items-center justify-end pb-2 px-2"
@@ -1791,9 +1786,24 @@
             >
               {tomatoProgress >= MAX_TOMATO_GROWTH
                 ? `🧺 Tap to Pick Ripe Tomatoes (+${TOMATO_HARVEST_FOOD_GAIN} Food)`
+                : tomatoProgress === 0
+                ? '🌱 Drop Seeds Here'
                 : `🌱 Water plants to grow (${tomatoProgress}/${MAX_TOMATO_GROWTH})`}
             </span>
           </button>
+
+          {tomatoProgress === 0 && (
+            <div
+              draggable
+              onDragStart={(event) => event.dataTransfer.setData('text/plain', 'seed')}
+              onClick={onPlantSeeds}
+              className="absolute right-8 bottom-5 z-20 w-28 h-20 rounded-2xl border-2 border-amber-500 bg-amber-100 shadow-md flex flex-col items-center justify-center cursor-grab"
+              title="Drag seeds to the planter"
+            >
+              <span className="text-3xl">🌱</span>
+              <span className="text-[10px] font-black text-amber-900">Seeds</span>
+            </div>
+          )}
 
           {activeModal === 'TEMP' && (
             <div className="inset-0 absolute bg-[#2d1e12]/70 flex items-center justify-center p-4 z-30">
@@ -1991,54 +2001,6 @@
               strokeWidth="3"
             />
 
-            <g transform="translate(55, 190)">
-              <rect x="0" y="0" width="215" height="280" rx="18" fill="#f5ede0" stroke="#5a4636" strokeWidth="6" />
-              <rect x="20" y="20" width="175" height="118" rx="12" fill="#1e293b" />
-              <text x="107" y="45" textAnchor="middle" fill="#38bdf8" fontSize="15" fontWeight="900">
-                Trip Cost: {selectedBarsCost} / 3
-              </text>
-
-              <g transform="translate(36, 56)">
-                <rect x="0" y="0" width="136" height="44" rx="8" fill="#0f172a" stroke="#64748b" strokeWidth="3" />
-                <rect x="136" y="13" width="8" height="18" rx="3" fill="#64748b" />
-                {[0, 1, 2].map((idx) => (
-                  <rect
-                    key={idx}
-                    x={10 + idx * 41}
-                    y="8"
-                    width="34"
-                    height="28"
-                    rx="5"
-                    fill={idx < selectedBarsCost ? '#facc15' : '#334155'}
-                  />
-                ))}
-              </g>
-
-              <text x="107" y="122" textAnchor="middle" fill="#fde047" fontSize="12" fontWeight="800">
-                Tap to Change 1–3 Bars
-              </text>
-
-              <rect x="24" y="152" width="167" height="98" rx="12" fill="#cbd5e1" stroke="#5a4636" strokeWidth="4" />
-              <text x="107" y="177" textAnchor="middle" fill="#1e293b" fontSize="14" fontWeight="900">
-                Mission Power: {power}
-              </text>
-              <g transform="translate(34, 188)">
-                {[0, 1, 2, 3, 4].map((bIdx) => (
-                  <rect
-                    key={bIdx}
-                    x={bIdx * 30}
-                    y="0"
-                    width="24"
-                    height="28"
-                    rx="4"
-                    fill={bIdx < selectedBarsCost ? '#22c55e' : '#94a3b8'}
-                    stroke="#334155"
-                    strokeWidth="2"
-                  />
-                ))}
-              </g>
-            </g>
-
             <g transform="translate(300, 265)">
               <ellipse cx="165" cy="235" rx="150" ry="32" fill="#facc15" stroke="#a16207" strokeWidth="5" />
               <ellipse cx="165" cy="235" rx="115" ry="20" fill="#94a3b8" />
@@ -2084,7 +2046,7 @@
               className="px-3.5 py-1.5 rounded-full bg-[#fdf6e9]/95 hover:bg-sky-200 border-2 border-[#d9c2a3] font-black text-xs text-[#4a3525] shadow-md flex items-center gap-1"
             >
               <span className="text-base leading-none">‹</span>
-              <span>Rover Bay | Back</span>
+              <span>Back</span>
             </button>
             <div className="bg-white/95 border-2 border-[#d9c2a3] px-3 py-1 rounded-full text-xs font-black text-[#5a3e28] shadow">
               {weather?.isDustStorm ? '🌪️ Dust Storm' : '☀️ Clear'} | Sun Rays: {radInfo.text}
@@ -2105,16 +2067,6 @@
             </div>
           )}
 
-          <button
-            onClick={cycleBarsCost}
-            style={{ left: '5%', top: '30%', width: '22%', height: '46%' }}
-            className="absolute rounded-2xl border-2 border-transparent hover:border-amber-400 hover:bg-amber-200/20 transition cursor-pointer flex flex-col items-center justify-end pb-2 px-1"
-          >
-            <span className="px-2.5 py-1 rounded-full bg-amber-300 text-amber-950 border-2 border-white text-[11px] font-black shadow max-w-full truncate">
-              🔄 Set Power ({selectedBarsCost})
-            </span>
-          </button>
-
           {!isRoverOut && (
             <button
               onClick={() => onRequestDispatchRover(selectedBarsCost)}
@@ -2127,6 +2079,17 @@
               className="absolute rounded-3xl border-2 border-transparent hover:border-sky-400 hover:bg-sky-200/15 disabled:opacity-80 transition cursor-pointer flex flex-col items-center justify-end pb-2 px-2"
             >
               <div className="bg-white/95 border-2 border-sky-400 rounded-2xl px-3 py-1.5 text-center shadow-lg max-w-full">
+                <label className="block text-[11px] font-black text-sky-900">Mission Power: {selectedBarsCost * ROVER_POWER_PER_BAR}</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="3"
+                  step="1"
+                  value={selectedBarsCost}
+                  onChange={(event) => setSelectedBarsCost(Number(event.target.value))}
+                  className="w-40 accent-sky-500"
+                  aria-label="Mission power"
+                />
                 <div className="text-xs font-black text-sky-900 truncate">
                   {roverStatus !== 'READY'
                     ? `⚠️ Fixing Rover (${damageSolLeft} Day${damageSolLeft > 1 ? 's' : ''} left)`
@@ -2138,16 +2101,6 @@
               </div>
             </button>
           )}
-
-          <button
-            onClick={() => setShowRockBox(true)}
-            style={{ left: '77%', top: '33%', width: '18%', height: '44%' }}
-            className="absolute rounded-2xl border-2 border-transparent hover:border-amber-400 hover:bg-amber-200/20 transition cursor-pointer flex items-end justify-center pb-2 px-1"
-          >
-            <span className="px-2.5 py-1 rounded-full bg-white/95 border border-[#8c6d4f] text-[11px] font-black text-[#4a3525] shadow max-w-full truncate">
-              🔍 View Rocks
-            </span>
-          </button>
 
           {showRockBox && (
             <div className="inset-0 absolute bg-[#2d1e12]/70 flex items-center justify-center p-4 z-30">
@@ -2199,6 +2152,7 @@
       onBack,
     }) {
       const [tab, setTab] = useState('NEWS');
+      const [selectedPhoto, setSelectedPhoto] = useState(null);
       const ownedRocks = SAMPLE_CATALOG.filter((item) => item.id !== 'NONE' && samples[item.id] > 0);
       const tabs = ['NEWS', 'DISCOVERIES', 'PHOTOS', 'STATUS'];
       return (
@@ -2218,7 +2172,7 @@
           </svg>
           <div className="relative z-10 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <button onClick={onBack} className="px-4 py-2 rounded-full bg-white border-2 border-[#d9c2a3] font-black text-sm">‹ Back to Base</button>
+            <button onClick={onBack} className="px-4 py-2 rounded-full bg-white border-2 border-[#d9c2a3] font-black text-sm">‹ Back</button>
             <h2 className="text-xl md:text-2xl font-black text-[#4a3525]">Mission Control</h2>
             <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-900 font-black">Day {sol}</span>
           </div>
@@ -2243,7 +2197,7 @@
           {tab === 'PHOTOS' && (
             <section className="bg-white rounded-2xl border-2 border-sky-200 p-4 space-y-3">
               <h3 className="font-black text-sky-900">Photo Gallery</h3>
-              {dailyPhotoAlbum.length === 0 ? <p className="text-sm text-[#7a5a40]">No rover photos yet.</p> : <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{dailyPhotoAlbum.map((entry, index) => <figure key={`${entry.photo.id}-${index}`} className="rounded-xl overflow-hidden border border-sky-200 bg-sky-50"><img src={entry.photo.imageUrl} alt={entry.photo.title} className="w-full h-28 object-cover" /><figcaption className="p-2 text-[11px]"><b>Day {entry.sol}</b><br />{entry.photo.nasaCaption}<br /><span className="text-sky-800">{entry.photo.credit}</span></figcaption></figure>)}</div>}
+              {dailyPhotoAlbum.length === 0 ? <p className="text-sm text-[#7a5a40]">No rover photos yet.</p> : <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{dailyPhotoAlbum.map((entry, index) => <figure key={`${entry.photo.id}-${index}`} onClick={() => setSelectedPhoto(entry)} className="rounded-xl overflow-hidden border border-sky-200 bg-sky-50 cursor-zoom-in hover:shadow-lg"><img src={entry.photo.imageUrl} alt={entry.photo.title} className="w-full h-28 object-cover" /><figcaption className="p-2 text-[11px]"><b>Day {entry.sol}</b><br />{entry.photo.nasaCaption}<br /><span className="text-sky-800">{entry.photo.credit}</span></figcaption></figure>)}</div>}
             </section>
           )}
           {tab === 'STATUS' && (
@@ -2255,6 +2209,17 @@
               <p className="text-sm">Returned rover missions: <b>{expeditionLogs.length}</b></p>
               <p className="text-xs text-[#7a5a40]">NASA weather is historical data. Alerts and rover damage are game simulations.</p>
             </section>
+          )}
+          {selectedPhoto && (
+            <div className="fixed inset-0 z-50 bg-[#2d1e12]/75 flex items-center justify-center p-4" onClick={() => setSelectedPhoto(null)}>
+              <div className="max-w-2xl w-full bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl p-4 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+                <img src={selectedPhoto.photo.imageUrl} alt={selectedPhoto.photo.title} className="w-full max-h-[60vh] object-contain rounded-2xl bg-slate-900" />
+                <h3 className="mt-3 font-black text-lg">Day {selectedPhoto.sol} · {selectedPhoto.photo.title}</h3>
+                <p className="text-sm mt-1">{selectedPhoto.photo.nasaCaption}</p>
+                <p className="text-xs text-sky-800 mt-2">{selectedPhoto.photo.credit}</p>
+                <button onClick={() => setSelectedPhoto(null)} className="mt-3 px-4 py-2 rounded-full bg-indigo-600 text-white font-black">Close</button>
+              </div>
+            </div>
           )}
           </div>
         </div>
@@ -2298,7 +2263,6 @@
           <div className="bg-[#fdf6e9] border-4 border-[#d9c2a3] text-[#4a3525] rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b-2 border-[#eadbc5] pb-3">
               <div>
-                <span className="text-xs font-extrabold text-amber-700">LITTLE MARSONAUT • DAILY REPORT</span>
                 <h2 className="text-xl font-black text-[#4a3525]">
                   D{sol} NEWS
                 </h2>
@@ -2607,6 +2571,7 @@
 
     function App() {
       const [showCoverPage, setShowCoverPage] = useState(true);
+      const [showGuidePage, setShowGuidePage] = useState(false);
       const [showLaunchTransition, setShowLaunchTransition] = useState(false);
       const [launchFact, setLaunchFact] = useState(MARS_FACTS[0]);
       const [sol, setSol] = useState(1);
@@ -2690,7 +2655,7 @@
       const showGreenhouseDot =
         tomatoProgress >= MAX_TOMATO_GROWTH ||
         (!todayWaterOption && tomatoProgress < MAX_TOMATO_GROWTH);
-      const showRoverDot = roverResultUnread;
+      const showRoverDot = roverStatus === 'READY' && !pendingExpedition;
 
       const handleCompleteSolarGame = (caughtCount) => {
         const gainedPower = GameLogicModule.calculateSolarGameReward(caughtCount, weather?.isDustStorm);
@@ -2769,20 +2734,28 @@
       };
 
       const handleWaterTomatoes = () => {
-        if (todayWaterOption || tomatoProgress >= MAX_TOMATO_GROWTH || resources.water < 4) return;
+        if (todayWaterOption || tomatoProgress >= MAX_TOMATO_GROWTH || resources.water < 2) return;
         setPendingConfirmAction({
           icon: '💧',
           title: 'Water Tomato Plants',
-          costText: '-4 Water',
+          costText: '-2 Water',
           gainText: 'Tomatoes can grow tonight',
           note: 'Use the watering can once today?',
           onExecute: () => {
-            setResources((r) => ({ ...r, water: Math.max(0, r.water - 4) }));
-            setTodayWaterOption({ id: 'WATERING_CAN', waterCost: 4 });
+            setResources((r) => ({ ...r, water: Math.max(0, r.water - 2) }));
+            setTodayWaterOption({ id: 'WATERING_CAN', waterCost: 2 });
             setTomatoSpoiledToday(false);
-            setDailyReport((prev) => [...prev, '💧 Tomato plants watered (-4 Water).']);
+            setDailyReport((prev) => [...prev, '💧 Tomato plants watered (-2 Water).']);
           },
         });
+      };
+
+      const handlePlantSeeds = () => {
+        if (tomatoProgress === 0) {
+          setTomatoProgress(1);
+          setTomatoSpoiledToday(false);
+          setDailyReport((prev) => [...prev, '🌱 Seeds planted.']);
+        }
       };
 
       const handleRequestHarvestTomato = (onAnimationTrigger) => {
@@ -2975,7 +2948,6 @@
         setTodayWaterOption(null);
         setPlantMiniGamePlayedToday(false);
         setDailyReport(logs);
-        setCurrentScene('EXTERIOR');
         await loadWeatherForSol(nextSol);
       };
 
@@ -3040,6 +3012,7 @@
         setAbortReason('');
         setSpecialDiscoveryPending(null);
         setRoverResultUnread(false);
+        setShowGuidePage(false);
         setShowCoverPage(true);
         loadWeatherForSol(1);
       };
@@ -3047,11 +3020,17 @@
       if (showCoverPage) {
         return (
           <TitleCoverPage
+            isGuide={showGuidePage}
             onStartMission={() => {
-              setShowCoverPage(false);
-              setLaunchFact(MARS_FACTS[Math.floor(Math.random() * MARS_FACTS.length)]);
-              setShowMorningBriefing(false);
-              setShowLaunchTransition(true);
+              if (showGuidePage) {
+                setShowGuidePage(false);
+                setShowCoverPage(false);
+              } else {
+                setShowCoverPage(false);
+                setLaunchFact(MARS_FACTS[Math.floor(Math.random() * MARS_FACTS.length)]);
+                setShowMorningBriefing(false);
+                setShowLaunchTransition(true);
+              }
             }}
           />
         );
@@ -3135,7 +3114,7 @@
                   </span>
                 </div>
                 <button
-                  onClick={() => setShowCoverPage(true)}
+                  onClick={() => { setShowGuidePage(true); setShowCoverPage(true); }}
                   className="bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-2xl px-3 py-1.5 text-xs font-black shadow-sm"
                 >
                   ❓ Guide
@@ -3199,6 +3178,7 @@
                 plantMiniGamePlayedToday={plantMiniGamePlayedToday}
                 onBack={() => setCurrentScene('EXTERIOR')}
                 onWaterTomatoes={handleWaterTomatoes}
+                onPlantSeeds={handlePlantSeeds}
                 onRequestSelectTempOption={handleRequestSelectTempOption}
                 onOpenPlantMiniGame={() => setShowPlantMiniGameModal(true)}
                 onRequestHarvestTomato={handleRequestHarvestTomato}
