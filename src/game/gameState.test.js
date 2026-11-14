@@ -43,6 +43,7 @@ test('tomato can be planted, watered once per Sol, grown and harvested', () => {
   const harvest = harvestTomato(state)
   assert.equal(harvest.event.type, 'tomato-harvested')
   assert.equal(harvest.state.resources.food, 60 - (BALANCE_CONFIG.dailyConsumption.food * 3) + BALANCE_CONFIG.tomato.foodYield)
+  assert.equal(harvestTomato(harvest.state).event.reason, 'not-ready')
 })
 
 test('rover battery is discrete, costs power, and cannot dispatch at zero', () => {
@@ -86,6 +87,8 @@ test('Sol 10 supply restores water and food to 100', () => {
   assert.equal(result.state.resources.water, RESOURCE_MAX)
   assert.equal(result.state.resources.food, RESOURCE_MAX)
   assert.equal(result.state.currentSol, SOL_CONFIG.supplySol + 1)
+  const repeated = settleSol({ ...result.state, currentSol: SOL_CONFIG.supplySol })
+  assert.equal(repeated.event.reason, 'sol-already-settled')
 })
 
 test('the same Sol cannot be settled twice', () => {
@@ -113,6 +116,30 @@ test('resource values never exceed 100 and empty survival resources abort', () =
   const result = settleSol(state)
   assert.equal(result.state.ending, 'emergency-abort')
   for (const value of Object.values(result.state.resources)) assert.ok(value >= 0 && value <= RESOURCE_MAX)
+})
+
+test('each critical resource at zero causes an emergency ending without negative values', () => {
+  for (const resource of ['oxygen', 'power', 'water', 'food']) {
+    const state = createInitialGameState()
+    const depleted = { oxygen: 100, power: 100, water: 100, food: 100, [resource]: 0 }
+    const result = settleSol({ ...state, resources: depleted })
+    if (resource === 'power') {
+      assert.equal(result.state.ending, null, '太陽能可在每日結算時恢復已耗盡的電力')
+    } else {
+      assert.equal(result.state.ending, 'emergency-abort')
+    }
+    assert.ok(Object.values(result.state.resources).every((value) => value >= 0 && value <= RESOURCE_MAX))
+  }
+})
+
+test('a complete mission uses one settlement per Sol and ends exactly at Sol 20', () => {
+  let state = createInitialGameState()
+  for (let index = 0; index < SOL_CONFIG.finalSol; index += 1) {
+    state = settleSol(state, { electrolyze: true }).state
+  }
+  assert.equal(state.ending, 'normal-completion')
+  assert.equal(state.history.length, SOL_CONFIG.finalSol)
+  assert.equal(settleSol(state).event.reason, 'game-ended')
 })
 
 test('score titles follow the GDD thresholds', () => {
