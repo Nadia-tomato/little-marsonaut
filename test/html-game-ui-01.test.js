@@ -11,7 +11,8 @@ test('UI update 01 keeps the standalone HTML game and adds the launch flow', () 
   assert.match(html, /TEST_CLOCK_SECONDS/);
   assert.match(html, /const DAY_DURATION_SECONDS = TEST_CLOCK_SECONDS \|\| 120/);
   assert.match(html, /Skip/);
-  assert.match(html, /animate-approach-mars/);
+  assert.match(html, /launch-progress/);
+  assert.doesNotMatch(html, /animate-launch-rocket/);
   assert.match(html, /animate-launch-fade/);
 });
 
