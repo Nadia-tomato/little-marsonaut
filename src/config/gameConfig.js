@@ -11,6 +11,13 @@ export const SOL_CONFIG = Object.freeze({
   supplySol: 10,
 })
 
+export const TIME_CONFIG = Object.freeze({
+  solDurationSeconds: 120,
+  testSolDurationSeconds: 4,
+  halfSolRatio: 0.5,
+  tickMilliseconds: 250,
+})
+
 export const INITIAL_RESOURCES = Object.freeze({
   oxygen: 70,
   power: 70,
@@ -41,6 +48,23 @@ export const BALANCE_CONFIG = Object.freeze({
   rover: Object.freeze({
     maxBattery: 5,
     powerPerBatteryCell: 4,
+    maxSamplesByBattery: Object.freeze({ 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 }),
+    returnAfterSols: 1,
+    repairSolsMin: 1,
+    repairSolsMax: 2,
+  }),
+  solar: Object.freeze({
+    miniGameBaseGain: 8,
+    miniGameMaxGain: 18,
+    dustStormEfficiency: 0.45,
+    nightEfficiency: 0,
+  }),
+  events: Object.freeze({
+    dustStormChancePerSol: 0.12,
+    solarParticleChancePerSol: 0.08,
+    highRadiationDamageChance: 0.35,
+    dustStormLabel: '沙塵暴',
+    solarParticleLabel: '太陽高能粒子事件',
   }),
 })
 

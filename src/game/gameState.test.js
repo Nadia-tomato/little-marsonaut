@@ -4,6 +4,8 @@ import {
   chargeRover,
   createInitialGameState,
   dispatchRover,
+  advanceGameTime,
+  launchRover,
   electrolyzeWater,
   getAdjustedSampleProbabilities,
   getScoreTitle,
@@ -34,16 +36,20 @@ test('tomato can be planted, watered once per Sol, grown and harvested', () => {
   state = waterTomato(state).state
   assert.equal(state.resources.water, 96)
   assert.equal(waterTomato(state).event.reason, 'already-watered-this-sol')
-
-  for (let sol = 0; sol < BALANCE_CONFIG.tomato.maxGrowth; sol += 1) {
-    state = settleSol(state).state
-    if (sol < BALANCE_CONFIG.tomato.maxGrowth - 1) state = waterTomato(state).state
-  }
+  state = advanceGameTime(state, 60, { solDurationSeconds: 120, random: () => 0.99 }).state
   assert.equal(state.tomato.growth, BALANCE_CONFIG.tomato.maxGrowth)
   const harvest = harvestTomato(state)
   assert.equal(harvest.event.type, 'tomato-harvested')
-  assert.equal(harvest.state.resources.food, 60 - (BALANCE_CONFIG.dailyConsumption.food * 3) + BALANCE_CONFIG.tomato.foodYield)
+  assert.equal(harvest.state.resources.food, 60 - (BALANCE_CONFIG.dailyConsumption.food * 0.5) + BALANCE_CONFIG.tomato.foodYield)
   assert.equal(harvestTomato(harvest.state).event.reason, 'not-ready')
+})
+
+test('tomato spoils after one half-Sol of maturity if not harvested', () => {
+  let state = plantTomato(createInitialGameState()).state
+  state = advanceGameTime(state, 121, { solDurationSeconds: 120, random: () => 0.99 }).state
+  assert.equal(state.tomato.growth, BALANCE_CONFIG.tomato.maxGrowth)
+  assert.equal(state.tomato.spoiled, true)
+  assert.equal(harvestTomato(state).event.reason, 'spoiled')
 })
 
 test('rover battery is discrete, costs power, and cannot dispatch at zero', () => {
@@ -148,4 +154,23 @@ test('score titles follow the GDD thresholds', () => {
   assert.equal(getScoreTitle(70), '火星探險家')
   assert.equal(getScoreTitle(120), '超級小小太空人')
   assert.equal(getScoreTitle(180), '火星科學大師')
+})
+
+test('continuous clock advances Sol once and pauses after an ending', () => {
+  const first = advanceGameTime(createInitialGameState(), 120, { solDurationSeconds: 120, random: () => 0.99 })
+  assert.equal(first.state.currentSol, 2)
+  assert.deepEqual(first.state.history, [1])
+  const ended = { ...first.state, ending: 'emergency-abort', status: 'ended' }
+  const paused = advanceGameTime(ended, 120, { solDurationSeconds: 120 })
+  assert.equal(paused.event.type, 'time-paused')
+  assert.equal(paused.state.clock.elapsedSeconds, ended.clock.elapsedSeconds)
+})
+
+test('rover waits one Sol before returning and can enter repair', () => {
+  let state = chargeRover(createInitialGameState(), 3).state
+  state = launchRover(state).state
+  assert.ok(state.rover.pending)
+  state = advanceGameTime(state, 120, { solDurationSeconds: 120, random: () => 0 }).state
+  assert.equal(state.rover.pending, null)
+  assert.ok(state.rover.lastReturn)
 })
