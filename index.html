@@ -17,13 +17,20 @@
       user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
-    @keyframes dropToBasket {
-      0% { transform: translateY(-40px) scale(0.8); opacity: 0; }
-      60% { transform: translateY(14px) scale(1.15); opacity: 1; }
-      100% { transform: translateY(0px) scale(1); opacity: 1; }
+    @keyframes flyToBasket {
+      0% { transform: translate(0, 0) scale(1); opacity: 1; }
+      50% { transform: translate(110px, -40px) scale(1.3); opacity: 1; }
+      100% { transform: translate(210px, 35px) scale(0.8); opacity: 0; }
     }
-    .animate-tomato-drop {
-      animation: dropToBasket 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    .animate-fly-basket {
+      animation: flyToBasket 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes floatBadge {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+    .animate-float {
+      animation: floatBadge 2.2s ease-in-out infinite;
     }
   </style>
 </head>
@@ -32,65 +39,6 @@
 
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
-
-    // 原始全覽圖檔名（與 index.html 放在同一資料夾）
-    const SOURCE_FULL_IMAGE = './base-map.png';
-
-    // =========================================================================
-    // 0. 自動裁切原圖的四個區塊（左上外觀地圖 ＋ 右側與下方三個房間內部圖）
-    // =========================================================================
-    const CROP_REGIONS = {
-      // 左上角：火星基地・總覽（外觀）
-      EXTERIOR:   { sx: 0.008, sy: 0.088, sw: 0.690, sh: 0.545 },
-      // 右側中間：能源區（內部）
-      POWER:      { sx: 0.706, sy: 0.300, sw: 0.285, sh: 0.332 },
-      // 下方中間：農業溫室（內部）
-      GREENHOUSE: { sx: 0.232, sy: 0.642, sw: 0.415, sh: 0.348 },
-      // 下方右側：探勘與研究站（內部）
-      ROVER:      { sx: 0.656, sy: 0.642, sw: 0.336, sh: 0.348 },
-    };
-
-    function useCroppedSprites(imageSrc) {
-      const [sprites, setSprites] = useState(null);
-      const [error, setError] = useState(false);
-
-      useEffect(() => {
-        const img = new Image();
-        img.src = imageSrc;
-        img.onload = () => {
-          try {
-            const result = {};
-            for (const [key, r] of Object.entries(CROP_REGIONS)) {
-              const canvas = document.createElement('canvas');
-              const cw = Math.round(img.naturalWidth * r.sw);
-              const ch = Math.round(img.naturalHeight * r.sh);
-              canvas.width = cw;
-              canvas.height = ch;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(
-                img,
-                Math.round(img.naturalWidth * r.sx),
-                Math.round(img.naturalHeight * r.sy),
-                cw,
-                ch,
-                0,
-                0,
-                cw,
-                ch
-              );
-              result[key] = canvas.toDataURL('image/png');
-            }
-            setSprites(result);
-          } catch (e) {
-            console.warn('圖片裁切失敗：', e);
-            setError(true);
-          }
-        };
-        img.onerror = () => setError(true);
-      }, [imageSrc]);
-
-      return { sprites, error };
-    }
 
     // =========================================================================
     // 1. 遊戲常數與國小友善說明設定
@@ -102,37 +50,11 @@
       food: 60,
     };
 
-    // 對應裁切後「左上角外觀地圖」內三個房間的點擊按鈕位置（百分比）
-    // 中央生活區不設功能，已排除
-    const ROOM_HOTSPOTS = {
-      POWER: {
-        id: 'POWER',
-        label: '能源區',
-        icon: '⚡',
-        hint: '接陽光發電、製造氧氣、幫車子充電',
-        style: { left: '9%', top: '31%', width: '27%', height: '33%' },
-      },
-      GREENHOUSE: {
-        id: 'GREENHOUSE',
-        label: '農業溫室',
-        icon: '🍅',
-        hint: '幫番茄澆水、開燈長大、採收進籃子',
-        style: { left: '66%', top: '28%', width: '28%', height: '36%' },
-      },
-      ROVER: {
-        id: 'ROVER',
-        label: '探勘與研究站',
-        icon: '🛸',
-        hint: '派探測車出去找火星石頭',
-        style: { left: '34%', top: '62%', width: '34%', height: '34%' },
-      },
-    };
-
     const ROVER_DISPATCH_MODES = {
       1: {
         barsCost: 1,
         name: '近距離散步（耗 1 格電）',
-        desc: '只在基地門口附近找石頭，比較省電，但找到寶貝的機會較小。',
+        desc: '只在基地門口找石頭，比較省電，但找到寶貝的機會較小。',
         discoveryMultiplier: 0.6,
         rareBonus: 0.5,
       },
@@ -471,14 +393,14 @@
     }
 
     // =========================================================================
-    // 4. UI 子元件：頂部資源條 & 太陽能追光小遊戲
+    // 4. UI 子元件：頂部資源條 & 太陽能追光小遊戲彈窗
     // =========================================================================
     function TopResourcePill({ label, value, barColor, icon }) {
       const isLow = value <= 25;
       return (
         <div className="bg-white/95 border-2 border-[#e6d5bc] rounded-2xl px-2.5 py-1.5 shadow-sm flex items-center gap-2">
           <span className="text-lg">{icon}</span>
-          <div className="flex-1 min-w-[58px]">
+          <div className="flex-1 min-w-[54px]">
             <div className="flex justify-between text-[11px] font-extrabold text-[#5a3e28]">
               <span>{label}</span>
               <span className={isLow ? 'text-red-600 animate-pulse' : ''}>{value}</span>
@@ -491,7 +413,7 @@
       );
     }
 
-    function SolarMiniGame({ isDustStorm, onComplete, onClose }) {
+    function SolarMiniGameModal({ isDustStorm, onComplete, onClose }) {
       const GAME_DURATION = 10;
       const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
       const [panelX, setPanelX] = useState(50);
@@ -565,407 +487,847 @@
       const gradeInfo = getSolarEfficiencyGrade(caughtCount, isDustStorm);
 
       return (
-        <div className="bg-[#fffaf0] border-2 border-amber-400 rounded-2xl p-4 space-y-3 shadow-inner">
-          <div className="flex flex-wrap justify-between items-center gap-1 text-xs">
-            <span className="font-extrabold text-amber-800">
-              ☀️ 左右滑動藍色太陽能板，接住掉下來的陽光！
-            </span>
-            <div className="flex items-center gap-2 font-bold">
-              <span className="text-[#6b4c35]">剩 {timeLeft} 秒</span>
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900">
-                可獲得：+{livePowerPreview} ⚡
+        <div className="fixed inset-0 bg-[#2d1e12]/75 flex items-center justify-center p-4 z-50">
+          <div className="bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl max-w-lg w-full p-5 space-y-3 shadow-2xl">
+            <div className="flex flex-wrap justify-between items-center gap-1 text-xs">
+              <span className="font-black text-amber-800 text-sm">
+                ☀️ 移動太陽能板接住陽光！
               </span>
+              <div className="flex items-center gap-2 font-bold">
+                <span className="text-[#6b4c35]">剩 {timeLeft} 秒</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-300 text-amber-950 font-black">
+                  獲得電力：+{livePowerPreview} ⚡
+                </span>
+              </div>
             </div>
-          </div>
-
-          <div
-            ref={arenaRef}
-            onMouseMove={(e) => updatePanelFromClientX(e.clientX)}
-            onTouchMove={(e) => updatePanelFromClientX(e.touches[0].clientX)}
-            onClick={(e) => updatePanelFromClientX(e.clientX)}
-            className={`relative w-full h-48 rounded-2xl overflow-hidden border-2 cursor-pointer ${
-              isDustStorm
-                ? 'bg-gradient-to-b from-amber-700 to-stone-800 border-amber-600'
-                : 'bg-gradient-to-b from-sky-700 to-indigo-900 border-sky-400'
-            }`}
-          >
-            {isDustStorm && (
-              <div className="top-2 left-2 absolute text-[11px] bg-amber-100/90 text-amber-900 font-bold px-2.5 py-0.5 rounded-full">
-                🌪️ 沙塵暴遮住陽光了，發電會變少喔！
-              </div>
-            )}
-
-            {beams.map((b) => (
-              <div
-                key={b.id}
-                style={{ left: `${b.x}%`, top: `${b.y}%` }}
-                className="-translate-x-1/2 -translate-y-1/2 absolute text-2xl drop-shadow-[0_0_8px_rgba(253,224,71,0.95)] pointer-events-none"
-              >
-                ☀️
-              </div>
-            ))}
 
             <div
-              style={{ left: `${panelX}%` }}
-              className={`-translate-x-1/2 bottom-3 absolute w-24 h-5 rounded-lg border-2 flex items-center justify-center text-[11px] font-black pointer-events-none transition-transform duration-75 ${
-                panelFlash
-                  ? 'bg-yellow-300 border-white text-slate-900 scale-110 shadow-[0_0_16px_rgba(253,224,71,1)]'
-                  : 'bg-sky-400 border-white text-slate-950 shadow-md'
+              ref={arenaRef}
+              onMouseMove={(e) => updatePanelFromClientX(e.clientX)}
+              onTouchMove={(e) => updatePanelFromClientX(e.touches[0].clientX)}
+              onClick={(e) => updatePanelFromClientX(e.clientX)}
+              className={`relative w-full h-56 rounded-2xl overflow-hidden border-2 cursor-pointer ${
+                isDustStorm
+                  ? 'bg-gradient-to-b from-amber-700 to-stone-800 border-amber-600'
+                  : 'bg-gradient-to-b from-sky-600 to-indigo-900 border-sky-400'
               }`}
             >
-              太陽能板
+              {isDustStorm && (
+                <div className="top-2 left-2 absolute text-[11px] bg-amber-100/95 text-amber-900 font-bold px-2.5 py-0.5 rounded-full">
+                  🌪️ 沙塵暴遮住陽光了，發電會變少喔！
+                </div>
+              )}
+
+              {beams.map((b) => (
+                <div
+                  key={b.id}
+                  style={{ left: `${b.x}%`, top: `${b.y}%` }}
+                  className="-translate-x-1/2 -translate-y-1/2 absolute text-2xl drop-shadow-[0_0_8px_rgba(253,224,71,0.95)] pointer-events-none"
+                >
+                  ☀️
+                </div>
+              ))}
+
+              <div
+                style={{ left: `${panelX}%` }}
+                className={`-translate-x-1/2 bottom-3 absolute w-24 h-5 rounded-lg border-2 flex items-center justify-center text-[11px] font-black pointer-events-none transition-transform duration-75 ${
+                  panelFlash
+                    ? 'bg-yellow-300 border-white text-slate-900 scale-110 shadow-[0_0_16px_rgba(253,224,71,1)]'
+                    : 'bg-sky-400 border-white text-slate-950 shadow-md'
+                }`}
+              >
+                太陽能板
+              </div>
+
+              {finished && (
+                <div className="inset-0 absolute bg-[#2d1e12]/85 flex flex-col items-center justify-center p-4 text-center space-y-2">
+                  <div className="text-xs font-bold text-amber-100">
+                    你一共接住了 {caughtCount} 道太陽光！
+                  </div>
+                  <div className={`text-base font-black bg-white px-3 py-0.5 rounded-full ${gradeInfo.color}`}>
+                    {gradeInfo.label}
+                  </div>
+                  <div className="text-2xl font-black text-yellow-300">
+                    獲得電力：+{livePowerPreview} ⚡
+                  </div>
+                  <button
+                    onClick={() => onComplete(caughtCount)}
+                    className="px-6 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#3b2514] font-black text-sm shadow-lg"
+                  >
+                    把電力存進基地！
+                  </button>
+                </div>
+              )}
             </div>
 
-            {finished && (
-              <div className="inset-0 absolute bg-[#2d1e12]/85 flex flex-col items-center justify-center p-4 text-center space-y-2">
-                <div className="text-xs font-bold text-amber-100">
-                  你一共接住了 {caughtCount} 道太陽光！
-                </div>
-                <div className={`text-base font-black bg-white px-3 py-0.5 rounded-full ${gradeInfo.color}`}>
-                  {gradeInfo.label}
-                </div>
-                <div className="text-2xl font-black text-yellow-300">
-                  獲得電力：+{livePowerPreview} ⚡
-                </div>
-                <button
-                  onClick={() => onComplete(caughtCount)}
-                  className="px-6 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#3b2514] font-black text-sm shadow-lg"
-                >
-                  把電力存進基地！
+            {!finished && (
+              <div className="flex justify-between items-center text-xs text-[#7a5a40]">
+                <span>左右滑動或點擊畫面就可以移動太陽能板喔！</span>
+                <button onClick={onClose} className="underline font-bold">
+                  先不玩了
                 </button>
               </div>
             )}
           </div>
+        </div>
+      );
+    }
 
-          {!finished && (
-            <div className="flex justify-between items-center text-[11px] text-[#7a5a40]">
-              <span>沒接住陽光就沒有電力喔！</span>
-              <button onClick={onClose} className="underline font-bold">
-                先不玩了
-              </button>
+    // =========================================================================
+    // 5. 四大互動圖片場景（點進不同功能區，進入不同背景，直接點擊背景物件互動）
+    // =========================================================================
+
+    /**
+     * 場景 0：火星基地總覽（外觀地圖）
+     * 點擊圖片中的「能源區」、「農業溫室」、「探勘與研究站」直接進入該房間場景
+     */
+    function BaseExteriorScene({
+      sol,
+      tomatoProgress,
+      showPowerDot,
+      showGreenhouseDot,
+      showRoverDot,
+      onEnterRoom,
+      onEndSol,
+    }) {
+      return (
+        <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden border-4 border-[#e6d5bc] shadow-xl bg-[#f3a678]">
+          {/* 手繪風格火星基地外觀插畫背景 */}
+          <svg viewBox="0 0 1000 625" className="w-full h-full object-cover block">
+            <defs>
+              <linearGradient id="marsSky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f5a97f" />
+                <stop offset="45%" stopColor="#f7c49f" />
+                <stop offset="100%" stopColor="#e5885c" />
+              </linearGradient>
+              <linearGradient id="marsGround" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#e58758" />
+                <stop offset="100%" stopColor="#c9653b" />
+              </linearGradient>
+            </defs>
+
+            {/* 天空與遠山 */}
+            <rect width="1000" height="625" fill="url(#marsSky)" />
+            <polygon points="0,240 120,130 240,210 380,100 540,190 720,90 880,170 1000,120 1000,280 0,280" fill="#d97a50" opacity="0.7" />
+            <rect y="230" width="1000" height="395" fill="url(#marsGround)" />
+
+            {/* 隕石坑與岩石裝飾 */}
+            <ellipse cx="560" cy="245" rx="48" ry="14" fill="#b85932" stroke="#994322" strokeWidth="3" />
+            <ellipse cx="140" cy="480" rx="55" ry="18" fill="#b85932" stroke="#994322" strokeWidth="3" />
+            <polygon points="840,260 890,190 950,210 980,290 830,300" fill="#b5522d" />
+            <polygon points="860,360 920,310 985,350 960,440 850,430" fill="#a84925" />
+
+            {/* 基地連接通道 */}
+            <path d="M270,320 L370,300 L370,335 L270,355 Z" fill="#dcd3c6" stroke="#7c6855" strokeWidth="4" />
+            <path d="M630,300 L730,320 L730,355 L630,335 Z" fill="#dcd3c6" stroke="#7c6855" strokeWidth="4" />
+            <path d="M475,360 L525,360 L525,440 L475,440 Z" fill="#dcd3c6" stroke="#7c6855" strokeWidth="4" />
+            <path d="M230,390 C230,460 320,490 380,490" fill="none" stroke="#e6ddd0" strokeWidth="14" strokeLinecap="round" />
+            <path d="M770,390 C770,460 680,490 620,490" fill="none" stroke="#e6ddd0" strokeWidth="14" strokeLinecap="round" />
+
+            {/* 左側太陽能板陣列 */}
+            <g transform="translate(55, 160)">
+              {[0, 75, 150].map((dx, idx) => (
+                <g key={idx} transform={`translate(${dx}, ${-idx * 12})`}>
+                  <rect x="26" y="55" width="8" height="35" fill="#7c6855" />
+                  <polygon points="0,55 18,10 68,10 50,55" fill="#4f86c6" stroke="#fff" strokeWidth="3" />
+                  <line x1="9" y1="32" x2="59" y2="32" stroke="#a6ccf5" strokeWidth="2" />
+                  <line x1="34" y1="10" x2="25" y2="55" stroke="#a6ccf5" strokeWidth="2" />
+                </g>
+              ))}
+            </g>
+
+            {/* 中央生活區圓頂（純背景建築，無互動功能） */}
+            <g transform="translate(345, 140)">
+              <ellipse cx="155" cy="215" rx="150" ry="30" fill="#b35630" opacity="0.4" />
+              <path d="M35,150 C35,40 275,40 275,150 L295,205 C295,225 15,225 15,205 Z" fill="#f5ede0" stroke="#7c6855" strokeWidth="5" />
+              <path d="M75,115 C75,45 235,45 235,115 Z" fill="#79b4e3" stroke="#5c7d99" strokeWidth="4" />
+              <path d="M110,62 L110,115 M155,55 L155,115 M200,62 L200,115 M82,92 L228,92" stroke="#cbe6fa" strokeWidth="3" />
+              {/* 通訊天線 */}
+              <ellipse cx="245" cy="42" rx="28" ry="16" transform="rotate(-25 245 42)" fill="#fff" stroke="#7c6855" strokeWidth="4" />
+              <line x1="245" y1="42" x2="262" y2="25" stroke="#7c6855" strokeWidth="4" />
+              {/* 門與窗 */}
+              <rect x="130" y="165" width="50" height="52" rx="8" fill="#8b9bb4" stroke="#5a4636" strokeWidth="4" />
+              <rect x="65" y="172" width="26" height="22" rx="5" fill="#63c5ff" stroke="#5a4636" strokeWidth="3" />
+              <rect x="218" y="172" width="26" height="22" rx="5" fill="#63c5ff" stroke="#5a4636" strokeWidth="3" />
+              {/* 招牌 */}
+              <rect x="82" y="124" width="146" height="32" rx="16" fill="#fffaf0" stroke="#9e8267" strokeWidth="3" />
+              <text x="155" y="146" textAnchor="middle" fill="#5a3e28" fontSize="18" fontWeight="900">🏠 中央生活區</text>
+            </g>
+
+            {/* 1. 左側：能源區圓頂 */}
+            <g transform="translate(95, 225)">
+              <ellipse cx="105" cy="165" rx="105" ry="22" fill="#b35630" opacity="0.4" />
+              <path d="M20,110 C20,25 190,25 190,110 L205,155 C205,172 5,172 5,155 Z" fill="#f5ede0" stroke="#7c6855" strokeWidth="5" />
+              <path d="M40,95 C40,35 170,35 170,95 Z" fill="#6898d8" stroke="#4d6f9e" strokeWidth="4" />
+              <rect x="85" y="122" width="40" height="42" rx="6" fill="#8b9bb4" stroke="#5a4636" strokeWidth="4" />
+              <rect x="42" y="96" width="126" height="28" rx="14" fill="#fffaf0" stroke="#9e8267" strokeWidth="3" />
+              <text x="105" y="116" textAnchor="middle" fill="#5a3e28" fontSize="16" fontWeight="900">⚡ 能源區</text>
+            </g>
+
+            {/* 2. 右側：農業溫室圓頂 */}
+            <g transform="translate(685, 215)">
+              <ellipse cx="115" cy="175" rx="112" ry="22" fill="#b35630" opacity="0.4" />
+              <path d="M20,120 C20,20 210,20 210,120 L225,165 C225,182 5,182 5,165 Z" fill="#f5ede0" stroke="#7c6855" strokeWidth="5" />
+              <path d="M35,112 C35,28 195,28 195,112 Z" fill="#9be082" stroke="#5c9c49" strokeWidth="4" />
+              <circle cx="80" cy="85" r="22" fill="#5eb848" />
+              <circle cx="115" cy="75" r="26" fill="#4da338" />
+              <circle cx="150" cy="88" r="22" fill="#5eb848" />
+              <rect x="95" y="132" width="40" height="42" rx="6" fill="#8b9bb4" stroke="#5a4636" strokeWidth="4" />
+              <rect x="48" y="102" width="134" height="28" rx="14" fill="#fffaf0" stroke="#9e8267" strokeWidth="3" />
+              <text x="115" y="122" textAnchor="middle" fill="#5a3e28" fontSize="16" fontWeight="900">🍅 農業溫室</text>
+            </g>
+
+            {/* 3. 下方：探勘與研究站車庫 */}
+            <g transform="translate(345, 420)">
+              <ellipse cx="155" cy="168" rx="165" ry="22" fill="#b35630" opacity="0.4" />
+              <polygon points="35,45 275,45 305,155 5,155" fill="#f5ede0" stroke="#7c6855" strokeWidth="5" strokeLinejoin="round" />
+              <rect x="85" y="105" width="140" height="50" rx="6" fill="#708099" stroke="#4a3525" strokeWidth="4" />
+              <line x1="85" y1="122" x2="225" y2="122" stroke="#9db0cc" strokeWidth="3" />
+              <line x1="85" y1="138" x2="225" y2="138" stroke="#9db0cc" strokeWidth="3" />
+              <rect x="65" y="65" width="180" height="32" rx="16" fill="#fffaf0" stroke="#9e8267" strokeWidth="3" />
+              <text x="155" y="87" textAnchor="middle" fill="#5a3e28" fontSize="16" fontWeight="900">🛸 探勘與研究站</text>
+            </g>
+
+            {/* NASA 旗幟 */}
+            <g transform="translate(115, 470)">
+              <line x1="15" y1="0" x2="15" y2="85" stroke="#fff" strokeWidth="5" strokeLinecap="round" />
+              <rect x="18" y="5" width="64" height="42" rx="4" fill="#fff" stroke="#7c6855" strokeWidth="3" />
+              <circle cx="50" cy="26" r="15" fill="#1d4ed8" />
+              <text x="50" y="30" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="900">NASA</text>
+            </g>
+          </svg>
+
+          {/* 左上角標題徽章 */}
+          <div className="top-3 left-3 absolute bg-[#fdf6e9]/95 border-2 border-[#d9c2a3] px-4 py-1.5 rounded-full font-black text-xs md:text-base text-[#5a3e28] shadow">
+            火星基地・總覽（點擊建築進入房間）
+          </div>
+
+          {/* 房間互動熱區 1：能源區 */}
+          <button
+            onClick={() => onEnterRoom('POWER')}
+            style={{ left: '9%', top: '34%', width: '22%', height: '31%' }}
+            className="absolute rounded-3xl border-2 border-transparent hover:border-yellow-300 hover:bg-yellow-200/25 active:scale-95 transition cursor-pointer flex items-start justify-end p-2"
+            title="點擊進入能源區"
+          >
+            {showPowerDot && (
+              <span className="flex h-5 w-5">
+                <span className="animate-ping absolute inline-flex h-5 w-5 rounded-full bg-red-400 opacity-80" />
+                <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 border-2 border-white shadow" />
+              </span>
+            )}
+          </button>
+
+          {/* 房間互動熱區 2：農業溫室 */}
+          <button
+            onClick={() => onEnterRoom('GREENHOUSE')}
+            style={{ left: '68%', top: '33%', width: '24%', height: '32%' }}
+            className="absolute rounded-3xl border-2 border-transparent hover:border-emerald-300 hover:bg-emerald-200/25 active:scale-95 transition cursor-pointer flex flex-col items-end justify-between p-2"
+            title="點擊進入農業溫室"
+          >
+            {showGreenhouseDot && (
+              <span className="flex h-5 w-5">
+                <span className="animate-ping absolute inline-flex h-5 w-5 rounded-full bg-red-400 opacity-80" />
+                <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 border-2 border-white shadow" />
+              </span>
+            )}
+            {tomatoProgress >= 3 && (
+              <span className="self-center px-2.5 py-0.5 rounded-full bg-red-600 text-white text-xs font-black shadow animate-bounce">
+                🍅 熟了！快採收
+              </span>
+            )}
+          </button>
+
+          {/* 房間互動熱區 3：探勘與研究站 */}
+          <button
+            onClick={() => onEnterRoom('ROVER')}
+            style={{ left: '34%', top: '66%', width: '32%', height: '28%' }}
+            className="absolute rounded-3xl border-2 border-transparent hover:border-sky-300 hover:bg-sky-200/25 active:scale-95 transition cursor-pointer flex items-start justify-end p-2"
+            title="點擊進入探勘與研究站"
+          >
+            {showRoverDot && (
+              <span className="flex h-5 w-5">
+                <span className="animate-ping absolute inline-flex h-5 w-5 rounded-full bg-red-400 opacity-80" />
+                <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 border-2 border-white shadow" />
+              </span>
+            )}
+          </button>
+
+          {/* 右下角：結束今天按鈕 */}
+          <button
+            onClick={onEndSol}
+            className="bottom-3 right-3 md:bottom-5 md:right-5 absolute px-4 py-2.5 md:px-5 md:py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs md:text-base shadow-xl border-2 border-white flex items-center gap-2 active:scale-95 transition z-20"
+          >
+            <span>🌙</span>
+            <span>結束今天（進第 {sol + 1 > 20 ? 20 : sol + 1} 天）</span>
+          </button>
+        </div>
+      );
+    }
+
+    /**
+     * 場景 1：能源區（內部）
+     * 直接點擊場景內對應物件：
+     * - 窗外太陽能板 -> 開啟太陽能追光小遊戲
+     * - 中央充電座螢幕 -> 替探測車充 1 格電
+     * - 右側 O2 製氧機 -> 啟動水電解製氧
+     */
+    function PowerRoomScene({
+      resources,
+      weather,
+      solarCollectedToday,
+      batteryBars,
+      roverStatus,
+      onBack,
+      onOpenSolarGame,
+      onElectrolysis,
+      onChargeRover,
+    }) {
+      return (
+        <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden border-4 border-[#d9c2a3] shadow-xl bg-[#dce6f2]">
+          {/* 能源區內部手繪風格背景插畫 */}
+          <svg viewBox="0 0 1000 625" className="w-full h-full object-cover block">
+            {/* 牆面與地板 */}
+            <rect width="1000" height="450" fill="#cbd8e8" />
+            <polygon points="0,450 1000,450 1000,625 0,625" fill="#9ba9bc" />
+            <polygon points="180,470 820,470 880,605 120,605" fill="none" stroke="#facc15" strokeWidth="6" />
+
+            {/* 窗戶與窗外太陽能板（對應互動熱區 1） */}
+            <rect x="60" y="95" width="230" height="175" rx="22" fill="#f3a678" stroke="#5a4636" strokeWidth="7" />
+            <polygon points="60,210 290,190 290,270 60,270" fill="#d97348" />
+            {/* 窗外兩片太陽能板 */}
+            <g transform="translate(85, 130)">
+              <rect x="30" y="55" width="8" height="35" fill="#5a4636" />
+              <polygon points="5,55 22,12 78,12 60,55" fill="#3b82f6" stroke="#fff" strokeWidth="3" />
+              <line x1="13" y1="33" x2="68" y2="33" stroke="#bae6fd" strokeWidth="2" />
+            </g>
+            <g transform="translate(175, 120)">
+              <rect x="30" y="55" width="8" height="35" fill="#5a4636" />
+              <polygon points="5,55 22,12 78,12 60,55" fill="#3b82f6" stroke="#fff" strokeWidth="3" />
+              <line x1="13" y1="33" x2="68" y2="33" stroke="#bae6fd" strokeWidth="2" />
+            </g>
+
+            {/* 黃色輸電管線 */}
+            <path d="M520,120 L520,60 L790,60 L790,150" fill="none" stroke="#eab308" strokeWidth="18" strokeLinejoin="round" />
+
+            {/* 中央主控電力與充電終端（對應互動熱區 2） */}
+            <g transform="translate(335, 135)">
+              <rect x="0" y="0" width="290" height="320" rx="20" fill="#f5ede0" stroke="#5a4636" strokeWidth="6" />
+              <rect x="28" y="28" width="234" height="145" rx="14" fill="#2b5876" stroke="#5a4636" strokeWidth="5" />
+              {/* 螢幕閃電圖案 */}
+              <polygon points="155,48 115,105 145,105 132,152 178,92 148,92" fill="#facc15" stroke="#fff" strokeWidth="3" />
+              {/* 充電插槽 */}
+              <rect x="45" y="195" width="200" height="85" rx="12" fill="#cbd5e1" stroke="#5a4636" strokeWidth="4" />
+              <text x="145" y="232" textAnchor="middle" fill="#1e293b" fontSize="18" fontWeight="900">
+                探測車充電座 ({batteryBars}/5格)
+              </text>
+            </g>
+
+            {/* 右側 O2 水電解製氧機（對應互動熱區 3） */}
+            <g transform="translate(715, 145)">
+              <rect x="20" y="0" width="170" height="310" rx="65" fill="#e2e8f0" stroke="#5a4636" strokeWidth="6" />
+              <rect x="42" y="65" width="126" height="170" rx="20" fill="#38bdf8" stroke="#0284c7" strokeWidth="4" />
+              <circle cx="105" cy="145" r="44" fill="#fff" stroke="#0284c7" strokeWidth="4" />
+              <text x="105" y="156" textAnchor="middle" fill="#0369a1" fontSize="34" fontWeight="900">O₂</text>
+              <path d="M165,240 L215,240 L215,310" fill="none" stroke="#eab308" strokeWidth="14" strokeLinejoin="round" />
+            </g>
+          </svg>
+
+          {/* 頂部返回列 */}
+          <div className="top-3 left-3 right-3 absolute flex justify-between items-center z-20">
+            <button
+              onClick={onBack}
+              className="px-4 py-2 rounded-full bg-[#fdf6e9]/95 hover:bg-amber-200 border-2 border-[#d9c2a3] font-black text-xs md:text-sm text-[#4a3525] shadow-md flex items-center gap-1.5"
+            >
+              <span className="text-lg leading-none">‹</span>
+              <span>能源區（內部）｜點此回基地</span>
+            </button>
+            <div className="bg-white/95 border-2 border-[#d9c2a3] px-3 py-1.5 rounded-full text-xs font-black text-[#5a3e28] shadow">
+              ⚡ 電力 {resources.power} ｜ 💧 水 {resources.water} ｜ 🫧 氧氣 {resources.oxygen}
+            </div>
+          </div>
+
+          {/* 物件熱區 1：窗外太陽能板 -> 開啟追光小遊戲 */}
+          <button
+            onClick={onOpenSolarGame}
+            disabled={solarCollectedToday}
+            style={{ left: '5%', top: '14%', width: '25%', height: '33%' }}
+            className="absolute rounded-2xl border-2 border-transparent hover:border-amber-300 hover:bg-amber-300/20 disabled:opacity-75 transition cursor-pointer flex flex-col items-center justify-end pb-1.5"
+          >
+            <span className="animate-float px-3 py-1 rounded-full bg-amber-400 text-[#3b2514] border-2 border-white text-xs font-black shadow-md">
+              {solarCollectedToday
+                ? '✅ 今日已接過陽光'
+                : `☀️ 點太陽能板接陽光（最多+${weather?.isDustStorm ? 13 : 25}⚡）`}
+            </span>
+          </button>
+
+          {/* 物件熱區 2：中央充電座 -> 替探測車充 1 格電 */}
+          <button
+            onClick={onChargeRover}
+            disabled={resources.power < 12 || batteryBars >= 5 || roverStatus === 'OUT_ON_MISSION'}
+            style={{ left: '33%', top: '22%', width: '30%', height: '52%' }}
+            className="absolute rounded-2xl border-2 border-transparent hover:border-emerald-300 hover:bg-emerald-300/15 disabled:opacity-75 transition cursor-pointer flex flex-col items-center justify-end pb-2"
+          >
+            <span className="px-3.5 py-1.5 rounded-full bg-emerald-500 text-white border-2 border-white text-xs font-black shadow-md">
+              {roverStatus === 'OUT_ON_MISSION'
+                ? '🛸 探測車出門中'
+                : batteryBars >= 5
+                ? '🔋 探測車電量已滿（5/5格）'
+                : '🔋 點這裡幫車充電（用12⚡ → +1格）'}
+            </span>
+          </button>
+
+          {/* 物件熱區 3：右側 O2 製氧機 -> 水電解製氧 */}
+          <button
+            onClick={onElectrolysis}
+            disabled={resources.water < 10 || resources.power < 15}
+            style={{ left: '70%', top: '22%', width: '23%', height: '52%' }}
+            className="absolute rounded-2xl border-2 border-transparent hover:border-sky-300 hover:bg-sky-300/20 disabled:opacity-75 transition cursor-pointer flex flex-col items-center justify-end pb-2"
+          >
+            <span className="px-3 py-1.5 rounded-full bg-sky-500 text-white border-2 border-white text-xs font-black shadow-md text-center">
+              🫧 點製氧機造氧氣
+              <br />
+              <span className="text-[10px] font-bold">（用10💧+15⚡ → +22🫧）</span>
+            </span>
+          </button>
+        </div>
+      );
+    }
+
+    /**
+     * 場景 2：農業溫室（內部）
+     * 直接點擊場景內對應物件：
+     * - 牆上溫控面板 -> 打開氣溫雙選項（省電 / 加速照顧）
+     * - 中央番茄種植床 -> 成熟時直接點擊採收，番茄飛入右下採收籃！
+     */
+    function GreenhouseRoomScene({
+      resources,
+      weather,
+      tomatoProgress,
+      tomatoSpoiledToday,
+      greenhouseActedToday,
+      onBack,
+      onTendTomatoOption,
+      onHarvestTomato,
+    }) {
+      const [showTempSelector, setShowTempSelector] = useState(false);
+      const [flyingTomato, setFlyingTomato] = useState(false);
+
+      const greenhouseConfig = getGreenhouseOptionsForTemp(weather?.tempMin ?? -75);
+
+      const handlePlantBedClick = () => {
+        if (tomatoProgress >= 3) {
+          setFlyingTomato(true);
+          onHarvestTomato();
+          setTimeout(() => setFlyingTomato(false), 800);
+        } else if (!greenhouseActedToday) {
+          setShowTempSelector(true);
+        }
+      };
+
+      return (
+        <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden border-4 border-[#d9c2a3] shadow-xl bg-[#e6f4ea]">
+          {/* 農業溫室內部手繪風格背景插畫 */}
+          <svg viewBox="0 0 1000 625" className="w-full h-full object-cover block">
+            {/* 玻璃溫室背景與陽光 */}
+            <rect width="1000" height="470" fill="#dff2e4" />
+            <polygon points="0,470 1000,470 1000,625 0,625" fill="#e9d8be" />
+            <path d="M50,470 C50,80 950,80 950,470" fill="none" stroke="#9ac4a6" strokeWidth="8" />
+            <line x1="300" y1="120" x2="300" y2="470" stroke="#b6d9bf" strokeWidth="5" />
+            <line x1="700" y1="120" x2="700" y2="470" stroke="#b6d9bf" strokeWidth="5" />
+
+            {/* 植物生長燈 */}
+            {[260, 500, 740].map((lx, i) => (
+              <g key={i} transform={`translate(${lx - 45}, 115)`}>
+                <line x1="45" y1="-35" x2="45" y2="10" stroke="#6b7280" strokeWidth="5" />
+                <path d="M10,35 C10,10 80,10 80,35 Z" fill="#f59e0b" stroke="#5a4636" strokeWidth="4" />
+                <polygon points="15,35 75,35 95,120 -5,120" fill="#fef08a" opacity="0.35" />
+              </g>
+            ))}
+
+            {/* 牆上氣溫與照顧看板（對應互動熱區 1） */}
+            <g transform="translate(760, 185)">
+              <rect x="0" y="0" width="165" height="210" rx="16" fill="#fffaf0" stroke="#8c6d4f" strokeWidth="6" />
+              <rect x="18" y="18" width="129" height="45" rx="8" fill="#bae6fd" />
+              <text x="82" y="46" textAnchor="middle" fill="#0369a1" fontSize="16" fontWeight="900">
+                夜間 {weather?.tempMin ?? -75}°C
+              </text>
+              <line x1="22" y1="85" x2="142" y2="85" stroke="#d6bfa7" strokeWidth="5" strokeLinecap="round" />
+              <line x1="22" y1="115" x2="120" y2="115" stroke="#d6bfa7" strokeWidth="5" strokeLinecap="round" />
+              <line x1="22" y1="145" x2="135" y2="145" stroke="#d6bfa7" strokeWidth="5" strokeLinecap="round" />
+            </g>
+
+            {/* 中央番茄種植木箱床（對應互動熱區 2） */}
+            <g transform="translate(160, 290)">
+              <rect x="0" y="95" width="530" height="95" rx="14" fill="#c88a55" stroke="#6e4726" strokeWidth="6" />
+              <rect x="15" y="80" width="500" height="24" rx="8" fill="#6b4423" />
+
+              {/* 依 tomatoProgress 繪製不同生長階段的番茄植株 */}
+              {[75, 200, 325, 450].map((px, idx) => (
+                <g key={idx} transform={`translate(${px}, 85)`}>
+                  {tomatoSpoiledToday ? (
+                    <text x="0" y="-15" textAnchor="middle" fontSize="48">🥀</text>
+                  ) : tomatoProgress === 0 ? (
+                    <text x="0" y="-10" textAnchor="middle" fontSize="40">🌱</text>
+                  ) : tomatoProgress === 1 ? (
+                    <g>
+                      <path d="M0,0 L0,-55 M0,-25 L-22,-42 M0,-35 L22,-50" stroke="#16a34a" strokeWidth="7" strokeLinecap="round" />
+                      <circle cx="-22" cy="-42" r="12" fill="#22c55e" />
+                      <circle cx="22" cy="-50" r="12" fill="#22c55e" />
+                    </g>
+                  ) : tomatoProgress === 2 ? (
+                    <g>
+                      <path d="M0,0 L0,-75 M0,-30 L-28,-50 M0,-45 L28,-65" stroke="#15803d" strokeWidth="8" strokeLinecap="round" />
+                      <circle cx="-28" cy="-50" r="15" fill="#22c55e" />
+                      <circle cx="28" cy="-65" r="15" fill="#22c55e" />
+                      <circle cx="-18" cy="-58" r="7" fill="#facc15" />
+                      <circle cx="20" cy="-72" r="7" fill="#facc15" />
+                    </g>
+                  ) : (
+                    /* 階段 3：結滿紅通通的大番茄！ */
+                    <g>
+                      <path d="M0,0 L0,-85 M0,-30 L-32,-52 M0,-50 L32,-70" stroke="#15803d" strokeWidth="8" strokeLinecap="round" />
+                      <circle cx="-25" cy="-60" r="18" fill="#22c55e" />
+                      <circle cx="25" cy="-72" r="18" fill="#22c55e" />
+                      <circle cx="-28" cy="-42" r="15" fill="#ef4444" stroke="#991b1b" strokeWidth="2" />
+                      <circle cx="26" cy="-55" r="16" fill="#ef4444" stroke="#991b1b" strokeWidth="2" />
+                      <circle cx="0" cy="-78" r="14" fill="#ef4444" stroke="#991b1b" strokeWidth="2" />
+                    </g>
+                  )}
+                </g>
+              ))}
+            </g>
+
+            {/* 右下角藍色澆水壺與木頭採收籃 */}
+            <g transform="translate(720, 445)">
+              <rect x="85" y="25" width="135" height="80" rx="12" fill="#d99b66" stroke="#6e4726" strokeWidth="5" />
+              <line x1="85" y1="52" x2="220" y2="52" stroke="#6e4726" strokeWidth="4" />
+              <line x1="85" y1="78" x2="220" y2="78" stroke="#6e4726" strokeWidth="4" />
+              <circle cx="125" cy="22" r="14" fill="#ef4444" />
+              <circle cx="155" cy="20" r="15" fill="#ef4444" />
+              <circle cx="185" cy="23" r="14" fill="#ef4444" />
+              <text x="152" y="124" textAnchor="middle" fill="#5a3e28" fontSize="14" fontWeight="900">採收籃</text>
+            </g>
+          </svg>
+
+          {/* 採收時番茄飛進籃子動畫 */}
+          {flyingTomato && (
+            <div style={{ left: '48%', top: '48%' }} className="absolute text-4xl animate-fly-basket pointer-events-none z-30">
+              🍅
+            </div>
+          )}
+
+          {/* 頂部返回列 */}
+          <div className="top-3 left-3 right-3 absolute flex justify-between items-center z-20">
+            <button
+              onClick={onBack}
+              className="px-4 py-2 rounded-full bg-[#fdf6e9]/95 hover:bg-emerald-200 border-2 border-[#d9c2a3] font-black text-xs md:text-sm text-[#4a3525] shadow-md flex items-center gap-1.5"
+            >
+              <span className="text-lg leading-none">‹</span>
+              <span>農業溫室（內部）｜點此回基地</span>
+            </button>
+            <div className="bg-white/95 border-2 border-[#d9c2a3] px-3 py-1.5 rounded-full text-xs font-black text-[#5a3e28] shadow">
+              💧 水 {resources.water} ｜ ⚡ 電力 {resources.power} ｜ 🍅 食物 {resources.food}
+            </div>
+          </div>
+
+          {/* 腐壞提醒橫幅 */}
+          {tomatoSpoiledToday && (
+            <div className="top-14 left-4 absolute bg-amber-100/95 border-2 border-amber-500 text-amber-950 px-3 py-1 rounded-full text-xs font-black shadow">
+              🥀 昨天的熟番茄沒採收爛掉了，已重新種下小苗！
+            </div>
+          )}
+
+          {/* 物件熱區 1：中央番茄種植床 -> 成熟直接採收 / 未成熟打開照顧選單 */}
+          <button
+            onClick={handlePlantBedClick}
+            style={{ left: '15%', top: '34%', width: '55%', height: '44%' }}
+            className="absolute rounded-3xl border-2 border-transparent hover:border-emerald-400 hover:bg-emerald-200/15 transition cursor-pointer flex flex-col items-center justify-end pb-2"
+          >
+            <span
+              className={`px-4 py-1.5 rounded-full border-2 border-white text-xs md:text-sm font-black shadow-lg ${
+                tomatoProgress >= 3
+                  ? 'bg-red-600 text-white animate-bounce'
+                  : greenhouseActedToday
+                  ? 'bg-emerald-700 text-white'
+                  : 'bg-emerald-500 text-white'
+              }`}
+            >
+              {tomatoProgress >= 3
+                ? '🧺 番茄熟了！點我採收進籃子（+35食物，不採會壞掉！）'
+                : greenhouseActedToday
+                ? `✅ 今天已照顧過番茄（目前長大 ${tomatoProgress}/3）`
+                : `🌱 點番茄盆栽選擇照顧方式（目前 ${tomatoProgress}/3）`}
+            </span>
+          </button>
+
+          {/* 物件熱區 2：右側牆上氣溫看板 -> 打開氣溫照顧選單 */}
+          <button
+            onClick={() => tomatoProgress < 3 && !greenhouseActedToday && setShowTempSelector(true)}
+            style={{ left: '75%', top: '28%', width: '18%', height: '35%' }}
+            className="absolute rounded-2xl border-2 border-transparent hover:border-sky-400 hover:bg-sky-200/20 transition cursor-pointer flex items-end justify-center pb-1"
+            title="查看氣溫與溫室燈光設定"
+          >
+            <span className="px-2 py-0.5 rounded-full bg-white/95 border border-[#8c6d4f] text-[11px] font-black text-sky-900 shadow">
+              🌡️ 溫控面板
+            </span>
+          </button>
+
+          {/* 點擊番茄床或溫控面板後彈出的氣溫照顧選項 */}
+          {showTempSelector && (
+            <div className="inset-0 absolute bg-[#2d1e12]/70 flex items-center justify-center p-4 z-30">
+              <div className="bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl max-w-md w-full p-5 space-y-3 shadow-2xl">
+                <div className="flex justify-between items-center">
+                  <span className="font-black text-base text-emerald-900">
+                    🌡️ {greenhouseConfig.weatherTag}
+                  </span>
+                  <button
+                    onClick={() => setShowTempSelector(false)}
+                    className="px-3 py-1 rounded-full bg-[#eadbc5] text-xs font-bold"
+                  >
+                    取消
+                  </button>
+                </div>
+                <p className="text-xs text-[#6b4c35]">請選擇今天要用哪種方式照顧番茄：</p>
+
+                {[greenhouseConfig.optionStandard, greenhouseConfig.optionBoost].map((opt) => {
+                  const canAfford =
+                    resources.water >= opt.waterCost && resources.power >= opt.powerCost;
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        onTendTomatoOption(opt);
+                        setShowTempSelector(false);
+                      }}
+                      disabled={!canAfford}
+                      className="w-full p-3.5 rounded-2xl bg-white hover:bg-[#f4faef] disabled:opacity-45 border-2 border-[#b8d8ae] text-left space-y-1 active:scale-95 transition shadow-sm"
+                    >
+                      <div className="flex justify-between items-center font-black text-emerald-800 text-sm">
+                        <span>{opt.title}</span>
+                        <span className="text-xs bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full">
+                          用 {opt.waterCost}水 + {opt.powerCost}電
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#6b4c35]">{opt.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
       );
     }
 
-    // =========================================================================
-    // 5. 三個房間的操作彈窗（頂部顯示從原圖裁切出來的對應房間內部插畫）
-    // =========================================================================
-    function StationModals({
-      activeStation,
-      interiorImageUrl,
-      onClose,
-      resources,
+    /**
+     * 場景 3：探勘與研究站（內部）
+     * 直接點擊場景內對應物件：
+     * - 左側電池終端機 -> 切換派車電量（1格 / 2格 / 3格）
+     * - 中央白色探測車 -> 派車出門（出門後車台變空）
+     * - 右側玻璃展示櫃火星石頭 -> 查看已挖到的石頭清單
+     */
+    function RoverRoomScene({
       weather,
-      solarCollectedToday,
-      onCompleteSolarGame,
-      onElectrolysis,
-      onChargeRover,
-      tomatoProgress,
-      tomatoSpoiledToday,
-      greenhouseActedToday,
-      onTendTomatoOption,
-      onHarvestTomato,
       batteryBars,
       roverStatus,
       damageSolLeft,
       pendingExpedition,
       sol,
+      samples,
+      onBack,
       onDispatchRoverWithCost,
     }) {
-      const [playingSolarGame, setPlayingSolarGame] = useState(false);
       const [selectedBarsCost, setSelectedBarsCost] = useState(2);
-      const [justHarvestedAnim, setJustHarvestedAnim] = useState(false);
-
-      if (!activeStation) return null;
+      const [showRockBox, setShowRockBox] = useState(false);
 
       const radInfo = RADIATION_LABELS[weather?.radiationLevel || 1];
-      const greenhouseConfig = getGreenhouseOptionsForTemp(weather?.tempMin ?? -75);
+      const hasHighRisk = weather?.isDustStorm || (weather?.radiationLevel || 1) >= 4;
+      const modeInfo = ROVER_DISPATCH_MODES[selectedBarsCost];
 
-      const triggerHarvestWithAnimation = () => {
-        setJustHarvestedAnim(true);
-        onHarvestTomato();
-        setTimeout(() => setJustHarvestedAnim(false), 1200);
+      const cycleBarsCost = () => {
+        const next = selectedBarsCost === 1 ? 2 : selectedBarsCost === 2 ? 3 : 1;
+        setSelectedBarsCost(next);
       };
 
-      const hasHighRoverRisk = weather?.isDustStorm || (weather?.radiationLevel || 1) >= 4;
+      const ownedRocks = SAMPLE_CATALOG.filter((s) => s.id !== 'NONE' && samples[s.id] > 0);
 
       return (
-        <div className="fixed inset-0 bg-[#2d1e12]/70 flex items-center justify-center p-3 md:p-4 z-50">
-          <div className="bg-[#fdf6e9] border-4 border-[#d9c2a3] text-[#4a3525] rounded-3xl max-w-lg w-full p-4 md:p-5 space-y-3.5 shadow-2xl max-h-[92vh] overflow-y-auto">
-            {/* 頂部返回與房間標題 */}
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    setPlayingSolarGame(false);
-                    onClose();
-                  }}
-                  className="w-9 h-9 rounded-full bg-[#eadbc5] hover:bg-[#dfc9aa] font-black text-base text-[#4a3525] flex items-center justify-center shadow-sm"
-                  title="返回基地總覽"
-                >
-                  ‹
-                </button>
-                <h3 className="font-black text-lg text-[#4a3525]">
-                  {ROOM_HOTSPOTS[activeStation].icon} {ROOM_HOTSPOTS[activeStation].label}（內部）
-                </h3>
-              </div>
-              <button
-                onClick={() => {
-                  setPlayingSolarGame(false);
-                  onClose();
-                }}
-                className="px-3 py-1 rounded-full bg-[#eadbc5] hover:bg-[#dfc9aa] font-bold text-xs text-[#4a3525]"
-              >
-                回主地圖
-              </button>
+        <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden border-4 border-[#d9c2a3] shadow-xl bg-[#e3e8f0]">
+          {/* 探勘與研究站內部手繪風格背景插畫 */}
+          <svg viewBox="0 0 1000 625" className="w-full h-full object-cover block">
+            <rect width="1000" height="465" fill="#d8e1ec" />
+            <polygon points="0,465 1000,465 1000,625 0,625" fill="#a8b4c4" />
+
+            {/* 大螢幕顯示火星地形 */}
+            <rect x="420" y="135" width="330" height="215" rx="20" fill="#f5ede0" stroke="#5a4636" strokeWidth="6" />
+            <rect x="442" y="155" width="286" height="165" rx="12" fill="#3b6998" />
+            <polygon points="442,275 510,210 580,255 645,195 728,265 728,320 442,320" fill="#e5885c" />
+
+            {/* 左側電池與任務設定電腦（對應互動熱區 1） */}
+            <g transform="translate(55, 195)">
+              <rect x="0" y="0" width="210" height="270" rx="18" fill="#f5ede0" stroke="#5a4636" strokeWidth="6" />
+              <rect x="22" y="25" width="166" height="95" rx="10" fill="#1e293b" />
+              <text x="105" y="65" textAnchor="middle" fill="#38bdf8" fontSize="18" fontWeight="900">
+                出勤耗電：{selectedBarsCost} 格
+              </text>
+              <text x="105" y="95" textAnchor="middle" fill="#facc15" fontSize="14" fontWeight="700">
+                點擊切換 1 / 2 / 3 格
+              </text>
+              <rect x="30" y="145" width="150" height="95" rx="10" fill="#cbd5e1" stroke="#5a4636" strokeWidth="4" />
+              <text x="105" y="198" textAnchor="middle" fill="#334155" fontSize="16" fontWeight="900">
+                目前電池：{batteryBars}/5格
+              </text>
+            </g>
+
+            {/* 中央黃色升降停機坪與火星探測車（對應互動熱區 2） */}
+            <g transform="translate(300, 265)">
+              <ellipse cx="165" cy="235" rx="150" ry="32" fill="#facc15" stroke="#a16207" strokeWidth="5" />
+              <ellipse cx="165" cy="235" rx="115" ry="20" fill="#94a3b8" />
+
+              {/* 若探測車未出勤且未損壞，繪製可愛白色火星探測車 */}
+              {roverStatus !== 'OUT_ON_MISSION' && (
+                <g transform="translate(45, 35)">
+                  {/* 桅杆相機 */}
+                  <rect x="175" y="0" width="14" height="75" fill="#fff" stroke="#5a4636" strokeWidth="4" />
+                  <rect x="155" y="-12" width="54" height="30" rx="8" fill="#fff" stroke="#5a4636" strokeWidth="4" />
+                  <circle cx="192" cy="3" r="8" fill="#38bdf8" />
+                  {/* 車身 */}
+                  <rect x="30" y="65" width="175" height="75" rx="22" fill="#fffaf0" stroke="#5a4636" strokeWidth="5" />
+                  <rect x="55" y="82" width="125" height="25" rx="8" fill="#fb923c" />
+                  {/* 三顆大輪子 */}
+                  {[55, 118, 180].map((wx, i) => (
+                    <g key={i} transform={`translate(${wx}, 152)`}>
+                      <circle r="26" fill="#475569" stroke="#1e293b" strokeWidth="5" />
+                      <circle r="10" fill="#cbd5e1" />
+                    </g>
+                  ))}
+                  {roverStatus !== 'READY' && (
+                    <text x="118" y="55" textAnchor="middle" fill="#dc2626" fontSize="22" fontWeight="900">
+                      🛠️ 修理中...
+                    </text>
+                  )}
+                </g>
+              )}
+            </g>
+
+            {/* 右側玻璃樣本展示櫃（對應互動熱區 3） */}
+            <g transform="translate(775, 210)">
+              <rect x="0" y="135" width="175" height="135" rx="16" fill="#f5ede0" stroke="#5a4636" strokeWidth="6" />
+              <rect x="16" y="0" width="143" height="135" rx="16" fill="#bae6fd" opacity="0.65" stroke="#0284c7" strokeWidth="5" />
+              <polygon points="45,115 70,55 115,60 135,115" fill="#b45309" stroke="#78350f" strokeWidth="4" />
+              <text x="87" y="185" textAnchor="middle" fill="#5a3e28" fontSize="16" fontWeight="900">
+                🪨 已採集石頭
+              </text>
+              <text x="87" y="212" textAnchor="middle" fill="#0369a1" fontSize="18" fontWeight="900">
+                共 {ownedRocks.reduce((s, r) => s + samples[r.id], 0)} 顆
+              </text>
+            </g>
+          </svg>
+
+          {/* 頂部返回列 */}
+          <div className="top-3 left-3 right-3 absolute flex flex-wrap justify-between items-center gap-2 z-20">
+            <button
+              onClick={onBack}
+              className="px-4 py-2 rounded-full bg-[#fdf6e9]/95 hover:bg-sky-200 border-2 border-[#d9c2a3] font-black text-xs md:text-sm text-[#4a3525] shadow-md flex items-center gap-1.5"
+            >
+              <span className="text-lg leading-none">‹</span>
+              <span>探勘與研究站（內部）｜點此回基地</span>
+            </button>
+            <div className="bg-white/95 border-2 border-[#d9c2a3] px-3 py-1.5 rounded-full text-xs font-black text-[#5a3e28] shadow">
+              {weather?.isDustStorm ? '🌪️ 沙塵暴' : '☀️ 晴朗'} ｜ 輻射：{radInfo.text}
             </div>
-
-            {/* 顯示從原圖右方/下方裁切出來的對應房間內部插畫 */}
-            {interiorImageUrl && (
-              <div className="w-full rounded-2xl overflow-hidden border-2 border-[#d9c2a3] shadow-sm bg-white">
-                <img
-                  src={interiorImageUrl}
-                  alt={`${ROOM_HOTSPOTS[activeStation].label}內部`}
-                  className="w-full h-44 md:h-48 object-cover"
-                />
-              </div>
-            )}
-
-            {/* 1. 能源區（內部） */}
-            {activeStation === 'POWER' && (
-              <div className="space-y-3 text-sm">
-                <div className="bg-white border-2 border-[#eadbc5] p-2.5 rounded-2xl text-xs font-extrabold flex justify-around">
-                  <span>⚡ 電力：{resources.power}</span>
-                  <span>💧 水：{resources.water}</span>
-                  <span>🫧 氧氣：{resources.oxygen}</span>
-                </div>
-
-                {playingSolarGame ? (
-                  <SolarMiniGame
-                    isDustStorm={weather?.isDustStorm}
-                    onComplete={(caughtCount) => {
-                      const gained = calculateSolarGameReward(caughtCount, weather?.isDustStorm);
-                      onCompleteSolarGame(gained, caughtCount);
-                      setPlayingSolarGame(false);
-                    }}
-                    onClose={() => setPlayingSolarGame(false)}
-                  />
-                ) : (
-                  <button
-                    onClick={() => setPlayingSolarGame(true)}
-                    disabled={solarCollectedToday}
-                    className="w-full py-3.5 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 disabled:opacity-45 text-[#3b2514] font-black flex items-center justify-between shadow-sm active:scale-95 transition"
-                  >
-                    <span>
-                      {solarCollectedToday
-                        ? '✅ 今天已經接過太陽光囉！'
-                        : '☀️ 玩太陽能追光小遊戲（蒐集電力）'}
-                    </span>
-                    <span className="text-xs bg-white/80 px-2.5 py-1 rounded-full">
-                      {weather?.isDustStorm ? '最多 +13⚡' : '最多 +25⚡'}
-                    </span>
-                  </button>
-                )}
-
-                <button
-                  onClick={onElectrolysis}
-                  disabled={resources.water < 10 || resources.power < 15}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-sky-500 hover:bg-sky-400 disabled:opacity-45 text-white font-extrabold flex items-center justify-between shadow-sm active:scale-95 transition"
-                >
-                  <div className="text-left">
-                    <div>🫧 把水變成氧氣（+22 氧氣）</div>
-                    <div className="text-[11px] font-normal text-sky-100">太空人每天都需要呼吸氧氣</div>
-                  </div>
-                  <span className="text-xs bg-black/20 px-2.5 py-1 rounded-full">用 10水 + 15電</span>
-                </button>
-
-                <button
-                  onClick={onChargeRover}
-                  disabled={resources.power < 12 || batteryBars >= 5 || roverStatus === 'OUT_ON_MISSION'}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-45 text-white font-extrabold flex items-center justify-between shadow-sm active:scale-95 transition"
-                >
-                  <div className="text-left">
-                    <div>
-                      🔋{' '}
-                      {roverStatus === 'OUT_ON_MISSION'
-                        ? '探測車出門中，回來才能充電'
-                        : `幫探測車充 1 格電（目前 ${batteryBars}/5 格）`}
-                    </div>
-                    <div className="text-[11px] font-normal text-emerald-100">充飽電才能派車去找石頭</div>
-                  </div>
-                  <span className="text-xs bg-black/20 px-2.5 py-1 rounded-full">用 12電</span>
-                </button>
-              </div>
-            )}
-
-            {/* 2. 農業溫室（內部） */}
-            {activeStation === 'GREENHOUSE' && (
-              <div className="space-y-3.5 text-sm">
-                <div className="bg-white border-2 border-[#cfe3c8] rounded-2xl p-3.5 flex items-center justify-around">
-                  <div className="flex flex-col items-center space-y-1">
-                    <div className="w-16 h-16 rounded-2xl bg-[#f1f8ee] border-2 border-[#b8d8ae] flex items-center justify-center text-3xl">
-                      {tomatoSpoiledToday
-                        ? '🥀'
-                        : tomatoProgress === 0
-                        ? '🌱'
-                        : tomatoProgress === 1
-                        ? '🌿'
-                        : tomatoProgress === 2
-                        ? '🌼'
-                        : '🍅'}
-                    </div>
-                    <span className="text-xs font-extrabold text-emerald-800">
-                      {tomatoProgress >= 3
-                        ? '番茄熟透囉！快採收'
-                        : `長大進度：約 ${tomatoProgress} / 3`}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col items-center space-y-1 relative">
-                    <div className="w-16 h-16 rounded-2xl bg-[#fff8eb] border-2 border-[#ebd2a9] flex flex-col items-center justify-center relative overflow-hidden">
-                      {justHarvestedAnim && (
-                        <span className="text-xl animate-tomato-drop absolute top-1.5">🍅</span>
-                      )}
-                      <span className="text-3xl mt-1.5">🧺</span>
-                    </div>
-                    <span className="text-xs font-extrabold text-amber-800">
-                      {justHarvestedAnim ? '🍅 掉進籃子啦！+35食物' : '番茄採收籃'}
-                    </span>
-                  </div>
-                </div>
-
-                {tomatoProgress >= 3 && (
-                  <div className="bg-red-100 border-2 border-red-400 text-red-800 p-2.5 rounded-2xl text-xs font-extrabold animate-pulse">
-                    ⚠️ 番茄已經熟了！今天一定要按下面的採收按鈕，不然明天會爛掉喔！
-                  </div>
-                )}
-                {tomatoSpoiledToday && (
-                  <div className="bg-amber-100 border-2 border-amber-400 text-amber-900 p-2 rounded-2xl text-xs font-bold">
-                    🥀 昨天的成熟番茄忘記採收爛掉了，現在重新種了新小苗！
-                  </div>
-                )}
-
-                {tomatoProgress >= 3 ? (
-                  <button
-                    onClick={triggerHarvestWithAnimation}
-                    className="w-full py-3.5 px-4 rounded-2xl bg-red-500 hover:bg-red-400 text-white font-black text-base flex items-center justify-between shadow-md active:scale-95 transition"
-                  >
-                    <span>🧺 把熟番茄放進籃子（+35 食物）</span>
-                    <span className="text-xs bg-black/20 px-2.5 py-1 rounded-full">不用電</span>
-                  </button>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center text-xs font-bold">
-                      <span className="text-sky-800">🌡️ {greenhouseConfig.weatherTag}</span>
-                      <span className="text-[#7a5a40]">選一種照顧方式：</span>
-                    </div>
-
-                    {[greenhouseConfig.optionStandard, greenhouseConfig.optionBoost].map((opt) => {
-                      const canAfford =
-                        resources.water >= opt.waterCost && resources.power >= opt.powerCost;
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={() => onTendTomatoOption(opt)}
-                          disabled={greenhouseActedToday || !canAfford}
-                          className="w-full p-3 rounded-2xl bg-white hover:bg-[#f4faef] disabled:opacity-45 border-2 border-[#b8d8ae] text-left space-y-1 active:scale-95 transition shadow-sm"
-                        >
-                          <div className="flex justify-between items-center font-black text-emerald-800">
-                            <span>{greenhouseActedToday ? '✅ 今天已經照顧過番茄囉' : opt.title}</span>
-                            <span className="text-xs bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full">
-                              用 {opt.waterCost}水 + {opt.powerCost}電
-                            </span>
-                          </div>
-                          <p className="text-xs text-[#6b4c35]">{opt.desc}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 3. 探勘與研究站（內部） */}
-            {activeStation === 'ROVER' && (
-              <div className="space-y-3.5 text-sm">
-                <div className="bg-white border-2 border-[#eadbc5] p-3 rounded-2xl space-y-1.5">
-                  <div className="flex justify-between font-extrabold">
-                    <span>探測車電量：{batteryBars} / 5 格</span>
-                    <span className="text-xs text-amber-800">
-                      {weather?.isDustStorm ? '🌪️ 沙塵暴' : '☀️ 晴朗'} ｜ 輻射：{radInfo.text}
-                    </span>
-                  </div>
-                  {hasHighRoverRisk && (
-                    <div className="text-xs text-red-800 bg-red-100 border border-red-300 px-2.5 py-1.5 rounded-xl font-bold">
-                      ⚠️ 小心！外面有{weather?.isDustStorm ? '大沙塵暴' : ''}
-                      {weather?.isDustStorm && (weather?.radiationLevel || 1) >= 4 ? '和' : ''}
-                      {(weather?.radiationLevel || 1) >= 4 ? '超強輻射' : ''}
-                      ，派車出去可能會故障，要修 1～2 天喔！
-                    </div>
-                  )}
-                  <p className="text-xs text-[#7a5a40]">
-                    選好要用幾格電派車出發，明天早上就會傳回照片和石頭報告！
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-xs font-extrabold text-[#5a3e28]">選擇要用幾格電池出發：</div>
-                  {[1, 2, 3].map((bars) => {
-                    const mode = ROVER_DISPATCH_MODES[bars];
-                    const isSelected = selectedBarsCost === bars;
-                    const enoughBattery = batteryBars >= bars;
-                    return (
-                      <button
-                        key={bars}
-                        onClick={() => setSelectedBarsCost(bars)}
-                        disabled={!enoughBattery}
-                        className={`w-full p-3 rounded-2xl border-2 text-left transition ${
-                          isSelected
-                            ? 'bg-sky-100 border-sky-500'
-                            : 'bg-white border-[#eadbc5] hover:bg-[#fffaf0]'
-                        } disabled:opacity-45`}
-                      >
-                        <div className="flex justify-between items-center font-black text-xs md:text-sm">
-                          <span className="text-sky-900">{mode.name}</span>
-                          <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 text-xs">
-                            用 {bars} 格電
-                          </span>
-                        </div>
-                        <p className="text-xs text-[#6b4c35] mt-1">{mode.desc}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  onClick={() => onDispatchRoverWithCost(selectedBarsCost)}
-                  disabled={
-                    Boolean(pendingExpedition) ||
-                    roverStatus !== 'READY' ||
-                    batteryBars < selectedBarsCost
-                  }
-                  className="w-full py-3.5 px-4 rounded-2xl bg-sky-500 hover:bg-sky-400 disabled:opacity-45 text-white font-black text-base flex items-center justify-between shadow-md active:scale-95 transition"
-                >
-                  <span>
-                    {roverStatus === 'OUT_ON_MISSION'
-                      ? `🛰️ 車子已經出門探險囉（明天回來）`
-                      : roverStatus !== 'READY'
-                      ? `⚠️ 車子修理中（還要等 ${damageSolLeft} 天）`
-                      : batteryBars < selectedBarsCost
-                      ? `🪫 電量不夠 ${selectedBarsCost} 格，先去能源區充電`
-                      : `🚀 派探測車出發找石頭！`}
-                  </span>
-                  {roverStatus === 'READY' && batteryBars >= selectedBarsCost && (
-                    <span className="text-xs bg-black/20 px-2.5 py-1 rounded-full font-normal">
-                      -{selectedBarsCost} 格電
-                    </span>
-                  )}
-                </button>
-              </div>
-            )}
           </div>
+
+          {/* 沙塵暴或高輻射警示條 */}
+          {hasHighRisk && roverStatus === 'READY' && (
+            <div className="top-14 left-4 right-4 absolute bg-red-100/95 border-2 border-red-400 text-red-900 px-3 py-1.5 rounded-2xl text-xs font-extrabold shadow text-center">
+              ⚠️ 小心！外面有{weather?.isDustStorm ? '大沙塵暴' : ''}
+              {weather?.isDustStorm && (weather?.radiationLevel || 1) >= 4 ? '和' : ''}
+              {(weather?.radiationLevel || 1) >= 4 ? '超強輻射' : ''}
+              ，今天派車出去可能會故障要修 1～2 天喔！
+            </div>
+          )}
+
+          {/* 物件熱區 1：左側電池電腦 -> 點擊切換 1/2/3 格電量 */}
+          <button
+            onClick={cycleBarsCost}
+            style={{ left: '5%', top: '31%', width: '22%', height: '44%' }}
+            className="absolute rounded-2xl border-2 border-transparent hover:border-amber-400 hover:bg-amber-200/20 transition cursor-pointer flex flex-col items-center justify-end pb-2"
+          >
+            <span className="px-3 py-1 rounded-full bg-amber-300 text-amber-950 border-2 border-white text-xs font-black shadow">
+              🔄 點電腦切換耗電（{selectedBarsCost}格）
+            </span>
+          </button>
+
+          {/* 物件熱區 2：中央探測車 -> 點擊直接派車出發 */}
+          <button
+            onClick={() => onDispatchRoverWithCost(selectedBarsCost)}
+            disabled={
+              Boolean(pendingExpedition) ||
+              roverStatus !== 'READY' ||
+              batteryBars < selectedBarsCost
+            }
+            style={{ left: '30%', top: '36%', width: '38%', height: '52%' }}
+            className="absolute rounded-3xl border-2 border-transparent hover:border-sky-400 hover:bg-sky-200/15 disabled:opacity-80 transition cursor-pointer flex flex-col items-center justify-end pb-2"
+          >
+            <div className="bg-white/95 border-2 border-sky-400 rounded-2xl px-3.5 py-2 text-center shadow-lg max-w-xs">
+              <div className="text-xs md:text-sm font-black text-sky-900">
+                {roverStatus === 'OUT_ON_MISSION'
+                  ? `🛰️ 探測車出門探險中（明天 Sol ${sol + 1} 回來）`
+                  : roverStatus !== 'READY'
+                  ? `⚠️ 車子修理中（還要等 ${damageSolLeft} 天）`
+                  : batteryBars < selectedBarsCost
+                  ? `🪫 電量不夠 ${selectedBarsCost} 格，請先切換或去能源區充電`
+                  : `🚀 點探測車出發！（消耗 ${selectedBarsCost} 格電）`}
+              </div>
+              <div className="text-[11px] text-[#6b4c35] mt-0.5">{modeInfo.desc}</div>
+            </div>
+          </button>
+
+          {/* 物件熱區 3：右側展示櫃石頭 -> 點擊查看已收集石頭 */}
+          <button
+            onClick={() => setShowRockBox(true)}
+            style={{ left: '77%', top: '33%', width: '18%', height: '44%' }}
+            className="absolute rounded-2xl border-2 border-transparent hover:border-amber-400 hover:bg-amber-200/20 transition cursor-pointer flex items-end justify-center pb-2"
+          >
+            <span className="px-2.5 py-1 rounded-full bg-white/95 border border-[#8c6d4f] text-xs font-black text-[#4a3525] shadow">
+              🔍 看石頭收藏
+            </span>
+          </button>
+
+          {/* 石頭展示櫃彈窗 */}
+          {showRockBox && (
+            <div className="inset-0 absolute bg-[#2d1e12]/70 flex items-center justify-center p-4 z-30">
+              <div className="bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl max-w-md w-full p-5 space-y-3 shadow-2xl">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-black text-base text-[#4a3525]">🪨 目前收集到的火星石頭</h4>
+                  <button
+                    onClick={() => setShowRockBox(false)}
+                    className="px-3 py-1 rounded-full bg-[#eadbc5] text-xs font-bold"
+                  >
+                    關閉
+                  </button>
+                </div>
+                {ownedRocks.length === 0 ? (
+                  <p className="text-xs text-[#7a5a40] py-4 text-center">
+                    展示櫃還是空的喔！快點中間的探測車派它出去挖石頭吧！
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {ownedRocks.map((r) => (
+                      <div key={r.id} className="bg-white border border-[#dcc7a9] p-3 rounded-2xl flex justify-between items-center">
+                        <div>
+                          <div className="font-black text-sm text-sky-900">{r.name}</div>
+                          <div className="text-[11px] text-[#6b4c35]">{r.scientificNote}</div>
+                        </div>
+                        <span className="font-black text-amber-700 text-sm">× {samples[r.id]} 顆</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -1000,19 +1362,19 @@
 
             {sol === 1 ? (
               <div className="bg-white p-4 rounded-2xl border-2 border-[#eadbc5] space-y-2.5 text-xs text-[#5a3e28] leading-relaxed">
-                <div className="font-black text-amber-800 text-sm">🧑‍🚀 小小太空人任務目標：在火星生活 20 天並挖到珍貴石頭！</div>
+                <div className="font-black text-amber-800 text-sm">🧑‍🚀 怎麼玩？直接點擊圖片裡的房間和物品！</div>
                 <ul className="space-y-2 list-disc pl-4 font-medium">
                   <li>
-                    <span className="font-black text-sky-700">看最上面的狀態條：</span>「氧氣、電力、水、食物」不能變成 0，不然任務就失敗囉！
+                    <span className="font-black text-amber-700">⚡ 點擊「能源區」：</span>進去後點<span className="font-bold">窗外太陽能板</span>接陽光發電、點<span className="font-bold">藍色 O₂ 機器</span>造氧氣、點<span className="font-bold">充電座</span>幫探測車充電。
                   </li>
                   <li>
-                    <span className="font-black text-amber-700">點地圖上的三個房間：</span>有<span className="text-red-600 font-black">紅點點</span>代表還沒做工作：
-                    <br />• <span className="font-bold">⚡ 能源區：</span>玩接陽光小遊戲發電、把水變成氧氣、幫車子充電。
-                    <br />• <span className="font-bold">🍅 農業溫室：</span>照顧番茄長大，<span className="text-red-600 font-bold">熟了要馬上採收進籃子，不然會壞掉</span>！
-                    <br />• <span className="font-bold">🛸 探勘與研究站：</span>派探測車出門挖石頭，明天早上就會帶照片回來！
+                    <span className="font-black text-emerald-700">🍅 點擊「農業溫室」：</span>點<span className="font-bold">番茄盆栽</span>澆水開燈，<span className="text-red-600 font-bold">番茄變紅成熟時要馬上點它採收進籃子，不然會壞掉</span>！
                   </li>
                   <li>
-                    <span className="font-black text-emerald-700">第 10 天有驚喜補給：</span>第 10 天補給車會幫你把「水」和「食物」補滿！
+                    <span className="font-black text-sky-700">🛸 點擊「探勘與研究站」：</span>點<span className="font-bold">左邊電腦</span>選用幾格電，再點<span className="font-bold">白色探測車</span>派它出發，明天早上就會帶照片回來！
+                  </li>
+                  <li>
+                    <span className="font-black text-indigo-700">📦 第 10 天補給車：</span>第 10 天會自動把「水」和「食物」補滿！
                   </li>
                 </ul>
               </div>
@@ -1258,14 +1620,15 @@
     }
 
     // =========================================================================
-    // 7. 主遊戲控制器 App（左上外觀地圖為底，點擊房間顯示右側/下方內部場景圖）
+    // 7. 主遊戲控制器 App（全場景切換式圖片冒險遊戲）
     // =========================================================================
     function App() {
-      const { sprites, error: spriteError } = useCroppedSprites(SOURCE_FULL_IMAGE);
-
       const [sol, setSol] = useState(1);
       const [resources, setResources] = useState(INITIAL_RESOURCES);
-      const [activeStation, setActiveStation] = useState(null);
+
+      // 'EXTERIOR' | 'POWER' | 'GREENHOUSE' | 'ROVER'
+      const [currentScene, setCurrentScene] = useState('EXTERIOR');
+      const [showSolarGameModal, setShowSolarGameModal] = useState(false);
 
       const [solarCollectedToday, setSolarCollectedToday] = useState(false);
       const [greenhouseActedToday, setGreenhouseActedToday] = useState(false);
@@ -1329,9 +1692,11 @@
       const showGreenhouseDot = tomatoProgress >= 3 || (!greenhouseActedToday && tomatoProgress < 3);
       const showRoverDot = roverStatus === 'READY' && !pendingExpedition && batteryBars >= 1;
 
-      const handleCompleteSolarGame = (gainedPower, caughtCount) => {
+      const handleCompleteSolarGame = (caughtCount) => {
+        const gainedPower = calculateSolarGameReward(caughtCount, weather?.isDustStorm);
         setResources((r) => ({ ...r, power: Math.min(100, r.power + gainedPower) }));
         setSolarCollectedToday(true);
+        setShowSolarGameModal(false);
         if (caughtCount >= 14) setPerfectSolarGames((c) => c + 1);
         setDailyReport((prev) => [
           ...prev,
@@ -1349,12 +1714,14 @@
           power: Math.max(0, r.power - 15),
           oxygen: Math.min(100, r.oxygen + 22),
         }));
+        setDailyReport((prev) => [...prev, '🫧 製氧機啟動！用 10 水和 15 電力做出 +22 氧氣！']);
       };
 
       const handleChargeRover = () => {
         if (resources.power < 12 || batteryBars >= 5 || roverStatus === 'OUT_ON_MISSION') return;
         setResources((r) => ({ ...r, power: Math.max(0, r.power - 12) }));
         setBatteryBars((b) => Math.min(5, b + 1));
+        setDailyReport((prev) => [...prev, `🔋 已幫探測車充了 1 格電（目前 ${batteryBars + 1}/5 格）！`]);
       };
 
       const handleTendTomatoOption = (opt) => {
@@ -1369,6 +1736,7 @@
         setGreenhouseActedToday(true);
         setTodayGrowthModeId(opt.id);
         setTomatoSpoiledToday(false);
+        setDailyReport((prev) => [...prev, `🌱 已用「${opt.title}」照顧番茄，明天就會長大囉！`]);
       };
 
       const handleHarvestTomato = () => {
@@ -1377,6 +1745,7 @@
         setTomatoProgress(0);
         setGreenhouseActedToday(true);
         setHarvestCount((c) => c + 1);
+        setDailyReport((prev) => [...prev, '🧺 番茄採收進籃子啦！食物增加 +35！']);
       };
 
       const handleDispatchRoverWithCost = (barsCost) => {
@@ -1399,9 +1768,8 @@
 
         setDailyReport((prev) => [
           ...prev,
-          `🛸 探測車用了 ${barsCost} 格電出發探險，明天（第 ${sol + 1} 天）早上回來報告！`,
+          `🛸 探測車用了 ${barsCost} 格電開出車庫去探險了！明天（第 ${sol + 1} 天）早上回來報告！`,
         ]);
-        setActiveStation(null);
       };
 
       const handleEndSol = async () => {
@@ -1409,7 +1777,7 @@
         const logs = [];
 
         if (!solarCollectedToday) {
-          logs.push('⚠️ 今天忘記去能源區接太陽光，只拿到一點點備用電力 +4。');
+          logs.push('⚠️ 今天忘記去能源區點太陽能板接陽光，只拿到一點點備用電力 +4。');
         }
         const passiveSolar = solarCollectedToday ? 0 : 4;
 
@@ -1433,7 +1801,7 @@
           const growthResult = rollTomatoGrowthGain(todayGrowthModeId);
           nextTomatoProgress = Math.min(3, tomatoProgress + growthResult.gain);
           if (nextTomatoProgress >= 3) {
-            logs.push('🍅 番茄完全成熟囉！明天記得趕快放進採收籃，不然會壞掉！');
+            logs.push('🍅 番茄完全成熟囉！明天記得去溫室點它採收進籃子，不然會壞掉！');
           } else {
             logs.push(growthResult.note);
           }
@@ -1530,14 +1898,14 @@
         setGreenhouseActedToday(false);
         setTodayGrowthModeId(null);
         setDailyReport(logs);
-        setActiveStation(null);
+        setCurrentScene('EXTERIOR');
         await loadWeatherForSol(nextSol);
       };
 
       const handleRestart = () => {
         setSol(1);
         setResources(INITIAL_RESOURCES);
-        setActiveStation(null);
+        setCurrentScene('EXTERIOR');
         setSolarCollectedToday(false);
         setGreenhouseActedToday(false);
         setTodayGrowthModeId(null);
@@ -1609,7 +1977,7 @@
 
       return (
         <div className="min-h-screen bg-[#fdf6e9] text-[#4a3525] flex flex-col">
-          {/* 頂部狀態列 */}
+          {/* 頂部手繪圓角狀態列 */}
           <header className="px-3 md:px-6 pt-3 pb-2 max-w-5xl w-full mx-auto flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3.5 py-1.5 shadow-sm flex items-center gap-2">
@@ -1644,131 +2012,88 @@
             )}
           </header>
 
-          {/* 系統公告提示條 */}
+          {/* 系統行動回饋提示條 */}
           {dailyReport.length > 0 && (
-            <div className="max-w-5xl w-full mx-auto px-3 md:px-6 mb-1">
-              <div className="bg-amber-100 border-2 border-amber-300 rounded-2xl px-4 py-2 text-xs md:text-sm font-bold text-amber-950 space-y-0.5">
-                {dailyReport.map((msg, i) => (
-                  <div key={i}>{msg}</div>
-                ))}
+            <div className="max-w-5xl w-full mx-auto px-3 md:px-6 mb-1.5">
+              <div className="bg-amber-100 border-2 border-amber-300 rounded-2xl px-4 py-1.5 text-xs md:text-sm font-bold text-amber-950 flex flex-wrap justify-between items-center gap-2">
+                <div>{dailyReport[dailyReport.length - 1]}</div>
+                <span className="text-[11px] text-amber-700">（共 {dailyReport.length} 則今日動態）</span>
               </div>
             </div>
           )}
 
-          {/* 主畫面：只留下左上角「火星基地・總覽（外觀）」裁切地圖 */}
-          <main className="flex-1 max-w-5xl w-full mx-auto px-3 md:px-6 pb-4 flex flex-col gap-3">
-            <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs shadow-sm">
-              <span className="font-bold">👆 點擊地圖上的「能源區」、「農業溫室」或「探勘與研究站」打開內部畫面！</span>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-[#5a3e28]">🛸 探測車電量：</span>
-                {[1, 2, 3, 4, 5].map((bar) => (
-                  <span
-                    key={bar}
-                    className={`w-5 h-3.5 rounded-sm border ${
-                      bar <= batteryBars ? 'bg-sky-400 border-sky-600' : 'bg-[#efe3d0] border-[#d5c1a3]'
-                    }`}
-                  />
-                ))}
-                <span className="font-black text-sky-700 ml-1">{batteryBars}/5 格</span>
-              </div>
-            </div>
+          {/* 主互動圖片舞台（依 currentScene 切換不同房間場景背景） */}
+          <main className="flex-1 max-w-5xl w-full mx-auto px-3 md:px-6 pb-5 flex flex-col justify-center">
+            {currentScene === 'EXTERIOR' && (
+              <BaseExteriorScene
+                sol={sol}
+                tomatoProgress={tomatoProgress}
+                showPowerDot={showPowerDot}
+                showGreenhouseDot={showGreenhouseDot}
+                showRoverDot={showRoverDot}
+                onEnterRoom={(room) => setCurrentScene(room)}
+                onEndSol={handleEndSol}
+              />
+            )}
 
-            {/* 左上角基地外觀地圖容器 */}
-            <div className="relative w-full rounded-3xl overflow-hidden border-4 border-[#e6d5bc] shadow-lg bg-[#e89f71]">
-              {/* 左上角標題徽章 */}
-              <div className="top-3 left-3 absolute z-10 bg-[#fdf6e9]/95 border-2 border-[#d9c2a3] px-4 py-1.5 rounded-full font-black text-sm md:text-base text-[#5a3e28] shadow">
-                火星基地・總覽（外觀）
-              </div>
+            {currentScene === 'POWER' && (
+              <PowerRoomScene
+                resources={resources}
+                weather={weather}
+                solarCollectedToday={solarCollectedToday}
+                batteryBars={batteryBars}
+                roverStatus={roverStatus}
+                onBack={() => setCurrentScene('EXTERIOR')}
+                onOpenSolarGame={() => setShowSolarGameModal(true)}
+                onElectrolysis={handleElectrolysis}
+                onChargeRover={handleChargeRover}
+              />
+            )}
 
-              {sprites?.EXTERIOR && !spriteError ? (
-                <img
-                  src={sprites.EXTERIOR}
-                  alt="火星基地總覽外觀"
-                  className="w-full h-auto block select-none"
-                />
-              ) : (
-                <div className="w-full aspect-[16/10] bg-gradient-to-b from-[#f0a875] to-[#d97b4c] flex flex-col items-center justify-center p-6 text-center">
-                  <div className="bg-white/95 px-4 py-2.5 rounded-2xl text-xs font-bold text-amber-900">
-                    請將插畫圖片儲存為 <code className="bg-amber-200 px-1 rounded">base-map.png</code> 放在同資料夾即可顯示完整基地外觀！
-                  </div>
-                </div>
-              )}
+            {currentScene === 'GREENHOUSE' && (
+              <GreenhouseRoomScene
+                resources={resources}
+                weather={weather}
+                tomatoProgress={tomatoProgress}
+                tomatoSpoiledToday={tomatoSpoiledToday}
+                greenhouseActedToday={greenhouseActedToday}
+                onBack={() => setCurrentScene('EXTERIOR')}
+                onTendTomatoOption={handleTendTomatoOption}
+                onHarvestTomato={handleHarvestTomato}
+              />
+            )}
 
-              {/* 三個對應房間點擊按鈕（點擊後彈出原圖右側/下方對應的內部插畫與操作） */}
-              {Object.values(ROOM_HOTSPOTS).map((room) => {
-                const hasRedDot =
-                  (room.id === 'POWER' && showPowerDot) ||
-                  (room.id === 'GREENHOUSE' && showGreenhouseDot) ||
-                  (room.id === 'ROVER' && showRoverDot);
-
-                return (
-                  <button
-                    key={room.id}
-                    onClick={() => setActiveStation(room.id)}
-                    style={room.style}
-                    title={room.hint}
-                    className="absolute rounded-3xl border-2 border-transparent hover:border-yellow-300 hover:bg-yellow-200/20 active:scale-95 transition cursor-pointer flex flex-col items-center justify-end pb-2 group"
-                  >
-                    {hasRedDot && (
-                      <span className="top-2 right-2 absolute flex h-5 w-5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80" />
-                        <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 border-2 border-white shadow" />
-                      </span>
-                    )}
-
-                    {room.id === 'GREENHOUSE' && tomatoProgress >= 3 && (
-                      <span className="mb-1 px-2.5 py-0.5 rounded-full bg-red-600 text-white text-xs font-black shadow animate-bounce">
-                        🍅 熟了！快點我採收
-                      </span>
-                    )}
-
-                    <span className="px-3 py-1 rounded-full bg-white/95 border-2 border-[#d9c2a3] text-xs md:text-sm font-black text-[#4a3525] shadow-md group-hover:bg-amber-300 transition">
-                      {room.icon} 進入{room.label}
-                    </span>
-                  </button>
-                );
-              })}
-
-              {/* 右下角「結束今天」按鈕 */}
-              <button
-                onClick={handleEndSol}
-                className="bottom-3 right-3 md:bottom-5 md:right-5 absolute px-4 py-3 md:px-5 md:py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs md:text-base shadow-xl border-2 border-white flex items-center gap-2 active:scale-95 transition z-20"
-              >
-                <span>🌙</span>
-                <span>結束今天（進第 {sol + 1 > 20 ? 20 : sol + 1} 天）</span>
-              </button>
-            </div>
+            {currentScene === 'ROVER' && (
+              <RoverRoomScene
+                weather={weather}
+                batteryBars={batteryBars}
+                roverStatus={roverStatus}
+                damageSolLeft={damageSolLeft}
+                pendingExpedition={pendingExpedition}
+                sol={sol}
+                samples={samples}
+                onBack={() => setCurrentScene('EXTERIOR')}
+                onDispatchRoverWithCost={handleDispatchRoverWithCost}
+              />
+            )}
           </main>
 
+          {/* 太陽能追光小遊戲彈窗 */}
+          {showSolarGameModal && (
+            <SolarMiniGameModal
+              isDustStorm={weather?.isDustStorm}
+              onComplete={handleCompleteSolarGame}
+              onClose={() => setShowSolarGameModal(false)}
+            />
+          )}
+
+          {/* 每日晨間簡報彈窗 */}
           <MorningBriefingModal
             visible={showMorningBriefing && !loadingNasa}
             sol={sol}
             weather={weather}
             yesterdayReport={yesterdayReport}
             onConfirm={() => setShowMorningBriefing(false)}
-          />
-
-          <StationModals
-            activeStation={activeStation}
-            interiorImageUrl={activeStation && sprites ? sprites[activeStation] : null}
-            onClose={() => setActiveStation(null)}
-            resources={resources}
-            weather={weather}
-            solarCollectedToday={solarCollectedToday}
-            onCompleteSolarGame={handleCompleteSolarGame}
-            onElectrolysis={handleElectrolysis}
-            onChargeRover={handleChargeRover}
-            tomatoProgress={tomatoProgress}
-            tomatoSpoiledToday={tomatoSpoiledToday}
-            greenhouseActedToday={greenhouseActedToday}
-            onTendTomatoOption={handleTendTomatoOption}
-            onHarvestTomato={handleHarvestTomato}
-            batteryBars={batteryBars}
-            roverStatus={roverStatus}
-            damageSolLeft={damageSolLeft}
-            pendingExpedition={pendingExpedition}
-            sol={sol}
-            onDispatchRoverWithCost={handleDispatchRoverWithCost}
           />
         </div>
       );
