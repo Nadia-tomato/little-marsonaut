@@ -14,7 +14,7 @@ Phase 1：專案初始化、遊戲規格文件與 GitHub 設定。
 - `npm install` 成功，依賴無安全性漏洞報告。
 - `npm run build` 成功。
 - `npm run dev` 成功啟動，首頁已在瀏覽器確認可載入。
-- Git 初始化與第一次 commit 已完成；GitHub Repository 與 push 等待 GitHub 登入。
+- Git 初始化與第一次 commit 已完成；GitHub Private Repository 已建立並 push 完成。
 
 ## 尚未完成
 
@@ -28,4 +28,4 @@ Phase 1：專案初始化、遊戲規格文件與 GitHub 設定。
 - `npm install`：通過。
 - `npm run build`：通過（Vite production build）。
 - `npm run dev`：通過（`http://127.0.0.1:5173/`，首頁顯示 MARS CREW 與 Start Mission）。
-- GitHub：未登入，尚未建立遠端 repository 或 push。
+- GitHub：通過；Private `mars-crew` 已建立，`main` 已推送，GitHub 頁面已確認 `docs/`、`src/`、`.gitignore`、`README.md`、`package.json` 等專案檔案存在。
