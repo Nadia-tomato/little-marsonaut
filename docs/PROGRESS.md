@@ -11,8 +11,10 @@ Phase 1：專案初始化、遊戲規格文件與 GitHub 設定。
 - 建立 `src/components/`、`src/game/`、`src/config/`、`src/data/`、`src/services/`。
 - 建立 [GDD.md](./GDD.md)，作為後續主要需求來源。
 - 建立 `.gitignore`、`README.md` 與本進度文件。
-- 完成初步建置驗證：待執行。
-- GitHub Repository 與 push：待執行。
+- `npm install` 成功，依賴無安全性漏洞報告。
+- `npm run build` 成功。
+- `npm run dev` 成功啟動，首頁已在瀏覽器確認可載入。
+- Git 初始化與第一次 commit 已完成；GitHub Repository 與 push 等待 GitHub 登入。
 
 ## 尚未完成
 
@@ -23,6 +25,7 @@ Phase 1：專案初始化、遊戲規格文件與 GitHub 設定。
 
 ## 測試結果
 
-- `npm install`：待執行。
-- `npm run build`：待執行。
-- `npm run dev`：待執行。
+- `npm install`：通過。
+- `npm run build`：通過（Vite production build）。
+- `npm run dev`：通過（`http://127.0.0.1:5173/`，首頁顯示 MARS CREW 與 Start Mission）。
+- GitHub：未登入，尚未建立遠端 repository 或 push。
