@@ -1,13 +1,1781 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="MARS CREW — Junior Astronaut Mission Trainer" />
-    <title>MARS CREW</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MARS CREW — 小小火星任務訓練員</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      background-color: #fdf6e9;
+      color: #4a3525;
+      font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    @keyframes dropToBasket {
+      0% { transform: translateY(-40px) scale(0.8); opacity: 0; }
+      60% { transform: translateY(14px) scale(1.15); opacity: 1; }
+      100% { transform: translateY(0px) scale(1); opacity: 1; }
+    }
+    .animate-tomato-drop {
+      animation: dropToBasket 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // 原始全覽圖檔名（與 index.html 放在同一資料夾）
+    const SOURCE_FULL_IMAGE = './base-map.png';
+
+    // =========================================================================
+    // 0. 自動裁切原圖的四個區塊（左上外觀地圖 ＋ 右側與下方三個房間內部圖）
+    // =========================================================================
+    const CROP_REGIONS = {
+      // 左上角：火星基地・總覽（外觀）
+      EXTERIOR:   { sx: 0.008, sy: 0.088, sw: 0.690, sh: 0.545 },
+      // 右側中間：能源區（內部）
+      POWER:      { sx: 0.706, sy: 0.300, sw: 0.285, sh: 0.332 },
+      // 下方中間：農業溫室（內部）
+      GREENHOUSE: { sx: 0.232, sy: 0.642, sw: 0.415, sh: 0.348 },
+      // 下方右側：探勘與研究站（內部）
+      ROVER:      { sx: 0.656, sy: 0.642, sw: 0.336, sh: 0.348 },
+    };
+
+    function useCroppedSprites(imageSrc) {
+      const [sprites, setSprites] = useState(null);
+      const [error, setError] = useState(false);
+
+      useEffect(() => {
+        const img = new Image();
+        img.src = imageSrc;
+        img.onload = () => {
+          try {
+            const result = {};
+            for (const [key, r] of Object.entries(CROP_REGIONS)) {
+              const canvas = document.createElement('canvas');
+              const cw = Math.round(img.naturalWidth * r.sw);
+              const ch = Math.round(img.naturalHeight * r.sh);
+              canvas.width = cw;
+              canvas.height = ch;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(
+                img,
+                Math.round(img.naturalWidth * r.sx),
+                Math.round(img.naturalHeight * r.sy),
+                cw,
+                ch,
+                0,
+                0,
+                cw,
+                ch
+              );
+              result[key] = canvas.toDataURL('image/png');
+            }
+            setSprites(result);
+          } catch (e) {
+            console.warn('圖片裁切失敗：', e);
+            setError(true);
+          }
+        };
+        img.onerror = () => setError(true);
+      }, [imageSrc]);
+
+      return { sprites, error };
+    }
+
+    // =========================================================================
+    // 1. 遊戲常數與國小友善說明設定
+    // =========================================================================
+    const INITIAL_RESOURCES = {
+      oxygen: 70,
+      power: 70,
+      water: 100,
+      food: 60,
+    };
+
+    // 對應裁切後「左上角外觀地圖」內三個房間的點擊按鈕位置（百分比）
+    // 中央生活區不設功能，已排除
+    const ROOM_HOTSPOTS = {
+      POWER: {
+        id: 'POWER',
+        label: '能源區',
+        icon: '⚡',
+        hint: '接陽光發電、製造氧氣、幫車子充電',
+        style: { left: '9%', top: '31%', width: '27%', height: '33%' },
+      },
+      GREENHOUSE: {
+        id: 'GREENHOUSE',
+        label: '農業溫室',
+        icon: '🍅',
+        hint: '幫番茄澆水、開燈長大、採收進籃子',
+        style: { left: '66%', top: '28%', width: '28%', height: '36%' },
+      },
+      ROVER: {
+        id: 'ROVER',
+        label: '探勘與研究站',
+        icon: '🛸',
+        hint: '派探測車出去找火星石頭',
+        style: { left: '34%', top: '62%', width: '34%', height: '34%' },
+      },
+    };
+
+    const ROVER_DISPATCH_MODES = {
+      1: {
+        barsCost: 1,
+        name: '近距離散步（耗 1 格電）',
+        desc: '只在基地門口附近找石頭，比較省電，但找到寶貝的機會較小。',
+        discoveryMultiplier: 0.6,
+        rareBonus: 0.5,
+      },
+      2: {
+        barsCost: 2,
+        name: '一般巡邏探險（耗 2 格電）',
+        desc: '開到隕石坑旁邊挖石頭，找到好石頭的機會剛剛好！',
+        discoveryMultiplier: 1.0,
+        rareBonus: 1.0,
+      },
+      3: {
+        barsCost: 3,
+        name: '超遠距離深挖（耗 3 格電）',
+        desc: '開到很遠的古河道深處挖寶，最容易找到稀有的高分石頭！',
+        discoveryMultiplier: 1.35,
+        rareBonus: 1.8,
+      },
+    };
+
+    const SAMPLE_CATALOG = [
+      {
+        id: 'BASALT',
+        name: '火山玄武岩',
+        points: 10,
+        baseProbability: 30,
+        isRare: false,
+        variations: [
+          '這塊黑黑的石頭有很多小氣孔，代表火星以前有火山噴發過喔！',
+          '這是一塊硬邦邦的火山岩，是火星地面上最常見的石頭。',
+          '強風把這塊火山石吹得滑滑亮亮的，記錄了火星大風的故事。',
+        ],
+        scientificNote: '科普小知識：玄武岩是岩漿冷卻後變成的石頭。',
+      },
+      {
+        id: 'IRON_OXIDE',
+        name: '生鏽含鐵石頭',
+        points: 15,
+        baseProbability: 15,
+        isRare: false,
+        variations: [
+          '石頭表面紅紅的像生鏽一樣，這就是火星看起來紅通通的原因！',
+          '裡面有好多鐵質小圓球，是陽光和空氣慢慢讓石頭生鏽變紅的。',
+          '這塊紅褐色的石頭告訴我們，火星泥土裡含有非常多氧化鐵。',
+        ],
+        scientificNote: '科普小知識：石頭生鏽是陽光與水氣作用的結果，不代表以前有很多氧氣可以呼吸喔！',
+      },
+      {
+        id: 'HYDRATED',
+        name: '藏著水的礦石',
+        points: 30,
+        baseProbability: 9,
+        isRare: true,
+        variations: [
+          '太棒了！石頭裡面鎖著水分子，證明火星很久以前真的有湖泊！',
+          '這塊白白的石頭是地下水流過後留下的痕跡，非常珍貴！',
+          '儀器發現石頭裡有水分結晶，這裡以前可能有溫暖的小水池喔。',
+        ],
+        scientificNote: '科普小知識：含水礦物能幫科學家找出火星以前哪裡有水。',
+      },
+      {
+        id: 'SPECIAL_GEO',
+        name: '千層派條紋磁力石',
+        points: 25,
+        baseProbability: 15,
+        isRare: true,
+        variations: [
+          '石頭有一層一層像千層派的條紋，是以前的河水把泥沙疊起來的！',
+          '這塊石頭帶著微弱的磁力，記錄了火星小時候擁有磁場的秘密。',
+          '石頭上有像乾掉泥巴的格子裂紋，代表這裡以前有下雨也有大太陽。',
+        ],
+        scientificNote: '科普小知識：一層一層的沉積岩就像火星的歷史日記本。',
+      },
+      {
+        id: 'ANCIENT_BIOSIGNATURE',
+        name: '疑似遠古生命線索奇石',
+        points: 999,
+        baseProbability: 1,
+        isRare: true,
+        variations: [
+          '超級大發現！石頭裡有非常特別的有機物與微小花紋，必須馬上送回地球給科學家研究！',
+        ],
+        scientificNote: '遊戲特別劇情：這代表發現了超級重要的線索（現實中 NASA 還在努力尋找喔！）。',
+      },
+      {
+        id: 'NONE',
+        name: '沒有挖到石頭',
+        points: 0,
+        baseProbability: 30,
+        isRare: false,
+        variations: [
+          '這裡全都是軟軟的沙子，機械手臂抓不到硬石頭，下次再加油！',
+          '地面灰塵太厚了，鑽頭沒辦法挖到下面的岩層。',
+          '石頭太脆一夾就碎掉了，沒辦法裝進樣本盒子裡。',
+        ],
+        scientificNote: '小提示：出門時用 2 格或 3 格電量，比較容易找到石頭喔！',
+      },
+    ];
+
+    const HISTORICAL_MARS_WEATHER = [
+      { tempMax: -9,  tempMin: -68, pressurePa: 758, windSpeedMs: 4.1 },
+      { tempMax: -12, tempMin: -72, pressurePa: 745, windSpeedMs: 5.2 },
+      { tempMax: -16, tempMin: -77, pressurePa: 732, windSpeedMs: 6.8 },
+      { tempMax: -19, tempMin: -80, pressurePa: 726, windSpeedMs: 7.1 },
+      { tempMax: -24, tempMin: -86, pressurePa: 712, windSpeedMs: 8.9 },
+      { tempMax: -27, tempMin: -89, pressurePa: 705, windSpeedMs: 9.4 },
+    ];
+
+    const RADIATION_LABELS = {
+      1: { text: '很安全', color: 'bg-emerald-500', advice: '天氣很好，可以放心派車！' },
+      2: { text: '安全', color: 'bg-green-500', advice: '適合出門探險！' },
+      3: { text: '普通', color: 'bg-amber-500', advice: '小心太陽輻射，注意車子狀況。' },
+      4: { text: '偏高', color: 'bg-orange-500', advice: '輻射很強，派車可能會讓車子壞掉！' },
+      5: { text: '危險', color: 'bg-red-500', advice: '輻射超強！建議讓探測車在家休息。' },
+    };
+
+    // =========================================================================
+    // 2. NASA API 串接
+    // =========================================================================
+    const NASA_IMAGE_API = 'https://images-api.nasa.gov/search';
+    const NASA_DONKI_SEP_API = 'https://api.nasa.gov/DONKI/SEP';
+    const API_KEY = 'DEMO_KEY';
+
+    let cachedCuriosityPhotos = [];
+    let cachedSepEventsCount = null;
+
+    async function fetchNextCuriosityPhoto(usedIds) {
+      if (cachedCuriosityPhotos.length === 0) {
+        const query = encodeURIComponent('Curiosity Mastcam Gale Crater');
+        const response = await fetch(`${NASA_IMAGE_API}?q=${query}&media_type=image&page_size=60`);
+        const json = await response.json();
+        const items = json?.collection?.items || [];
+
+        cachedCuriosityPhotos = items
+          .filter((item) => {
+            const info = item.data?.[0];
+            if (!info?.nasa_id || !item.links?.[0]?.href) return false;
+            const text = `${info.title || ''} ${info.description || ''}`.toLowerCase();
+            const isCuriosity = text.includes('curiosity');
+            const isNotArt = !text.includes('artist') && !text.includes('illustration') && !text.includes('concept');
+            return isCuriosity && isNotArt;
+          })
+          .map((item) => {
+            const info = item.data[0];
+            const rawDesc = (info.description || info.title || '').replace(/<[^>]*>?/gm, '');
+            const shortDesc = rawDesc.length > 150 ? `${rawDesc.slice(0, 150)}...` : rawDesc;
+            return {
+              id: info.nasa_id,
+              title: info.title,
+              imageUrl: item.links[0].href,
+              dateCreated: (info.date_created || '').slice(0, 10),
+              nasaCaption: shortDesc,
+              credit: 'NASA 好奇號探測車實拍照片',
+            };
+          });
+      }
+
+      const available = cachedCuriosityPhotos.filter((p) => !usedIds.has(p.id));
+      const pool = available.length > 0 ? available : cachedCuriosityPhotos;
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    async function generateDailyMarsEnvironment(sol) {
+      if (cachedSepEventsCount === null) {
+        const endDate = new Date().toISOString().slice(0, 10);
+        const startObj = new Date();
+        startObj.setDate(startObj.getDate() - 60);
+        const startDate = startObj.toISOString().slice(0, 10);
+
+        const res = await fetch(`${NASA_DONKI_SEP_API}?startDate=${startDate}&endDate=${endDate}&api_key=${API_KEY}`);
+        const events = await res.json();
+        cachedSepEventsCount = Array.isArray(events) ? events.length : 1;
+      }
+
+      const baseWeather = HISTORICAL_MARS_WEATHER[Math.floor(Math.random() * HISTORICAL_MARS_WEATHER.length)];
+      const stormChance = sol <= 5 ? 0.20 : sol <= 10 ? 0.35 : sol <= 15 ? 0.50 : 0.60;
+      const isDustStorm = Math.random() < stormChance;
+
+      const activityBias = Math.min(2, Math.floor(cachedSepEventsCount / 2));
+      const phaseBias = sol <= 5 ? 0 : sol <= 12 ? 1 : 2;
+      const rawLevel = 1 + Math.floor(Math.random() * 2) + Math.floor((activityBias + phaseBias) / 2);
+      const radiationLevel = Math.min(5, Math.max(1, rawLevel));
+
+      return {
+        solLabel: `Sol ${sol}`,
+        tempMax: baseWeather.tempMax,
+        tempMin: baseWeather.tempMin,
+        pressurePa: baseWeather.pressurePa,
+        windSpeedMs: isDustStorm ? +(baseWeather.windSpeedMs + 8.5).toFixed(1) : baseWeather.windSpeedMs,
+        isDustStorm,
+        radiationLevel,
+      };
+    }
+
+    // =========================================================================
+    // 3. 遊戲核心演算法
+    // =========================================================================
+    function rollRoverExplorationByCost(barsCost) {
+      const mode = ROVER_DISPATCH_MODES[barsCost] || ROVER_DISPATCH_MODES[2];
+      const roll = Math.random() * 100;
+      let acc = 0;
+      let chosenSpec = SAMPLE_CATALOG.find((s) => s.id === 'NONE');
+
+      for (const sample of SAMPLE_CATALOG) {
+        if (sample.id === 'NONE') continue;
+        const weight = sample.isRare
+          ? sample.baseProbability * mode.discoveryMultiplier * mode.rareBonus
+          : sample.baseProbability * mode.discoveryMultiplier;
+
+        acc += weight;
+        if (roll < acc) {
+          chosenSpec = sample;
+          break;
+        }
+      }
+
+      const randomStory =
+        chosenSpec.variations[Math.floor(Math.random() * chosenSpec.variations.length)];
+
+      return {
+        ...chosenSpec,
+        chosenExplanation: randomStory,
+        modeUsed: mode.name,
+      };
+    }
+
+    function evaluateRoverReturnHazard(isDustStorm, radiationLevel) {
+      let hazardChance = 0;
+      const reasons = [];
+
+      if (isDustStorm) {
+        hazardChance += 0.35;
+        reasons.push('沙塵暴大風吹進車輪');
+      }
+      if (radiationLevel === 4) {
+        hazardChance += 0.30;
+        reasons.push('超強太陽輻射');
+      } else if (radiationLevel === 5) {
+        hazardChance += 0.55;
+        reasons.push('危險級太陽風暴');
+      }
+
+      if (hazardChance > 0 && Math.random() < Math.min(0.85, hazardChance)) {
+        const freezeSols = (isDustStorm && radiationLevel >= 4) || radiationLevel === 5 ? 2 : 1;
+        return {
+          isDamaged: true,
+          damagedSols: freezeSols,
+          reasonText: reasons.join('和'),
+        };
+      }
+
+      return {
+        isDamaged: false,
+        damagedSols: 0,
+        reasonText: reasons.join('和'),
+        wasHazardous: hazardChance > 0,
+      };
+    }
+
+    function rollTomatoGrowthGain(modeId) {
+      const r = Math.random();
+      if (modeId === 'BOOST') {
+        if (r < 0.20) return { gain: 3, note: '🌱 番茄長得超級快，直接成熟可以採收囉！' };
+        if (r < 0.85) return { gain: 2, note: '☀️ 暖燈照得剛剛好，番茄長大很多（+2 格）！' };
+        return { gain: 1, note: '🌿 番茄慢慢長高了一點點（+1 格）。' };
+      } else {
+        if (r < 0.25) return { gain: 2, note: '✨ 今天陽光很舒服，番茄偷偷多長大了一格（+2 格）！' };
+        if (r < 0.90) return { gain: 1, note: '🌱 番茄喝飽水，乖乖長大一格（+1 格）。' };
+        return { gain: 0, note: '💤 小苗今天在土裡努力扎根，明天才會長高喔。' };
+      }
+    }
+
+    function getGreenhouseOptionsForTemp(tempMin) {
+      const isExtremeCold = tempMin <= -76;
+
+      if (isExtremeCold) {
+        return {
+          weatherTag: `今天外面超級冷（晚上 ${tempMin}°C）`,
+          optionStandard: {
+            id: 'ECO',
+            title: '🌱 省電保溫照顧',
+            waterCost: 6,
+            powerCost: 4,
+            desc: '幫番茄蓋被子防凍，省電但長得比較慢。',
+          },
+          optionBoost: {
+            id: 'BOOST',
+            title: '🔥 超暖燈加速照顧',
+            waterCost: 7,
+            powerCost: 11,
+            desc: '開最強的暖氣和植物燈，番茄會長得飛快！',
+          },
+        };
+      }
+
+      return {
+        weatherTag: `今天氣溫還可以（晚上 ${tempMin}°C）`,
+        optionStandard: {
+          id: 'ECO',
+          title: '💧 省電澆水照顧',
+          waterCost: 5,
+          powerCost: 3,
+          desc: '用一點點電和水量，讓番茄健康長大。',
+        },
+        optionBoost: {
+          id: 'BOOST',
+          title: '☀️ 陽光加倍快長照顧',
+          waterCost: 7,
+          powerCost: 8,
+          desc: '開亮亮的植物燈，有機會讓番茄提早成熟！',
+        },
+      };
+    }
+
+    function calculateSolarGameReward(caughtCount, isDustStorm) {
+      if (caughtCount <= 0) return 0;
+      const perLight = isDustStorm ? 1.0 : 1.5;
+      const maxCap = isDustStorm ? 13 : 25;
+      return Math.min(maxCap, Math.round(caughtCount * perLight));
+    }
+
+    function getSolarEfficiencyGrade(caughtCount, isDustStorm) {
+      if (caughtCount <= 0) return { label: '沒接到陽光', color: 'text-red-500' };
+      const highThreshold = isDustStorm ? 10 : 14;
+      const midThreshold = isDustStorm ? 6 : 9;
+      if (caughtCount >= highThreshold) return { label: '滿分追光高手！', color: 'text-amber-600' };
+      if (caughtCount >= midThreshold) return { label: '表現很棒！', color: 'text-emerald-600' };
+      return { label: '接到一些陽光', color: 'text-sky-600' };
+    }
+
+    function getAstronautRank(score) {
+      if (score >= 180) return '火星科學大師';
+      if (score >= 120) return '超級小小太空人';
+      if (score >= 70) return '火星探險家';
+      if (score >= 30) return '小小太空人';
+      return '太空實習生';
+    }
+
+    // =========================================================================
+    // 4. UI 子元件：頂部資源條 & 太陽能追光小遊戲
+    // =========================================================================
+    function TopResourcePill({ label, value, barColor, icon }) {
+      const isLow = value <= 25;
+      return (
+        <div className="bg-white/95 border-2 border-[#e6d5bc] rounded-2xl px-2.5 py-1.5 shadow-sm flex items-center gap-2">
+          <span className="text-lg">{icon}</span>
+          <div className="flex-1 min-w-[58px]">
+            <div className="flex justify-between text-[11px] font-extrabold text-[#5a3e28]">
+              <span>{label}</span>
+              <span className={isLow ? 'text-red-600 animate-pulse' : ''}>{value}</span>
+            </div>
+            <div className="w-full h-2.5 bg-[#efe3d0] rounded-full overflow-hidden border border-[#dcc7a9]">
+              <div className={`h-full transition-all duration-300 rounded-full ${barColor}`} style={{ width: `${value}%` }} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function SolarMiniGame({ isDustStorm, onComplete, onClose }) {
+      const GAME_DURATION = 10;
+      const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
+      const [panelX, setPanelX] = useState(50);
+      const [caughtCount, setCaughtCount] = useState(0);
+      const [panelFlash, setPanelFlash] = useState(false);
+      const [beams, setBeams] = useState([]);
+      const [finished, setFinished] = useState(false);
+
+      const panelXRef = useRef(50);
+      const caughtRef = useRef(0);
+      const arenaRef = useRef(null);
+
+      const updatePanelFromClientX = (clientX) => {
+        if (!arenaRef.current || finished) return;
+        const rect = arenaRef.current.getBoundingClientRect();
+        const relX = ((clientX - rect.left) / rect.width) * 100;
+        const clamped = Math.max(12, Math.min(88, relX));
+        panelXRef.current = clamped;
+        setPanelX(clamped);
+      };
+
+      useEffect(() => {
+        const timer = setInterval(() => {
+          setTimeLeft((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              setFinished(true);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        return () => clearInterval(timer);
+      }, []);
+
+      useEffect(() => {
+        if (finished) return;
+
+        const spawnInterval = setInterval(() => {
+          const id = Math.random().toString(36).slice(2);
+          const startX = 10 + Math.random() * 80;
+          const speed = isDustStorm ? 2.5 : 3.3;
+          setBeams((prev) => [...prev, { id, x: startX, y: 0, speed }]);
+        }, isDustStorm ? 680 : 480);
+
+        const loop = setInterval(() => {
+          setBeams((prev) => {
+            const next = [];
+            for (const b of prev) {
+              const nextY = b.y + b.speed;
+              if (nextY >= 80 && nextY <= 91 && Math.abs(b.x - panelXRef.current) <= 13) {
+                caughtRef.current += 1;
+                setCaughtCount(caughtRef.current);
+                setPanelFlash(true);
+                setTimeout(() => setPanelFlash(false), 120);
+              } else if (nextY < 100) {
+                next.push({ ...b, y: nextY });
+              }
+            }
+            return next;
+          });
+        }, 33);
+
+        return () => {
+          clearInterval(spawnInterval);
+          clearInterval(loop);
+        };
+      }, [finished, isDustStorm]);
+
+      const livePowerPreview = calculateSolarGameReward(caughtCount, isDustStorm);
+      const gradeInfo = getSolarEfficiencyGrade(caughtCount, isDustStorm);
+
+      return (
+        <div className="bg-[#fffaf0] border-2 border-amber-400 rounded-2xl p-4 space-y-3 shadow-inner">
+          <div className="flex flex-wrap justify-between items-center gap-1 text-xs">
+            <span className="font-extrabold text-amber-800">
+              ☀️ 左右滑動藍色太陽能板，接住掉下來的陽光！
+            </span>
+            <div className="flex items-center gap-2 font-bold">
+              <span className="text-[#6b4c35]">剩 {timeLeft} 秒</span>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900">
+                可獲得：+{livePowerPreview} ⚡
+              </span>
+            </div>
+          </div>
+
+          <div
+            ref={arenaRef}
+            onMouseMove={(e) => updatePanelFromClientX(e.clientX)}
+            onTouchMove={(e) => updatePanelFromClientX(e.touches[0].clientX)}
+            onClick={(e) => updatePanelFromClientX(e.clientX)}
+            className={`relative w-full h-48 rounded-2xl overflow-hidden border-2 cursor-pointer ${
+              isDustStorm
+                ? 'bg-gradient-to-b from-amber-700 to-stone-800 border-amber-600'
+                : 'bg-gradient-to-b from-sky-700 to-indigo-900 border-sky-400'
+            }`}
+          >
+            {isDustStorm && (
+              <div className="top-2 left-2 absolute text-[11px] bg-amber-100/90 text-amber-900 font-bold px-2.5 py-0.5 rounded-full">
+                🌪️ 沙塵暴遮住陽光了，發電會變少喔！
+              </div>
+            )}
+
+            {beams.map((b) => (
+              <div
+                key={b.id}
+                style={{ left: `${b.x}%`, top: `${b.y}%` }}
+                className="-translate-x-1/2 -translate-y-1/2 absolute text-2xl drop-shadow-[0_0_8px_rgba(253,224,71,0.95)] pointer-events-none"
+              >
+                ☀️
+              </div>
+            ))}
+
+            <div
+              style={{ left: `${panelX}%` }}
+              className={`-translate-x-1/2 bottom-3 absolute w-24 h-5 rounded-lg border-2 flex items-center justify-center text-[11px] font-black pointer-events-none transition-transform duration-75 ${
+                panelFlash
+                  ? 'bg-yellow-300 border-white text-slate-900 scale-110 shadow-[0_0_16px_rgba(253,224,71,1)]'
+                  : 'bg-sky-400 border-white text-slate-950 shadow-md'
+              }`}
+            >
+              太陽能板
+            </div>
+
+            {finished && (
+              <div className="inset-0 absolute bg-[#2d1e12]/85 flex flex-col items-center justify-center p-4 text-center space-y-2">
+                <div className="text-xs font-bold text-amber-100">
+                  你一共接住了 {caughtCount} 道太陽光！
+                </div>
+                <div className={`text-base font-black bg-white px-3 py-0.5 rounded-full ${gradeInfo.color}`}>
+                  {gradeInfo.label}
+                </div>
+                <div className="text-2xl font-black text-yellow-300">
+                  獲得電力：+{livePowerPreview} ⚡
+                </div>
+                <button
+                  onClick={() => onComplete(caughtCount)}
+                  className="px-6 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#3b2514] font-black text-sm shadow-lg"
+                >
+                  把電力存進基地！
+                </button>
+              </div>
+            )}
+          </div>
+
+          {!finished && (
+            <div className="flex justify-between items-center text-[11px] text-[#7a5a40]">
+              <span>沒接住陽光就沒有電力喔！</span>
+              <button onClick={onClose} className="underline font-bold">
+                先不玩了
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // 5. 三個房間的操作彈窗（頂部顯示從原圖裁切出來的對應房間內部插畫）
+    // =========================================================================
+    function StationModals({
+      activeStation,
+      interiorImageUrl,
+      onClose,
+      resources,
+      weather,
+      solarCollectedToday,
+      onCompleteSolarGame,
+      onElectrolysis,
+      onChargeRover,
+      tomatoProgress,
+      tomatoSpoiledToday,
+      greenhouseActedToday,
+      onTendTomatoOption,
+      onHarvestTomato,
+      batteryBars,
+      roverStatus,
+      damageSolLeft,
+      pendingExpedition,
+      sol,
+      onDispatchRoverWithCost,
+    }) {
+      const [playingSolarGame, setPlayingSolarGame] = useState(false);
+      const [selectedBarsCost, setSelectedBarsCost] = useState(2);
+      const [justHarvestedAnim, setJustHarvestedAnim] = useState(false);
+
+      if (!activeStation) return null;
+
+      const radInfo = RADIATION_LABELS[weather?.radiationLevel || 1];
+      const greenhouseConfig = getGreenhouseOptionsForTemp(weather?.tempMin ?? -75);
+
+      const triggerHarvestWithAnimation = () => {
+        setJustHarvestedAnim(true);
+        onHarvestTomato();
+        setTimeout(() => setJustHarvestedAnim(false), 1200);
+      };
+
+      const hasHighRoverRisk = weather?.isDustStorm || (weather?.radiationLevel || 1) >= 4;
+
+      return (
+        <div className="fixed inset-0 bg-[#2d1e12]/70 flex items-center justify-center p-3 md:p-4 z-50">
+          <div className="bg-[#fdf6e9] border-4 border-[#d9c2a3] text-[#4a3525] rounded-3xl max-w-lg w-full p-4 md:p-5 space-y-3.5 shadow-2xl max-h-[92vh] overflow-y-auto">
+            {/* 頂部返回與房間標題 */}
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setPlayingSolarGame(false);
+                    onClose();
+                  }}
+                  className="w-9 h-9 rounded-full bg-[#eadbc5] hover:bg-[#dfc9aa] font-black text-base text-[#4a3525] flex items-center justify-center shadow-sm"
+                  title="返回基地總覽"
+                >
+                  ‹
+                </button>
+                <h3 className="font-black text-lg text-[#4a3525]">
+                  {ROOM_HOTSPOTS[activeStation].icon} {ROOM_HOTSPOTS[activeStation].label}（內部）
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setPlayingSolarGame(false);
+                  onClose();
+                }}
+                className="px-3 py-1 rounded-full bg-[#eadbc5] hover:bg-[#dfc9aa] font-bold text-xs text-[#4a3525]"
+              >
+                回主地圖
+              </button>
+            </div>
+
+            {/* 顯示從原圖右方/下方裁切出來的對應房間內部插畫 */}
+            {interiorImageUrl && (
+              <div className="w-full rounded-2xl overflow-hidden border-2 border-[#d9c2a3] shadow-sm bg-white">
+                <img
+                  src={interiorImageUrl}
+                  alt={`${ROOM_HOTSPOTS[activeStation].label}內部`}
+                  className="w-full h-44 md:h-48 object-cover"
+                />
+              </div>
+            )}
+
+            {/* 1. 能源區（內部） */}
+            {activeStation === 'POWER' && (
+              <div className="space-y-3 text-sm">
+                <div className="bg-white border-2 border-[#eadbc5] p-2.5 rounded-2xl text-xs font-extrabold flex justify-around">
+                  <span>⚡ 電力：{resources.power}</span>
+                  <span>💧 水：{resources.water}</span>
+                  <span>🫧 氧氣：{resources.oxygen}</span>
+                </div>
+
+                {playingSolarGame ? (
+                  <SolarMiniGame
+                    isDustStorm={weather?.isDustStorm}
+                    onComplete={(caughtCount) => {
+                      const gained = calculateSolarGameReward(caughtCount, weather?.isDustStorm);
+                      onCompleteSolarGame(gained, caughtCount);
+                      setPlayingSolarGame(false);
+                    }}
+                    onClose={() => setPlayingSolarGame(false)}
+                  />
+                ) : (
+                  <button
+                    onClick={() => setPlayingSolarGame(true)}
+                    disabled={solarCollectedToday}
+                    className="w-full py-3.5 px-4 rounded-2xl bg-amber-400 hover:bg-amber-300 disabled:opacity-45 text-[#3b2514] font-black flex items-center justify-between shadow-sm active:scale-95 transition"
+                  >
+                    <span>
+                      {solarCollectedToday
+                        ? '✅ 今天已經接過太陽光囉！'
+                        : '☀️ 玩太陽能追光小遊戲（蒐集電力）'}
+                    </span>
+                    <span className="text-xs bg-white/80 px-2.5 py-1 rounded-full">
+                      {weather?.isDustStorm ? '最多 +13⚡' : '最多 +25⚡'}
+                    </span>
+                  </button>
+                )}
+
+                <button
+                  onClick={onElectrolysis}
+                  disabled={resources.water < 10 || resources.power < 15}
+                  className="w-full py-3.5 px-4 rounded-2xl bg-sky-500 hover:bg-sky-400 disabled:opacity-45 text-white font-extrabold flex items-center justify-between shadow-sm active:scale-95 transition"
+                >
+                  <div className="text-left">
+                    <div>🫧 把水變成氧氣（+22 氧氣）</div>
+                    <div className="text-[11px] font-normal text-sky-100">太空人每天都需要呼吸氧氣</div>
+                  </div>
+                  <span className="text-xs bg-black/20 px-2.5 py-1 rounded-full">用 10水 + 15電</span>
+                </button>
+
+                <button
+                  onClick={onChargeRover}
+                  disabled={resources.power < 12 || batteryBars >= 5 || roverStatus === 'OUT_ON_MISSION'}
+                  className="w-full py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-45 text-white font-extrabold flex items-center justify-between shadow-sm active:scale-95 transition"
+                >
+                  <div className="text-left">
+                    <div>
+                      🔋{' '}
+                      {roverStatus === 'OUT_ON_MISSION'
+                        ? '探測車出門中，回來才能充電'
+                        : `幫探測車充 1 格電（目前 ${batteryBars}/5 格）`}
+                    </div>
+                    <div className="text-[11px] font-normal text-emerald-100">充飽電才能派車去找石頭</div>
+                  </div>
+                  <span className="text-xs bg-black/20 px-2.5 py-1 rounded-full">用 12電</span>
+                </button>
+              </div>
+            )}
+
+            {/* 2. 農業溫室（內部） */}
+            {activeStation === 'GREENHOUSE' && (
+              <div className="space-y-3.5 text-sm">
+                <div className="bg-white border-2 border-[#cfe3c8] rounded-2xl p-3.5 flex items-center justify-around">
+                  <div className="flex flex-col items-center space-y-1">
+                    <div className="w-16 h-16 rounded-2xl bg-[#f1f8ee] border-2 border-[#b8d8ae] flex items-center justify-center text-3xl">
+                      {tomatoSpoiledToday
+                        ? '🥀'
+                        : tomatoProgress === 0
+                        ? '🌱'
+                        : tomatoProgress === 1
+                        ? '🌿'
+                        : tomatoProgress === 2
+                        ? '🌼'
+                        : '🍅'}
+                    </div>
+                    <span className="text-xs font-extrabold text-emerald-800">
+                      {tomatoProgress >= 3
+                        ? '番茄熟透囉！快採收'
+                        : `長大進度：約 ${tomatoProgress} / 3`}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-center space-y-1 relative">
+                    <div className="w-16 h-16 rounded-2xl bg-[#fff8eb] border-2 border-[#ebd2a9] flex flex-col items-center justify-center relative overflow-hidden">
+                      {justHarvestedAnim && (
+                        <span className="text-xl animate-tomato-drop absolute top-1.5">🍅</span>
+                      )}
+                      <span className="text-3xl mt-1.5">🧺</span>
+                    </div>
+                    <span className="text-xs font-extrabold text-amber-800">
+                      {justHarvestedAnim ? '🍅 掉進籃子啦！+35食物' : '番茄採收籃'}
+                    </span>
+                  </div>
+                </div>
+
+                {tomatoProgress >= 3 && (
+                  <div className="bg-red-100 border-2 border-red-400 text-red-800 p-2.5 rounded-2xl text-xs font-extrabold animate-pulse">
+                    ⚠️ 番茄已經熟了！今天一定要按下面的採收按鈕，不然明天會爛掉喔！
+                  </div>
+                )}
+                {tomatoSpoiledToday && (
+                  <div className="bg-amber-100 border-2 border-amber-400 text-amber-900 p-2 rounded-2xl text-xs font-bold">
+                    🥀 昨天的成熟番茄忘記採收爛掉了，現在重新種了新小苗！
+                  </div>
+                )}
+
+                {tomatoProgress >= 3 ? (
+                  <button
+                    onClick={triggerHarvestWithAnimation}
+                    className="w-full py-3.5 px-4 rounded-2xl bg-red-500 hover:bg-red-400 text-white font-black text-base flex items-center justify-between shadow-md active:scale-95 transition"
+                  >
+                    <span>🧺 把熟番茄放進籃子（+35 食物）</span>
+                    <span className="text-xs bg-black/20 px-2.5 py-1 rounded-full">不用電</span>
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs font-bold">
+                      <span className="text-sky-800">🌡️ {greenhouseConfig.weatherTag}</span>
+                      <span className="text-[#7a5a40]">選一種照顧方式：</span>
+                    </div>
+
+                    {[greenhouseConfig.optionStandard, greenhouseConfig.optionBoost].map((opt) => {
+                      const canAfford =
+                        resources.water >= opt.waterCost && resources.power >= opt.powerCost;
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => onTendTomatoOption(opt)}
+                          disabled={greenhouseActedToday || !canAfford}
+                          className="w-full p-3 rounded-2xl bg-white hover:bg-[#f4faef] disabled:opacity-45 border-2 border-[#b8d8ae] text-left space-y-1 active:scale-95 transition shadow-sm"
+                        >
+                          <div className="flex justify-between items-center font-black text-emerald-800">
+                            <span>{greenhouseActedToday ? '✅ 今天已經照顧過番茄囉' : opt.title}</span>
+                            <span className="text-xs bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full">
+                              用 {opt.waterCost}水 + {opt.powerCost}電
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#6b4c35]">{opt.desc}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. 探勘與研究站（內部） */}
+            {activeStation === 'ROVER' && (
+              <div className="space-y-3.5 text-sm">
+                <div className="bg-white border-2 border-[#eadbc5] p-3 rounded-2xl space-y-1.5">
+                  <div className="flex justify-between font-extrabold">
+                    <span>探測車電量：{batteryBars} / 5 格</span>
+                    <span className="text-xs text-amber-800">
+                      {weather?.isDustStorm ? '🌪️ 沙塵暴' : '☀️ 晴朗'} ｜ 輻射：{radInfo.text}
+                    </span>
+                  </div>
+                  {hasHighRoverRisk && (
+                    <div className="text-xs text-red-800 bg-red-100 border border-red-300 px-2.5 py-1.5 rounded-xl font-bold">
+                      ⚠️ 小心！外面有{weather?.isDustStorm ? '大沙塵暴' : ''}
+                      {weather?.isDustStorm && (weather?.radiationLevel || 1) >= 4 ? '和' : ''}
+                      {(weather?.radiationLevel || 1) >= 4 ? '超強輻射' : ''}
+                      ，派車出去可能會故障，要修 1～2 天喔！
+                    </div>
+                  )}
+                  <p className="text-xs text-[#7a5a40]">
+                    選好要用幾格電派車出發，明天早上就會傳回照片和石頭報告！
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-xs font-extrabold text-[#5a3e28]">選擇要用幾格電池出發：</div>
+                  {[1, 2, 3].map((bars) => {
+                    const mode = ROVER_DISPATCH_MODES[bars];
+                    const isSelected = selectedBarsCost === bars;
+                    const enoughBattery = batteryBars >= bars;
+                    return (
+                      <button
+                        key={bars}
+                        onClick={() => setSelectedBarsCost(bars)}
+                        disabled={!enoughBattery}
+                        className={`w-full p-3 rounded-2xl border-2 text-left transition ${
+                          isSelected
+                            ? 'bg-sky-100 border-sky-500'
+                            : 'bg-white border-[#eadbc5] hover:bg-[#fffaf0]'
+                        } disabled:opacity-45`}
+                      >
+                        <div className="flex justify-between items-center font-black text-xs md:text-sm">
+                          <span className="text-sky-900">{mode.name}</span>
+                          <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 text-xs">
+                            用 {bars} 格電
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#6b4c35] mt-1">{mode.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => onDispatchRoverWithCost(selectedBarsCost)}
+                  disabled={
+                    Boolean(pendingExpedition) ||
+                    roverStatus !== 'READY' ||
+                    batteryBars < selectedBarsCost
+                  }
+                  className="w-full py-3.5 px-4 rounded-2xl bg-sky-500 hover:bg-sky-400 disabled:opacity-45 text-white font-black text-base flex items-center justify-between shadow-md active:scale-95 transition"
+                >
+                  <span>
+                    {roverStatus === 'OUT_ON_MISSION'
+                      ? `🛰️ 車子已經出門探險囉（明天回來）`
+                      : roverStatus !== 'READY'
+                      ? `⚠️ 車子修理中（還要等 ${damageSolLeft} 天）`
+                      : batteryBars < selectedBarsCost
+                      ? `🪫 電量不夠 ${selectedBarsCost} 格，先去能源區充電`
+                      : `🚀 派探測車出發找石頭！`}
+                  </span>
+                  {roverStatus === 'READY' && batteryBars >= selectedBarsCost && (
+                    <span className="text-xs bg-black/20 px-2.5 py-1 rounded-full font-normal">
+                      -{selectedBarsCost} 格電
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // 6. 晨間簡報與結算彈窗
+    // =========================================================================
+    function MorningBriefingModal({
+      visible,
+      sol,
+      weather,
+      yesterdayReport,
+      onConfirm,
+    }) {
+      if (!visible || !weather) return null;
+      const radInfo = RADIATION_LABELS[weather.radiationLevel || 1];
+
+      return (
+        <div className="fixed inset-0 bg-[#2d1e12]/75 flex items-center justify-center p-4 z-50">
+          <div className="bg-[#fdf6e9] border-4 border-[#d9c2a3] text-[#4a3525] rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b-2 border-[#eadbc5] pb-3">
+              <div>
+                <span className="text-xs font-extrabold text-amber-700">MARS CREW 每日早安報告</span>
+                <h2 className="text-xl font-black text-[#4a3525]">
+                  {sol === 1 ? '歡迎來到火星基地！玩法介紹' : `第 ${sol} 天（共 20 天）天氣與探險報告`}
+                </h2>
+              </div>
+              <span className={`px-2.5 py-1 rounded-full text-xs font-black text-white ${radInfo.color}`}>
+                輻射：{radInfo.text}
+              </span>
+            </div>
+
+            {sol === 1 ? (
+              <div className="bg-white p-4 rounded-2xl border-2 border-[#eadbc5] space-y-2.5 text-xs text-[#5a3e28] leading-relaxed">
+                <div className="font-black text-amber-800 text-sm">🧑‍🚀 小小太空人任務目標：在火星生活 20 天並挖到珍貴石頭！</div>
+                <ul className="space-y-2 list-disc pl-4 font-medium">
+                  <li>
+                    <span className="font-black text-sky-700">看最上面的狀態條：</span>「氧氣、電力、水、食物」不能變成 0，不然任務就失敗囉！
+                  </li>
+                  <li>
+                    <span className="font-black text-amber-700">點地圖上的三個房間：</span>有<span className="text-red-600 font-black">紅點點</span>代表還沒做工作：
+                    <br />• <span className="font-bold">⚡ 能源區：</span>玩接陽光小遊戲發電、把水變成氧氣、幫車子充電。
+                    <br />• <span className="font-bold">🍅 農業溫室：</span>照顧番茄長大，<span className="text-red-600 font-bold">熟了要馬上採收進籃子，不然會壞掉</span>！
+                    <br />• <span className="font-bold">🛸 探勘與研究站：</span>派探測車出門挖石頭，明天早上就會帶照片回來！
+                  </li>
+                  <li>
+                    <span className="font-black text-emerald-700">第 10 天有驚喜補給：</span>第 10 天補給車會幫你把「水」和「食物」補滿！
+                  </li>
+                </ul>
+              </div>
+            ) : (
+              yesterdayReport && (
+                <div className="bg-sky-50 p-3.5 rounded-2xl border-2 border-sky-300 space-y-2.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-black text-sky-900">
+                      🛸 昨天（第 {yesterdayReport.sol} 天）探測車帶回來的消息
+                    </span>
+                    {yesterdayReport.sample && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-300 text-amber-950 font-black">
+                        +{yesterdayReport.sample.points} 分
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="bg-white rounded-2xl overflow-hidden border border-sky-200">
+                    <img
+                      src={yesterdayReport.photo.imageUrl}
+                      alt={yesterdayReport.photo.title}
+                      className="w-full h-40 object-cover"
+                    />
+                    <div className="p-2.5 space-y-1">
+                      <div className="text-[11px] font-black text-amber-800">
+                        📸 探測車拍到的火星地面：{yesterdayReport.photo.title}
+                      </div>
+                      <p className="text-[11px] text-[#5a3e28] leading-relaxed">
+                        {yesterdayReport.photo.nasaCaption}
+                      </p>
+                    </div>
+                  </div>
+
+                  {yesterdayReport.damagedSols > 0 ? (
+                    <div className="bg-red-100 border border-red-300 p-2.5 rounded-xl text-xs text-red-800 font-bold">
+                      ⚠️ 哎呀！探測車昨天遇到「{yesterdayReport.damageReason}」故障了，沒有帶回石頭，要在車庫修理 <span className="underline">{yesterdayReport.damagedSols} 天</span>！
+                    </div>
+                  ) : (
+                    yesterdayReport.sample && (
+                      <div className="space-y-1 pt-1">
+                        <div className="text-sm font-black text-sky-950">
+                          🔬 挖到了：{yesterdayReport.sample.name}！
+                        </div>
+                        <p className="text-xs text-[#4a3525] leading-relaxed font-medium">
+                          {yesterdayReport.sample.chosenExplanation}
+                        </p>
+                        <p className="text-[11px] text-sky-800">
+                          {yesterdayReport.sample.scientificNote}
+                        </p>
+                      </div>
+                    )
+                  )}
+                </div>
+              )
+            )}
+
+            <div className="bg-white p-3.5 rounded-2xl border-2 border-[#eadbc5] space-y-2">
+              <div className="text-xs font-black text-[#5a3e28]">🌡️ 今天（第 {sol} 天）的火星天氣</div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="bg-[#fdf6e9] p-2 rounded-xl border border-[#eadbc5]">
+                  <div className="text-[#7a5a40]">白天 / 晚上氣溫</div>
+                  <div className="font-black text-sm mt-0.5">{weather.tempMax}°C / {weather.tempMin}°C</div>
+                </div>
+                <div className="bg-[#fdf6e9] p-2 rounded-xl border border-[#eadbc5]">
+                  <div className="text-[#7a5a40]">風速</div>
+                  <div className="font-black text-sm mt-0.5">{weather.windSpeedMs} m/s</div>
+                </div>
+                <div className="bg-[#fdf6e9] p-2 rounded-xl border border-[#eadbc5]">
+                  <div className="text-[#7a5a40]">天空狀況</div>
+                  <div className="font-black text-sm mt-0.5 text-amber-700">
+                    {weather.isDustStorm ? '🌪️ 大沙塵暴' : '☀️ 大晴天'}
+                  </div>
+                </div>
+              </div>
+              <div className="text-xs text-[#5a3e28] font-bold">
+                小提醒：<span className="text-amber-800">
+                  {weather.isDustStorm ? '今天有沙塵暴，陽光變少，派車也容易故障喔！' : radInfo.advice}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={onConfirm}
+              className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-white font-black text-base shadow-md"
+            >
+              {sol === 1 ? '我知道了！開始第 1 天任務' : `開始第 ${sol} 天工作！`}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function EndGameScreen({
+      ending,
+      abortReason,
+      sol,
+      totalScore,
+      samples,
+      expeditionLogs,
+      dailyPhotoAlbum,
+      unlockedBadges,
+      onRestart,
+    }) {
+      if (!ending) return null;
+
+      const collectedNonZeroSamples = SAMPLE_CATALOG.filter(
+        (s) => s.id !== 'NONE' && samples[s.id] > 0
+      );
+      const successfulDrills = expeditionLogs.filter((log) => log.sample && log.sample.id !== 'NONE');
+
+      return (
+        <div className="min-h-screen bg-[#fdf6e9] text-[#4a3525] p-4 md:p-8 flex flex-col items-center">
+          <div className="max-w-4xl w-full bg-white border-4 border-[#d9c2a3] rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
+            <div className="text-center space-y-2">
+              <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-200 text-amber-900">
+                MARS CREW 任務成績單
+              </span>
+              <h1 className="text-2xl md:text-3xl font-black">
+                {ending === 'SPECIAL_DISCOVERY' && '🎉 哇！發現超級神祕線索，任務大成功！'}
+                {ending === 'NORMAL_20_SOL' && '🚀 太厲害了！成功在火星生活滿 20 天！'}
+                {ending === 'EMERGENCY_ABORT' && `⚠️ 任務提早結束（因為${abortReason}）`}
+              </h1>
+              {ending === 'SPECIAL_DISCOVERY' && (
+                <p className="text-sm text-amber-900 bg-amber-100 p-3 rounded-2xl border-2 border-amber-300 font-bold">
+                  「重大發現！這塊石頭可能有火星以前生命活動的線索，我們要帶回地球研究！」
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+              <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-3 rounded-2xl">
+                <div className="text-xs text-[#7a5a40] font-bold">生活天數</div>
+                <div className="text-xl font-black">{sol} / 20 天</div>
+              </div>
+              <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-3 rounded-2xl">
+                <div className="text-xs text-[#7a5a40] font-bold">研究總分</div>
+                <div className="text-xl font-black text-sky-700">{totalScore} 分</div>
+              </div>
+              <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-3 rounded-2xl col-span-2">
+                <div className="text-xs text-[#7a5a40] font-bold">獲得稱號</div>
+                <div className="text-xl font-black text-amber-700">
+                  {ending === 'SPECIAL_DISCOVERY' ? '傳奇火星發現者' : getAstronautRank(totalScore)}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-4 rounded-2xl space-y-2">
+              <h2 className="font-black text-sm text-sky-900">🪨 你挖到的火星石頭</h2>
+              {collectedNonZeroSamples.length === 0 ? (
+                <p className="text-xs text-[#7a5a40]">這次還沒有挖到石頭，下次多充點電再出發吧！</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  {collectedNonZeroSamples.map((s) => (
+                    <div key={s.id} className="flex justify-between items-center bg-white px-3.5 py-2.5 rounded-xl border border-[#dcc7a9]">
+                      <span className="font-bold">{s.name}</span>
+                      <span className="font-black text-sky-700">
+                        × {samples[s.id]} 顆 {s.points !== 999 && `（+${samples[s.id] * s.points}分）`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-4 rounded-2xl space-y-2">
+              <h2 className="font-black text-sm text-amber-800">🏆 獲得的小小太空人獎章（{unlockedBadges.length} 個）</h2>
+              {unlockedBadges.length === 0 ? (
+                <p className="text-xs text-[#7a5a40]">再挑戰一次，收集更多獎章吧！</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {unlockedBadges.map((b, idx) => (
+                    <div key={idx} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white border border-amber-300">
+                      <span className="text-2xl">{b.icon}</span>
+                      <div>
+                        <div className="font-black text-amber-900">{b.title}</div>
+                        <div className="text-[#6b4c35]">{b.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-4 rounded-2xl space-y-3">
+              <h2 className="font-black text-sm text-emerald-800">
+                🔬 探險發現日記（共 {successfulDrills.length} 筆紀錄）
+              </h2>
+              {successfulDrills.length === 0 ? (
+                <p className="text-xs text-[#7a5a40]">這次沒有成功挖到石頭的紀錄。</p>
+              ) : (
+                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                  {successfulDrills.map((item, idx) => (
+                    <div key={idx} className="bg-white border border-[#dcc7a9] rounded-xl p-3 space-y-1">
+                      <div className="flex justify-between items-center text-xs font-black">
+                        <span className="text-sky-800">第 {item.sol} 天｜{item.sample.name}</span>
+                        <span className="text-amber-700">
+                          {item.sample.points === 999 ? '特別發現' : `+${item.sample.points} 分`}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#4a3525] leading-relaxed">{item.sample.chosenExplanation}</p>
+                      <p className="text-[11px] text-[#7a5a40]">{item.sample.scientificNote}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-4 rounded-2xl space-y-3">
+              <h2 className="font-black text-sm text-[#4a3525]">
+                📸 NASA 好奇號實拍火星相簿（共 {dailyPhotoAlbum.length} 張）
+              </h2>
+              {dailyPhotoAlbum.length === 0 ? (
+                <p className="text-xs text-[#7a5a40]">這次探測車沒有出門拍照喔。</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-64 overflow-y-auto pr-1">
+                  {dailyPhotoAlbum.map((entry, idx) => (
+                    <div key={idx} className="bg-white rounded-xl overflow-hidden border border-[#dcc7a9] flex flex-col">
+                      <img
+                        src={entry.photo.imageUrl}
+                        alt={entry.photo.title}
+                        className="w-full h-24 object-cover"
+                      />
+                      <div className="p-2 space-y-1 flex-1">
+                        <div className="text-[10px] font-black text-amber-700">第 {entry.sol} 天拍攝</div>
+                        <div className="text-[10px] font-bold text-[#4a3525] line-clamp-1">{entry.photo.title}</div>
+                        <div className="text-[10px] text-[#7a5a40] line-clamp-2">{entry.photo.nasaCaption}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={onRestart}
+              className="w-full py-3.5 rounded-2xl bg-sky-500 hover:bg-sky-400 font-black text-white text-base transition shadow-md"
+            >
+              再玩一次火星任務！
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // 7. 主遊戲控制器 App（左上外觀地圖為底，點擊房間顯示右側/下方內部場景圖）
+    // =========================================================================
+    function App() {
+      const { sprites, error: spriteError } = useCroppedSprites(SOURCE_FULL_IMAGE);
+
+      const [sol, setSol] = useState(1);
+      const [resources, setResources] = useState(INITIAL_RESOURCES);
+      const [activeStation, setActiveStation] = useState(null);
+
+      const [solarCollectedToday, setSolarCollectedToday] = useState(false);
+      const [greenhouseActedToday, setGreenhouseActedToday] = useState(false);
+      const [todayGrowthModeId, setTodayGrowthModeId] = useState(null);
+
+      const [tomatoProgress, setTomatoProgress] = useState(1);
+      const [tomatoSpoiledToday, setTomatoSpoiledToday] = useState(false);
+      const [harvestCount, setHarvestCount] = useState(0);
+
+      const [batteryBars, setBatteryBars] = useState(4);
+      const [roverStatus, setRoverStatus] = useState('READY');
+      const [damageSolLeft, setDamageSolLeft] = useState(0);
+      const [pendingExpedition, setPendingExpedition] = useState(null);
+
+      const [totalMissions, setTotalMissions] = useState(0);
+      const [deepDrillMissions, setDeepDrillMissions] = useState(0);
+      const [braveMissions, setBraveMissions] = useState(0);
+      const [dustStormSurvived, setDustStormSurvived] = useState(0);
+      const [perfectSolarGames, setPerfectSolarGames] = useState(0);
+
+      const [samples, setSamples] = useState({
+        BASALT: 0,
+        IRON_OXIDE: 0,
+        HYDRATED: 0,
+        SPECIAL_GEO: 0,
+        ANCIENT_BIOSIGNATURE: 0,
+        NONE: 0,
+      });
+
+      const [expeditionLogs, setExpeditionLogs] = useState([]);
+      const [dailyPhotoAlbum, setDailyPhotoAlbum] = useState([]);
+      const [yesterdayReport, setYesterdayReport] = useState(null);
+
+      const [usedPhotoIds, setUsedPhotoIds] = useState(new Set());
+      const [weather, setWeather] = useState(null);
+      const [loadingNasa, setLoadingNasa] = useState(true);
+
+      const [showMorningBriefing, setShowMorningBriefing] = useState(true);
+      const [dailyReport, setDailyReport] = useState([]);
+      const [ending, setEnding] = useState(null);
+      const [abortReason, setAbortReason] = useState('');
+
+      const loadWeatherForSol = async (targetSol) => {
+        setLoadingNasa(true);
+        const env = await generateDailyMarsEnvironment(targetSol);
+        setWeather(env);
+        setLoadingNasa(false);
+        setShowMorningBriefing(true);
+      };
+
+      useEffect(() => {
+        loadWeatherForSol(1);
+      }, []);
+
+      const totalScore = SAMPLE_CATALOG.reduce((sum, item) => {
+        if (item.id === 'NONE' || item.id === 'ANCIENT_BIOSIGNATURE') return sum;
+        return sum + samples[item.id] * item.points;
+      }, 0);
+
+      const showPowerDot = !solarCollectedToday;
+      const showGreenhouseDot = tomatoProgress >= 3 || (!greenhouseActedToday && tomatoProgress < 3);
+      const showRoverDot = roverStatus === 'READY' && !pendingExpedition && batteryBars >= 1;
+
+      const handleCompleteSolarGame = (gainedPower, caughtCount) => {
+        setResources((r) => ({ ...r, power: Math.min(100, r.power + gainedPower) }));
+        setSolarCollectedToday(true);
+        if (caughtCount >= 14) setPerfectSolarGames((c) => c + 1);
+        setDailyReport((prev) => [
+          ...prev,
+          gainedPower > 0
+            ? `☀️ 接住 ${caughtCount} 道太陽光，獲得 +${gainedPower} 電力！`
+            : `⚠️ 剛剛沒有接到太陽光，沒有增加電力喔。`,
+        ]);
+      };
+
+      const handleElectrolysis = () => {
+        if (resources.water < 10 || resources.power < 15) return;
+        setResources((r) => ({
+          ...r,
+          water: Math.max(0, r.water - 10),
+          power: Math.max(0, r.power - 15),
+          oxygen: Math.min(100, r.oxygen + 22),
+        }));
+      };
+
+      const handleChargeRover = () => {
+        if (resources.power < 12 || batteryBars >= 5 || roverStatus === 'OUT_ON_MISSION') return;
+        setResources((r) => ({ ...r, power: Math.max(0, r.power - 12) }));
+        setBatteryBars((b) => Math.min(5, b + 1));
+      };
+
+      const handleTendTomatoOption = (opt) => {
+        if (greenhouseActedToday || tomatoProgress >= 3) return;
+        if (resources.water < opt.waterCost || resources.power < opt.powerCost) return;
+
+        setResources((r) => ({
+          ...r,
+          water: Math.max(0, r.water - opt.waterCost),
+          power: Math.max(0, r.power - opt.powerCost),
+        }));
+        setGreenhouseActedToday(true);
+        setTodayGrowthModeId(opt.id);
+        setTomatoSpoiledToday(false);
+      };
+
+      const handleHarvestTomato = () => {
+        if (tomatoProgress < 3) return;
+        setResources((r) => ({ ...r, food: Math.min(100, r.food + 35) }));
+        setTomatoProgress(0);
+        setGreenhouseActedToday(true);
+        setHarvestCount((c) => c + 1);
+      };
+
+      const handleDispatchRoverWithCost = (barsCost) => {
+        if (pendingExpedition || roverStatus !== 'READY' || batteryBars < barsCost || !weather) return;
+
+        if (barsCost === 3) setDeepDrillMissions((c) => c + 1);
+        const remaining = Math.max(0, batteryBars - barsCost);
+
+        setBatteryBars(remaining);
+        setRoverStatus('OUT_ON_MISSION');
+        setTotalMissions((m) => m + 1);
+
+        setPendingExpedition({
+          dispatchedSol: sol,
+          barsCost,
+          remainingBars: remaining,
+          isDustStorm: weather.isDustStorm,
+          radiationLevel: weather.radiationLevel,
+        });
+
+        setDailyReport((prev) => [
+          ...prev,
+          `🛸 探測車用了 ${barsCost} 格電出發探險，明天（第 ${sol + 1} 天）早上回來報告！`,
+        ]);
+        setActiveStation(null);
+      };
+
+      const handleEndSol = async () => {
+        if (!weather || ending) return;
+        const logs = [];
+
+        if (!solarCollectedToday) {
+          logs.push('⚠️ 今天忘記去能源區接太陽光，只拿到一點點備用電力 +4。');
+        }
+        const passiveSolar = solarCollectedToday ? 0 : 4;
+
+        if (weather.isDustStorm) {
+          setDustStormSurvived((c) => c + 1);
+        }
+
+        const nextPower = Math.min(100, Math.max(0, resources.power + passiveSolar - 10));
+        const nextOxygen = Math.min(100, Math.max(0, resources.oxygen - 11));
+        const nextWater = Math.min(100, Math.max(0, resources.water - 4));
+        const nextFood = Math.min(100, Math.max(0, resources.food - 9));
+
+        let nextTomatoProgress = tomatoProgress;
+        let spoiledFlag = false;
+
+        if (tomatoProgress >= 3) {
+          nextTomatoProgress = 0;
+          spoiledFlag = true;
+          logs.push('🥀 熟透的番茄忘記採收爛掉了，重新種了新幼苗！');
+        } else if (greenhouseActedToday && todayGrowthModeId) {
+          const growthResult = rollTomatoGrowthGain(todayGrowthModeId);
+          nextTomatoProgress = Math.min(3, tomatoProgress + growthResult.gain);
+          if (nextTomatoProgress >= 3) {
+            logs.push('🍅 番茄完全成熟囉！明天記得趕快放進採收籃，不然會壞掉！');
+          } else {
+            logs.push(growthResult.note);
+          }
+        }
+
+        if (nextOxygen <= 0 || nextWater <= 0 || nextFood <= 0) {
+          const reason =
+            nextOxygen <= 0 ? '氧氣用光了' : nextWater <= 0 ? '水用光了' : '食物吃光了';
+          setResources({ oxygen: nextOxygen, power: nextPower, water: nextWater, food: nextFood });
+          setAbortReason(reason);
+          setEnding('EMERGENCY_ABORT');
+          return;
+        }
+
+        let generatedYesterdayReport = null;
+        let nextRoverStatus = roverStatus;
+        let nextDamageLeft = damageSolLeft;
+
+        if (pendingExpedition) {
+          const photo = await fetchNextCuriosityPhoto(usedPhotoIds);
+          setUsedPhotoIds((prev) => new Set(prev).add(photo.id));
+          setDailyPhotoAlbum((prev) => [...prev, { sol: pendingExpedition.dispatchedSol, photo }]);
+
+          const hazardEval = evaluateRoverReturnHazard(
+            pendingExpedition.isDustStorm,
+            pendingExpedition.radiationLevel
+          );
+
+          if (hazardEval.isDamaged) {
+            nextRoverStatus = hazardEval.damagedSols === 2 ? 'DAMAGED_2_SOL' : 'DAMAGED_1_SOL';
+            nextDamageLeft = hazardEval.damagedSols;
+            generatedYesterdayReport = {
+              sol: pendingExpedition.dispatchedSol,
+              damagedSols: hazardEval.damagedSols,
+              damageReason: hazardEval.reasonText,
+              photo,
+              sample: null,
+            };
+          } else {
+            if (hazardEval.wasHazardous) setBraveMissions((b) => b + 1);
+            nextRoverStatus = 'READY';
+            const found = rollRoverExplorationByCost(pendingExpedition.barsCost);
+            setSamples((prev) => ({ ...prev, [found.id]: prev[found.id] + 1 }));
+
+            const record = {
+              sol: pendingExpedition.dispatchedSol,
+              damagedSols: 0,
+              damageReason: '',
+              photo,
+              sample: found,
+            };
+            setExpeditionLogs((prev) => [...prev, record]);
+            generatedYesterdayReport = record;
+
+            if (found.id === 'ANCIENT_BIOSIGNATURE') {
+              setResources({ oxygen: nextOxygen, power: nextPower, water: nextWater, food: nextFood });
+              setEnding('SPECIAL_DISCOVERY');
+              return;
+            }
+          }
+          setPendingExpedition(null);
+        } else if (damageSolLeft > 0) {
+          nextDamageLeft = damageSolLeft - 1;
+          if (nextDamageLeft === 0) {
+            nextRoverStatus = 'READY';
+            logs.push('🛠️ 探測車修好囉，可以重新出發探險了！');
+          }
+        }
+
+        if (sol >= 20) {
+          setResources({ oxygen: nextOxygen, power: nextPower, water: nextWater, food: nextFood });
+          setEnding('NORMAL_20_SOL');
+          return;
+        }
+
+        const nextSol = sol + 1;
+        let finalWater = nextWater;
+        let finalFood = nextFood;
+
+        if (nextSol === 10) {
+          finalWater = 100;
+          finalFood = 100;
+          logs.push('📦 【第 10 天自動補給車來囉！】水和食物都補滿 100 了！');
+        }
+
+        setResources({ oxygen: nextOxygen, power: nextPower, water: finalWater, food: finalFood });
+        setTomatoProgress(nextTomatoProgress);
+        setTomatoSpoiledToday(spoiledFlag);
+        setRoverStatus(nextRoverStatus);
+        setDamageSolLeft(nextDamageLeft);
+        setYesterdayReport(generatedYesterdayReport);
+        setSol(nextSol);
+        setSolarCollectedToday(false);
+        setGreenhouseActedToday(false);
+        setTodayGrowthModeId(null);
+        setDailyReport(logs);
+        setActiveStation(null);
+        await loadWeatherForSol(nextSol);
+      };
+
+      const handleRestart = () => {
+        setSol(1);
+        setResources(INITIAL_RESOURCES);
+        setActiveStation(null);
+        setSolarCollectedToday(false);
+        setGreenhouseActedToday(false);
+        setTodayGrowthModeId(null);
+        setTomatoProgress(1);
+        setTomatoSpoiledToday(false);
+        setHarvestCount(0);
+        setBatteryBars(4);
+        setRoverStatus('READY');
+        setDamageSolLeft(0);
+        setPendingExpedition(null);
+        setTotalMissions(0);
+        setDeepDrillMissions(0);
+        setBraveMissions(0);
+        setDustStormSurvived(0);
+        setPerfectSolarGames(0);
+        setSamples({
+          BASALT: 0,
+          IRON_OXIDE: 0,
+          HYDRATED: 0,
+          SPECIAL_GEO: 0,
+          ANCIENT_BIOSIGNATURE: 0,
+          NONE: 0,
+        });
+        setExpeditionLogs([]);
+        setDailyPhotoAlbum([]);
+        setYesterdayReport(null);
+        setUsedPhotoIds(new Set());
+        setDailyReport([]);
+        setEnding(null);
+        setAbortReason('');
+        loadWeatherForSol(1);
+      };
+
+      if (ending) {
+        const unlockedBadges = [];
+        if (sol >= 20 && ending !== 'EMERGENCY_ABORT') unlockedBadges.push({ icon: '🏅', title: '火星生存小英雄', desc: '成功在火星生活滿 20 天' });
+        if (totalMissions >= 10) unlockedBadges.push({ icon: '🛸', title: '小小探險家', desc: '派探測車出門 10 次以上' });
+        if (deepDrillMissions >= 3) unlockedBadges.push({ icon: '⚡', title: '深挖尋寶高手', desc: '3 次以上用 3 格電深挖石頭' });
+        if (perfectSolarGames >= 3) unlockedBadges.push({ icon: '☀️', title: '太陽能追光高手', desc: '3 次以上接住超多太陽光' });
+        if (harvestCount >= 2) unlockedBadges.push({ icon: '🍅', title: '火星番茄小農夫', desc: '成功採收 2 次以上番茄' });
+        if (harvestCount >= 4) unlockedBadges.push({ icon: '🧺', title: '滿滿一籃豐收王', desc: '成功採收 4 次以上番茄' });
+        if (braveMissions >= 1) unlockedBadges.push({ icon: '☢️', title: '勇敢冒險王', desc: '在沙塵暴或強輻射下完成探險' });
+        if (samples.BASALT > 0 && samples.IRON_OXIDE > 0 && samples.HYDRATED > 0 && samples.SPECIAL_GEO > 0) {
+          unlockedBadges.push({ icon: '🪨', title: '石頭收藏大師', desc: '收集到四種不同的火星石頭' });
+        }
+        if (dustStormSurvived >= 3 && ending !== 'EMERGENCY_ABORT') {
+          unlockedBadges.push({ icon: '🌪️', title: '沙塵暴小勇士', desc: '挺過 3 次以上大沙塵暴' });
+        }
+        if (ending === 'SPECIAL_DISCOVERY') {
+          unlockedBadges.push({ icon: '🌟', title: '傳奇大發現獎章', desc: '找到超級神祕的生命線索石頭' });
+        }
+
+        return (
+          <EndGameScreen
+            ending={ending}
+            abortReason={abortReason}
+            sol={sol}
+            totalScore={totalScore}
+            samples={samples}
+            expeditionLogs={expeditionLogs}
+            dailyPhotoAlbum={dailyPhotoAlbum}
+            unlockedBadges={unlockedBadges}
+            onRestart={handleRestart}
+          />
+        );
+      }
+
+      const radInfo = RADIATION_LABELS[weather?.radiationLevel || 1];
+
+      return (
+        <div className="min-h-screen bg-[#fdf6e9] text-[#4a3525] flex flex-col">
+          {/* 頂部狀態列 */}
+          <header className="px-3 md:px-6 pt-3 pb-2 max-w-5xl w-full mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3.5 py-1.5 shadow-sm flex items-center gap-2">
+                <span className="text-lg">📅</span>
+                <span className="font-black text-base md:text-lg text-[#4a3525]">Sol {sol} / 20</span>
+              </div>
+              <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3 py-1.5 shadow-sm text-xs md:text-sm font-black text-sky-700">
+                ⭐ {totalScore} 分
+              </div>
+              <button
+                onClick={() => setShowMorningBriefing(true)}
+                className="bg-amber-200 hover:bg-amber-300 border-2 border-amber-400 rounded-2xl px-3 py-1.5 text-xs font-black text-amber-950 shadow-sm"
+              >
+                📋 早安報告
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1 max-w-xl">
+              <TopResourcePill label="氧氣" value={resources.oxygen} barColor="bg-sky-400" icon="🫧" />
+              <TopResourcePill label="電力" value={resources.power} barColor="bg-amber-400" icon="⚡" />
+              <TopResourcePill label="水" value={resources.water} barColor="bg-blue-500" icon="💧" />
+              <TopResourcePill label="食物" value={resources.food} barColor="bg-red-500" icon="🍅" />
+            </div>
+
+            {weather && (
+              <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3 py-1.5 shadow-sm flex items-center gap-2 text-xs font-bold">
+                <span>{weather.isDustStorm ? '🌪️ 沙塵暴' : '🌤️ 晴朗'}</span>
+                <span className={`px-2 py-0.5 rounded-full text-white ${radInfo.color}`}>
+                  輻射：{radInfo.text}
+                </span>
+              </div>
+            )}
+          </header>
+
+          {/* 系統公告提示條 */}
+          {dailyReport.length > 0 && (
+            <div className="max-w-5xl w-full mx-auto px-3 md:px-6 mb-1">
+              <div className="bg-amber-100 border-2 border-amber-300 rounded-2xl px-4 py-2 text-xs md:text-sm font-bold text-amber-950 space-y-0.5">
+                {dailyReport.map((msg, i) => (
+                  <div key={i}>{msg}</div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 主畫面：只留下左上角「火星基地・總覽（外觀）」裁切地圖 */}
+          <main className="flex-1 max-w-5xl w-full mx-auto px-3 md:px-6 pb-4 flex flex-col gap-3">
+            <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs shadow-sm">
+              <span className="font-bold">👆 點擊地圖上的「能源區」、「農業溫室」或「探勘與研究站」打開內部畫面！</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-[#5a3e28]">🛸 探測車電量：</span>
+                {[1, 2, 3, 4, 5].map((bar) => (
+                  <span
+                    key={bar}
+                    className={`w-5 h-3.5 rounded-sm border ${
+                      bar <= batteryBars ? 'bg-sky-400 border-sky-600' : 'bg-[#efe3d0] border-[#d5c1a3]'
+                    }`}
+                  />
+                ))}
+                <span className="font-black text-sky-700 ml-1">{batteryBars}/5 格</span>
+              </div>
+            </div>
+
+            {/* 左上角基地外觀地圖容器 */}
+            <div className="relative w-full rounded-3xl overflow-hidden border-4 border-[#e6d5bc] shadow-lg bg-[#e89f71]">
+              {/* 左上角標題徽章 */}
+              <div className="top-3 left-3 absolute z-10 bg-[#fdf6e9]/95 border-2 border-[#d9c2a3] px-4 py-1.5 rounded-full font-black text-sm md:text-base text-[#5a3e28] shadow">
+                火星基地・總覽（外觀）
+              </div>
+
+              {sprites?.EXTERIOR && !spriteError ? (
+                <img
+                  src={sprites.EXTERIOR}
+                  alt="火星基地總覽外觀"
+                  className="w-full h-auto block select-none"
+                />
+              ) : (
+                <div className="w-full aspect-[16/10] bg-gradient-to-b from-[#f0a875] to-[#d97b4c] flex flex-col items-center justify-center p-6 text-center">
+                  <div className="bg-white/95 px-4 py-2.5 rounded-2xl text-xs font-bold text-amber-900">
+                    請將插畫圖片儲存為 <code className="bg-amber-200 px-1 rounded">base-map.png</code> 放在同資料夾即可顯示完整基地外觀！
+                  </div>
+                </div>
+              )}
+
+              {/* 三個對應房間點擊按鈕（點擊後彈出原圖右側/下方對應的內部插畫與操作） */}
+              {Object.values(ROOM_HOTSPOTS).map((room) => {
+                const hasRedDot =
+                  (room.id === 'POWER' && showPowerDot) ||
+                  (room.id === 'GREENHOUSE' && showGreenhouseDot) ||
+                  (room.id === 'ROVER' && showRoverDot);
+
+                return (
+                  <button
+                    key={room.id}
+                    onClick={() => setActiveStation(room.id)}
+                    style={room.style}
+                    title={room.hint}
+                    className="absolute rounded-3xl border-2 border-transparent hover:border-yellow-300 hover:bg-yellow-200/20 active:scale-95 transition cursor-pointer flex flex-col items-center justify-end pb-2 group"
+                  >
+                    {hasRedDot && (
+                      <span className="top-2 right-2 absolute flex h-5 w-5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80" />
+                        <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 border-2 border-white shadow" />
+                      </span>
+                    )}
+
+                    {room.id === 'GREENHOUSE' && tomatoProgress >= 3 && (
+                      <span className="mb-1 px-2.5 py-0.5 rounded-full bg-red-600 text-white text-xs font-black shadow animate-bounce">
+                        🍅 熟了！快點我採收
+                      </span>
+                    )}
+
+                    <span className="px-3 py-1 rounded-full bg-white/95 border-2 border-[#d9c2a3] text-xs md:text-sm font-black text-[#4a3525] shadow-md group-hover:bg-amber-300 transition">
+                      {room.icon} 進入{room.label}
+                    </span>
+                  </button>
+                );
+              })}
+
+              {/* 右下角「結束今天」按鈕 */}
+              <button
+                onClick={handleEndSol}
+                className="bottom-3 right-3 md:bottom-5 md:right-5 absolute px-4 py-3 md:px-5 md:py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs md:text-base shadow-xl border-2 border-white flex items-center gap-2 active:scale-95 transition z-20"
+              >
+                <span>🌙</span>
+                <span>結束今天（進第 {sol + 1 > 20 ? 20 : sol + 1} 天）</span>
+              </button>
+            </div>
+          </main>
+
+          <MorningBriefingModal
+            visible={showMorningBriefing && !loadingNasa}
+            sol={sol}
+            weather={weather}
+            yesterdayReport={yesterdayReport}
+            onConfirm={() => setShowMorningBriefing(false)}
+          />
+
+          <StationModals
+            activeStation={activeStation}
+            interiorImageUrl={activeStation && sprites ? sprites[activeStation] : null}
+            onClose={() => setActiveStation(null)}
+            resources={resources}
+            weather={weather}
+            solarCollectedToday={solarCollectedToday}
+            onCompleteSolarGame={handleCompleteSolarGame}
+            onElectrolysis={handleElectrolysis}
+            onChargeRover={handleChargeRover}
+            tomatoProgress={tomatoProgress}
+            tomatoSpoiledToday={tomatoSpoiledToday}
+            greenhouseActedToday={greenhouseActedToday}
+            onTendTomatoOption={handleTendTomatoOption}
+            onHarvestTomato={handleHarvestTomato}
+            batteryBars={batteryBars}
+            roverStatus={roverStatus}
+            damageSolLeft={damageSolLeft}
+            pendingExpedition={pendingExpedition}
+            sol={sol}
+            onDispatchRoverWithCost={handleDispatchRoverWithCost}
+          />
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
 </html>
