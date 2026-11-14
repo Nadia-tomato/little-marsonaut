@@ -33,11 +33,21 @@
       animation: floatBadge 2.2s ease-in-out infinite;
     }
     @keyframes launchRocket {
-      0% { transform: translate(0, 80px) rotate(-8deg); opacity: 0; }
+      0% { transform: translate(0, 80px) rotate(55deg) scale(.78); opacity: 0; }
       18% { opacity: 1; }
-      100% { transform: translate(760px, -330px) rotate(8deg); opacity: 1; }
+      100% { transform: translate(760px, -330px) rotate(55deg) scale(1.05); opacity: 1; }
     }
     .animate-launch-rocket { animation: launchRocket 6.5s cubic-bezier(.18,.72,.32,1) forwards; }
+    @keyframes approachMars {
+      0%, 30% { transform: scale(1); }
+      100% { transform: scale(1.28); }
+    }
+    .animate-approach-mars { transform-origin: 1020px 500px; animation: approachMars 6.5s ease-in forwards; }
+    @keyframes launchFade {
+      0%, 76% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .animate-launch-fade { animation: launchFade 6.5s ease-in forwards; }
     @keyframes confettiFall {
       0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
       15% { opacity: 1; }
@@ -72,7 +82,10 @@
     // [Module 1: Game Constants & Elementary-Friendly English Text]
     // =========================================================================
     const MAX_TOMATO_GROWTH = 10;
-    const TEST_CLOCK_SECONDS = Math.max(0, Number(new URLSearchParams(window.location.search).get('testClock')) || 0);
+    const IS_LOCAL_TEST_HOST = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const TEST_CLOCK_SECONDS = IS_LOCAL_TEST_HOST
+      ? Math.max(0, Number(new URLSearchParams(window.location.search).get('testClock')) || 0)
+      : 0;
     const DAY_DURATION_SECONDS = TEST_CLOCK_SECONDS || 120;
     const TOMATO_HARVEST_FOOD_GAIN = 24; // Reduced from 35 to 24
 
@@ -778,15 +791,17 @@
       }, [onComplete]);
 
       return (
-        <div className="min-h-screen bg-[#060911] text-white flex items-center justify-center relative overflow-hidden p-5">
+        <div className="animate-launch-fade min-h-screen bg-[#060911] text-white flex items-center justify-center relative overflow-hidden p-5">
           <svg viewBox="0 0 1200 700" className="absolute inset-0 w-full h-full" aria-hidden="true">
             <rect width="1200" height="700" fill="#060911" />
             {Array.from({ length: 36 }).map((_, i) => (
               <circle key={i} cx={(i * 173) % 1200} cy={(i * 97) % 680 + 10} r={i % 3 === 0 ? 2.5 : 1.5} fill="#fef3c7" opacity=".9" />
             ))}
-            <circle cx="1020" cy="500" r="155" fill="#9c3d1e" opacity=".35" />
-            <circle cx="1020" cy="500" r="120" fill="#d96b38" stroke="#f39c6b" strokeWidth="8" />
-            <path d="M950 475 Q1020 430 1095 470 M970 535 Q1040 500 1100 530" fill="none" stroke="#9c3d1e" strokeWidth="18" opacity=".55" />
+            <g className="animate-approach-mars">
+              <circle cx="1020" cy="500" r="155" fill="#9c3d1e" opacity=".35" />
+              <circle cx="1020" cy="500" r="120" fill="#d96b38" stroke="#f39c6b" strokeWidth="8" />
+              <path d="M950 475 Q1020 430 1095 470 M970 535 Q1040 500 1100 530" fill="none" stroke="#9c3d1e" strokeWidth="18" opacity=".55" />
+            </g>
             <g className="animate-launch-rocket" transform="translate(150 500)">
               <path d="M0 65 Q30 0 70 -18 Q110 0 140 65 Z" fill="#f8fafc" stroke="#475569" strokeWidth="5" />
               <path d="M50 4 Q70 -18 90 4 L70 24 Z" fill="#ef4444" />

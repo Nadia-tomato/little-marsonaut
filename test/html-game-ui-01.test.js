@@ -7,8 +7,12 @@ const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 test('UI update 01 keeps the standalone HTML game and adds the launch flow', () => {
   assert.match(html, /function MarsLaunchTransition/);
   assert.match(html, /MARS_FACTS/);
+  assert.match(html, /const IS_LOCAL_TEST_HOST/);
   assert.match(html, /TEST_CLOCK_SECONDS/);
+  assert.match(html, /const DAY_DURATION_SECONDS = TEST_CLOCK_SECONDS \|\| 120/);
   assert.match(html, /Skip/);
+  assert.match(html, /animate-approach-mars/);
+  assert.match(html, /animate-launch-fade/);
 });
 
 test('UI update 01 removes the manual End Day action', () => {
