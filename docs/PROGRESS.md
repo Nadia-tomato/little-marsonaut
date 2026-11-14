@@ -2,7 +2,26 @@
 
 ## 目前階段
 
-Phase 5：完整測試、遊戲平衡、優化與部署準備。
+HTML Game v3：以組員原始 `index.html` 為唯一主要開發基礎。
+
+## HTML Game v3 本輪變更
+
+- 僅在 `html-game` 分支修改根目錄 [index.html](../index.html)，保留組員的 SVG 火星基地、工作站場景、能源追光、溫室、探測車、NASA 照片與結算相簿架構；沒有把 React `App.jsx` 合併進 HTML 版。
+- 新增英文 Mission Briefing；按下 `Start Mission` 後才啟動遊戲時鐘與資源消耗。
+- 新增單一經過時間時鐘：正式每 Sol 120 秒，`?testClock=5` 可快速測試；瀏覽器背景分頁在正式模式暫停計時。
+- 新增 Sunrise、Daytime、Sunset、Night 狀態，夜間場景變暗，並讓被動太陽能在夜間停止。
+- 基地中央生活區加入 Mission Control 點擊區與任務狀態／樣本紀錄畫面。
+- 番茄由時間驅動，支援 Seed、Sprout、Growing、Ripe、Rotten 進程；成熟後未收成會腐爛，必須重新播種。
+- 探測車選擇 1–5 格電池，樣本數量與配置格數相關；樣本與科研分數在 1 Sol 後返航才結算。
+- NASA Images API 與 DONKI 失敗時新增明確的 NASA archive photo fallback 與中性遊戲風險 fallback，不阻塞任務結算。
+- 新增 `test/html-game.test.js`，檢查真正執行的 HTML 入口、開始流程、時鐘、四區與備援掛勾。
+
+## HTML Game v3 尚待修正／平衡
+
+- 原始組員版本仍含部分繁體中文舊場景文案；本輪已將任務入口、HUD、基地標籤與新增 Mission Control 改為簡單英文，其他舊場景文字需要下一輪逐段翻譯並由真人確認。
+- 資源連續消耗、被動太陽能與舊工作站成本目前是暫定平衡參數，應以 `?testClock=5` 及真人試玩重新校準。
+- 舊 NASA DONKI 風險與沙塵暴仍屬遊戲模擬，不代表火星即時狀況；NASA 歷史資料與遊戲事件在 Mission Control 分開標示。
+- 目前自動 Sol 邊界沿用原始結算流程；照片 API 可能受瀏覽器網路或 CORS 狀態影響，但 fallback 應允許任務繼續。
 
 ## 已完成
 
@@ -94,6 +113,10 @@ Phase 5：完整測試、遊戲平衡、優化與部署準備。
 判讀：番茄投資能提供食物緩衝，探測車能帶來科研分數，但兩者都會與製氧／基地生存爭用水、電力與操作時機，因此存在有意義的取捨。依目前結果，優先科研策略在不製氧時會有可預期的氧氣失敗；這不是無法避免的程式錯誤，而是目前暫定參數下需要真人試玩確認的平衡問題。下一輪如要調整，應只修改 `src/config/gameConfig.js` 並重新跑同一組種子。
 
 ## 測試結果
+
+- HTML Game v3：`npm test` 通過（現有核心／NASA 測試加 HTML smoke tests）。
+- HTML Game v3：`npm run build` 通過；Vite 只負責提供 standalone `index.html`，沒有把入口改回 React。
+- 瀏覽器手動檢查：`http://127.0.0.1:5173/?testClock=5` 可顯示英文 Mission Briefing；開始後資源會連續變化、Sol 自動推進，並可開啟 Mission Control。
 
 - `npm install`：通過。
 - `npm run build`：通過（Vite production build）。

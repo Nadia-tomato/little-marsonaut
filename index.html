@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>MARS CREW — 小小火星任務訓練員</title>
+  <title>MARS CREW — Junior Mission Trainer</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -32,6 +32,16 @@
     .animate-float {
       animation: floatBadge 2.2s ease-in-out infinite;
     }
+    .game-shell { transition: background-color 1.2s ease, color 1.2s ease; }
+    .game-shell[data-phase="night"] { background: #17182d !important; color: #fff5e8; }
+    .game-shell[data-phase="sunset"] { background: #f4c49d !important; }
+    .game-shell[data-phase="sunrise"] { background: #f8dfbd !important; }
+    .game-shell[data-phase="night"] main svg { filter: brightness(.48) saturate(.8); transition: filter 1.2s ease; }
+    .game-shell[data-phase="sunset"] main svg { filter: saturate(1.15) sepia(.15); transition: filter 1.2s ease; }
+    .game-shell[data-phase="night"] .hud-card { background: rgba(37, 38, 70, .94); border-color: #6971a4; color: #fff5e8; }
+    .resource-warning { animation: warningPulse 1.8s ease-in-out infinite; }
+    @keyframes warningPulse { 50% { transform: translateY(-1px); box-shadow: 0 0 0 4px rgba(248,113,113,.12); } }
+    .mission-briefing { background: radial-gradient(circle at 50% 10%, #f6bd8d 0, #bd5e3e 42%, #2a1c2c 100%); }
   </style>
 </head>
 <body>
@@ -49,6 +59,38 @@
       water: 100,
       food: 60,
     };
+
+    const DEFAULT_SOL_SECONDS = 120;
+    const TEST_CLOCK_PARAM = Number(new URLSearchParams(window.location.search).get('testClock')) || 0;
+    const TEST_MODE = TEST_CLOCK_PARAM > 0;
+    const TEST_SOL_SECONDS = Math.max(2, TEST_CLOCK_PARAM || DEFAULT_SOL_SECONDS);
+    const BATTERY_SAMPLE_LIMITS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
+
+    function getTimePhase(progress) {
+      if (progress < 0.18) return 'sunrise';
+      if (progress < 0.62) return 'day';
+      if (progress < 0.82) return 'sunset';
+      return 'night';
+    }
+
+    function MissionBriefing({ onStart }) {
+      return (
+        <div className="mission-briefing min-h-screen flex items-center justify-center p-5 text-white">
+          <div className="max-w-xl w-full rounded-[2rem] border-4 border-orange-200/70 bg-[#351f2b]/85 p-7 md:p-10 text-center shadow-2xl backdrop-blur-sm">
+            <div className="text-6xl mb-3" aria-hidden="true">🚀</div>
+            <p className="uppercase tracking-[.35em] text-orange-200 text-xs font-black">Junior Mission Trainer</p>
+            <h1 className="text-5xl md:text-7xl font-black tracking-tight mt-2">MARS CREW</h1>
+            <p className="text-lg md:text-xl font-bold mt-5">Welcome to Mars!</p>
+            <p className="mt-2 text-orange-50/90">Keep your crew safe, grow tomatoes, make oxygen, and explore Mars.</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-7 text-sm font-black">
+              {['💧 Water', '🍅 Tomatoes', '⚡ Power', '🫧 Oxygen'].map((item) => <div key={item} className="rounded-2xl bg-white/15 border border-white/20 p-3">{item}</div>)}
+            </div>
+            <p className="mt-6 font-black text-orange-200">Mission goal: Survive 20 Sols.</p>
+            <button onClick={onStart} className="mt-7 w-full rounded-2xl bg-orange-400 hover:bg-orange-300 text-[#351f2b] py-4 text-xl font-black shadow-lg active:scale-95 transition">Start Mission</button>
+          </div>
+        </div>
+      );
+    }
 
     const ROVER_DISPATCH_MODES = {
       1: {
@@ -72,6 +114,8 @@
         discoveryMultiplier: 1.35,
         rareBonus: 1.8,
       },
+      4: { barsCost: 4, name: 'Long science drive (4 bars)', desc: 'A longer drive can bring back more samples.', discoveryMultiplier: 1.5, rareBonus: 2.0 },
+      5: { barsCost: 5, name: 'Deep science drive (5 bars)', desc: 'The best chance to bring back a rich sample set.', discoveryMultiplier: 1.7, rareBonus: 2.2 },
     };
 
     const SAMPLE_CATALOG = [
@@ -163,11 +207,11 @@
     ];
 
     const RADIATION_LABELS = {
-      1: { text: '很安全', color: 'bg-emerald-500', advice: '天氣很好，可以放心派車！' },
-      2: { text: '安全', color: 'bg-green-500', advice: '適合出門探險！' },
-      3: { text: '普通', color: 'bg-amber-500', advice: '小心太陽輻射，注意車子狀況。' },
-      4: { text: '偏高', color: 'bg-orange-500', advice: '輻射很強，派車可能會讓車子壞掉！' },
-      5: { text: '危險', color: 'bg-red-500', advice: '輻射超強！建議讓探測車在家休息。' },
+      1: { text: 'Very Low', color: 'bg-emerald-500', advice: 'Good time to explore.' },
+      2: { text: 'Low', color: 'bg-green-500', advice: 'A safe time to explore.' },
+      3: { text: 'Medium', color: 'bg-amber-500', advice: 'Watch the rover.' },
+      4: { text: 'High', color: 'bg-orange-500', advice: 'The rover may need repair.' },
+      5: { text: 'Very High', color: 'bg-red-500', advice: 'Keep the rover safe.' },
     };
 
     // =========================================================================
@@ -179,15 +223,25 @@
 
     let cachedCuriosityPhotos = [];
     let cachedSepEventsCount = null;
+    const NASA_FALLBACK_PHOTO = {
+      id: 'NASA-MARS-FALLBACK-PIA00407',
+      title: 'Mars surface — NASA archive fallback',
+      imageUrl: 'https://images-assets.nasa.gov/image/PIA00407/PIA00407~orig.jpg',
+      dateCreated: '1997-07-04',
+      nasaCaption: 'NASA archive image of the Martian surface. This is education material, not a live camera view.',
+      credit: 'NASA/JPL archive · PIA00407',
+    };
 
     async function fetchNextCuriosityPhoto(usedIds) {
       if (cachedCuriosityPhotos.length === 0) {
-        const query = encodeURIComponent('Curiosity Mastcam Gale Crater');
-        const response = await fetch(`${NASA_IMAGE_API}?q=${query}&media_type=image&page_size=60`);
-        const json = await response.json();
-        const items = json?.collection?.items || [];
+        try {
+          const query = encodeURIComponent('Curiosity Mastcam Gale Crater');
+          const response = await fetch(`${NASA_IMAGE_API}?q=${query}&media_type=image&page_size=60`);
+          if (!response.ok) throw new Error(`NASA image API ${response.status}`);
+          const json = await response.json();
+          const items = json?.collection?.items || [];
 
-        cachedCuriosityPhotos = items
+          cachedCuriosityPhotos = items
           .filter((item) => {
             const info = item.data?.[0];
             if (!info?.nasa_id || !item.links?.[0]?.href) return false;
@@ -209,11 +263,15 @@
               credit: 'NASA 好奇號探測車實拍照片',
             };
           });
+        } catch (error) {
+          console.warn('NASA image API unavailable; using the NASA archive fallback.', error);
+          cachedCuriosityPhotos = [NASA_FALLBACK_PHOTO];
+        }
       }
 
       const available = cachedCuriosityPhotos.filter((p) => !usedIds.has(p.id));
       const pool = available.length > 0 ? available : cachedCuriosityPhotos;
-      return pool[Math.floor(Math.random() * pool.length)];
+      return pool[Math.floor(Math.random() * pool.length)] || NASA_FALLBACK_PHOTO;
     }
 
     async function generateDailyMarsEnvironment(sol) {
@@ -223,9 +281,15 @@
         startObj.setDate(startObj.getDate() - 60);
         const startDate = startObj.toISOString().slice(0, 10);
 
-        const res = await fetch(`${NASA_DONKI_SEP_API}?startDate=${startDate}&endDate=${endDate}&api_key=${API_KEY}`);
-        const events = await res.json();
-        cachedSepEventsCount = Array.isArray(events) ? events.length : 1;
+        try {
+          const res = await fetch(`${NASA_DONKI_SEP_API}?startDate=${startDate}&endDate=${endDate}&api_key=${API_KEY}`);
+          if (!res.ok) throw new Error(`NASA DONKI ${res.status}`);
+          const events = await res.json();
+          cachedSepEventsCount = Array.isArray(events) ? events.length : 1;
+        } catch (error) {
+          console.warn('NASA DONKI unavailable; using a neutral game-only risk fallback.', error);
+          cachedSepEventsCount = 0;
+        }
       }
 
       const baseWeather = HISTORICAL_MARS_WEATHER[Math.floor(Math.random() * HISTORICAL_MARS_WEATHER.length)];
@@ -385,11 +449,11 @@
     }
 
     function getAstronautRank(score) {
-      if (score >= 180) return '火星科學大師';
-      if (score >= 120) return '超級小小太空人';
-      if (score >= 70) return '火星探險家';
-      if (score >= 30) return '小小太空人';
-      return '太空實習生';
+      if (score >= 180) return 'Mars Science Master';
+      if (score >= 120) return 'Super Junior Astronaut';
+      if (score >= 70) return 'Mars Explorer';
+      if (score >= 30) return 'Junior Astronaut';
+      return 'Space Rookie';
     }
 
     // =========================================================================
@@ -403,7 +467,7 @@
           <div className="flex-1 min-w-[54px]">
             <div className="flex justify-between text-[11px] font-extrabold text-[#5a3e28]">
               <span>{label}</span>
-              <span className={isLow ? 'text-red-600 animate-pulse' : ''}>{value}</span>
+              <span className={isLow ? 'text-red-600 animate-pulse' : ''}>{Math.round(value)}</span>
             </div>
             <div className="w-full h-2.5 bg-[#efe3d0] rounded-full overflow-hidden border border-[#dcc7a9]">
               <div className={`h-full transition-all duration-300 rounded-full ${barColor}`} style={{ width: `${value}%` }} />
@@ -651,7 +715,7 @@
               <rect x="218" y="172" width="26" height="22" rx="5" fill="#63c5ff" stroke="#5a4636" strokeWidth="3" />
               {/* 招牌 */}
               <rect x="82" y="124" width="146" height="32" rx="16" fill="#fffaf0" stroke="#9e8267" strokeWidth="3" />
-              <text x="155" y="146" textAnchor="middle" fill="#5a3e28" fontSize="18" fontWeight="900">🏠 中央生活區</text>
+              <text x="155" y="146" textAnchor="middle" fill="#5a3e28" fontSize="18" fontWeight="900">MISSION CONTROL</text>
             </g>
 
             {/* 1. 左側：能源區圓頂 */}
@@ -661,7 +725,7 @@
               <path d="M40,95 C40,35 170,35 170,95 Z" fill="#6898d8" stroke="#4d6f9e" strokeWidth="4" />
               <rect x="85" y="122" width="40" height="42" rx="6" fill="#8b9bb4" stroke="#5a4636" strokeWidth="4" />
               <rect x="42" y="96" width="126" height="28" rx="14" fill="#fffaf0" stroke="#9e8267" strokeWidth="3" />
-              <text x="105" y="116" textAnchor="middle" fill="#5a3e28" fontSize="16" fontWeight="900">⚡ 能源區</text>
+              <text x="105" y="116" textAnchor="middle" fill="#5a3e28" fontSize="16" fontWeight="900">POWER STATION</text>
             </g>
 
             {/* 2. 右側：農業溫室圓頂 */}
@@ -674,7 +738,7 @@
               <circle cx="150" cy="88" r="22" fill="#5eb848" />
               <rect x="95" y="132" width="40" height="42" rx="6" fill="#8b9bb4" stroke="#5a4636" strokeWidth="4" />
               <rect x="48" y="102" width="134" height="28" rx="14" fill="#fffaf0" stroke="#9e8267" strokeWidth="3" />
-              <text x="115" y="122" textAnchor="middle" fill="#5a3e28" fontSize="16" fontWeight="900">🍅 農業溫室</text>
+              <text x="115" y="122" textAnchor="middle" fill="#5a3e28" fontSize="16" fontWeight="900">FARM</text>
             </g>
 
             {/* 3. 下方：探勘與研究站車庫 */}
@@ -685,7 +749,7 @@
               <line x1="85" y1="122" x2="225" y2="122" stroke="#9db0cc" strokeWidth="3" />
               <line x1="85" y1="138" x2="225" y2="138" stroke="#9db0cc" strokeWidth="3" />
               <rect x="65" y="65" width="180" height="32" rx="16" fill="#fffaf0" stroke="#9e8267" strokeWidth="3" />
-              <text x="155" y="87" textAnchor="middle" fill="#5a3e28" fontSize="16" fontWeight="900">🛸 探勘與研究站</text>
+              <text x="155" y="87" textAnchor="middle" fill="#5a3e28" fontSize="16" fontWeight="900">RESEARCH LAB</text>
             </g>
 
             {/* NASA 旗幟 */}
@@ -699,7 +763,7 @@
 
           {/* 左上角標題徽章 */}
           <div className="top-3 left-3 absolute bg-[#fdf6e9]/95 border-2 border-[#d9c2a3] px-4 py-1.5 rounded-full font-black text-xs md:text-base text-[#5a3e28] shadow">
-            火星基地・總覽（點擊建築進入房間）
+            MARS BASE · TAP A ZONE
           </div>
 
           {/* 房間互動熱區 1：能源區 */}
@@ -717,6 +781,13 @@
             )}
           </button>
 
+          <button
+            onClick={() => onEnterRoom('CONTROL')}
+            style={{ left: '34%', top: '20%', width: '32%', height: '27%' }}
+            className="absolute rounded-3xl border-2 border-transparent hover:border-violet-300 hover:bg-violet-200/20 active:scale-95 transition cursor-pointer"
+            title="Open Mission Control"
+          />
+
           {/* 房間互動熱區 2：農業溫室 */}
           <button
             onClick={() => onEnterRoom('GREENHOUSE')}
@@ -730,7 +801,7 @@
                 <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 border-2 border-white shadow" />
               </span>
             )}
-            {tomatoProgress >= 3 && (
+            {tomatoProgress === 3 && (
               <span className="self-center px-2.5 py-0.5 rounded-full bg-red-600 text-white text-xs font-black shadow animate-bounce">
                 🍅 熟了！快採收
               </span>
@@ -752,14 +823,6 @@
             )}
           </button>
 
-          {/* 右下角：結束今天按鈕 */}
-          <button
-            onClick={onEndSol}
-            className="bottom-3 right-3 md:bottom-5 md:right-5 absolute px-4 py-2.5 md:px-5 md:py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs md:text-base shadow-xl border-2 border-white flex items-center gap-2 active:scale-95 transition z-20"
-          >
-            <span>🌙</span>
-            <span>結束今天（進第 {sol + 1 > 20 ? 20 : sol + 1} 天）</span>
-          </button>
         </div>
       );
     }
@@ -915,7 +978,7 @@
       const greenhouseConfig = getGreenhouseOptionsForTemp(weather?.tempMin ?? -75);
 
       const handlePlantBedClick = () => {
-        if (tomatoProgress >= 3) {
+        if (tomatoProgress === 3) {
           setFlyingTomato(true);
           onHarvestTomato();
           setTimeout(() => setFlyingTomato(false), 800);
@@ -964,7 +1027,7 @@
               {/* 依 tomatoProgress 繪製不同生長階段的番茄植株 */}
               {[75, 200, 325, 450].map((px, idx) => (
                 <g key={idx} transform={`translate(${px}, 85)`}>
-                  {tomatoSpoiledToday ? (
+                  {tomatoSpoiledToday || tomatoProgress === 4 ? (
                     <text x="0" y="-15" textAnchor="middle" fontSize="48">🥀</text>
                   ) : tomatoProgress === 0 ? (
                     <text x="0" y="-10" textAnchor="middle" fontSize="40">🌱</text>
@@ -1045,24 +1108,26 @@
           >
             <span
               className={`px-4 py-1.5 rounded-full border-2 border-white text-xs md:text-sm font-black shadow-lg ${
-                tomatoProgress >= 3
+                tomatoProgress === 3
                   ? 'bg-red-600 text-white animate-bounce'
                   : greenhouseActedToday
                   ? 'bg-emerald-700 text-white'
                   : 'bg-emerald-500 text-white'
               }`}
             >
-              {tomatoProgress >= 3
-                ? '🧺 番茄熟了！點我採收進籃子（+35食物，不採會壞掉！）'
+              {tomatoProgress === 3
+                ? 'Harvest ripe tomatoes (+35 food)'
+                : tomatoProgress === 4
+                ? 'Rotten tomatoes. Plant new seeds.'
                 : greenhouseActedToday
-                ? `✅ 今天已照顧過番茄（目前長大 ${tomatoProgress}/3）`
-                : `🌱 點番茄盆栽選擇照顧方式（目前 ${tomatoProgress}/3）`}
+                ? `Growing tomatoes (${tomatoProgress}/3)`
+                : 'Plant seeds to grow tomatoes'}
             </span>
           </button>
 
           {/* 物件熱區 2：右側牆上氣溫看板 -> 打開氣溫照顧選單 */}
           <button
-            onClick={() => tomatoProgress < 3 && !greenhouseActedToday && setShowTempSelector(true)}
+            onClick={() => tomatoProgress !== 3 && tomatoProgress !== 4 && !greenhouseActedToday && setShowTempSelector(true)}
             style={{ left: '75%', top: '28%', width: '18%', height: '35%' }}
             className="absolute rounded-2xl border-2 border-transparent hover:border-sky-400 hover:bg-sky-200/20 transition cursor-pointer flex items-end justify-center pb-1"
             title="查看氣溫與溫室燈光設定"
@@ -1145,7 +1210,7 @@
       const modeInfo = ROVER_DISPATCH_MODES[selectedBarsCost];
 
       const cycleBarsCost = () => {
-        const next = selectedBarsCost === 1 ? 2 : selectedBarsCost === 2 ? 3 : 1;
+        const next = selectedBarsCost >= 5 ? 1 : selectedBarsCost + 1;
         setSelectedBarsCost(next);
       };
 
@@ -1328,6 +1393,44 @@
               </div>
             </div>
           )}
+        </div>
+      );
+    }
+
+    function MissionControlScene({ sol, weather, resources, roverStatus, damageSolLeft, samples, totalScore, expeditionLogs, onBack }) {
+      const weatherLabel = weather?.isDustStorm ? 'Dust Storm (game event)' : 'Clear sky (game simulation)';
+      return (
+        <div className="w-full rounded-3xl border-4 border-[#d9c2a3] shadow-xl bg-[#eee6da] p-4 md:p-6 space-y-4">
+          <div className="flex flex-wrap justify-between items-center gap-2">
+            <button onClick={onBack} className="px-4 py-2 rounded-full bg-white border-2 border-[#d9c2a3] font-black text-sm">‹ Back to Base</button>
+            <h2 className="text-2xl md:text-3xl font-black text-[#4a3525]">Mission Control</h2>
+            <span className="rounded-full bg-violet-100 text-violet-900 px-3 py-1 font-black">Sol {sol} / 20</span>
+          </div>
+          <div className="grid md:grid-cols-2 gap-3">
+            <section className="bg-white rounded-2xl p-4 border-2 border-sky-100">
+              <h3 className="font-black text-sky-900">Mars Weather</h3>
+              <p className="text-sm mt-2">NASA historical data · not live weather</p>
+              <div className="grid grid-cols-3 gap-2 mt-3 text-center text-sm font-black">
+                <div className="bg-sky-50 rounded-xl p-2">Temp<br />{weather ? `${weather.tempMin}°C` : 'N/A'}</div>
+                <div className="bg-sky-50 rounded-xl p-2">Pressure<br />{weather?.pressurePa ? `${weather.pressurePa} Pa` : 'N/A'}</div>
+                <div className="bg-sky-50 rounded-xl p-2">Wind<br />{weather?.windSpeedMs ? `${weather.windSpeedMs} m/s` : 'N/A'}</div>
+              </div>
+              <p className="mt-3 text-sm font-black text-orange-800">Current game alert: {weatherLabel}</p>
+            </section>
+            <section className="bg-white rounded-2xl p-4 border-2 border-amber-100">
+              <h3 className="font-black text-amber-900">Mission Status</h3>
+              <p className="mt-2 text-sm">Rover: <b>{roverStatus === 'READY' ? 'Ready' : roverStatus === 'OUT_ON_MISSION' ? 'Out on mission' : `Repair (${damageSolLeft} Sols)`}</b></p>
+              <p className="text-sm">Science score: <b>{totalScore}</b></p>
+              <p className="text-sm">Discoveries returned: <b>{expeditionLogs.length}</b></p>
+              <p className="text-sm">Power / Water / Food / Oxygen: <b>{resources.power} / {resources.water} / {resources.food} / {resources.oxygen}</b></p>
+            </section>
+          </div>
+          <section className="bg-white rounded-2xl p-4 border-2 border-emerald-100">
+            <h3 className="font-black text-emerald-900">Sample Log</h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-3 text-center text-sm font-black">
+              {SAMPLE_CATALOG.filter((item) => item.id !== 'NONE').map((item) => <div key={item.id} className="bg-emerald-50 rounded-xl p-2">{item.id.replaceAll('_', ' ')}<br />× {samples[item.id]}</div>)}
+            </div>
+          </section>
         </div>
       );
     }
@@ -1623,8 +1726,16 @@
     // 7. 主遊戲控制器 App（全場景切換式圖片冒險遊戲）
     // =========================================================================
     function App() {
+      const [missionStarted, setMissionStarted] = useState(false);
       const [sol, setSol] = useState(1);
       const [resources, setResources] = useState(INITIAL_RESOURCES);
+      const [solElapsed, setSolElapsed] = useState(0);
+      const clockRef = useRef(0);
+      const boundaryBusyRef = useRef(false);
+      const autoBoundaryRef = useRef(false);
+      const handleEndSolRef = useRef(null);
+      const resourcesRef = useRef(resources);
+      resourcesRef.current = resources;
 
       // 'EXTERIOR' | 'POWER' | 'GREENHOUSE' | 'ROVER'
       const [currentScene, setCurrentScene] = useState('EXTERIOR');
@@ -1634,7 +1745,8 @@
       const [greenhouseActedToday, setGreenhouseActedToday] = useState(false);
       const [todayGrowthModeId, setTodayGrowthModeId] = useState(null);
 
-      const [tomatoProgress, setTomatoProgress] = useState(1);
+      const [tomatoProgress, setTomatoProgress] = useState(0);
+      const [tomatoAgeSeconds, setTomatoAgeSeconds] = useState(0);
       const [tomatoSpoiledToday, setTomatoSpoiledToday] = useState(false);
       const [harvestCount, setHarvestCount] = useState(0);
 
@@ -1671,6 +1783,62 @@
       const [ending, setEnding] = useState(null);
       const [abortReason, setAbortReason] = useState('');
 
+      const timeProgress = Math.min(0.999, solElapsed / TEST_SOL_SECONDS);
+      const timePhase = getTimePhase(timeProgress);
+      const remainingSeconds = Math.max(0, Math.ceil(TEST_SOL_SECONDS - solElapsed));
+
+      const commitResourceDrain = (deltaSeconds) => {
+        const daylight = timePhase !== 'night';
+        const stormFactor = weather?.isDustStorm ? 0.35 : 1;
+        setResources((r) => ({
+          ...r,
+          oxygen: Math.max(0, r.oxygen - (11 * deltaSeconds) / DEFAULT_SOL_SECONDS),
+          water: Math.max(0, r.water - (4 * deltaSeconds) / DEFAULT_SOL_SECONDS),
+          food: Math.max(0, r.food - (9 * deltaSeconds) / DEFAULT_SOL_SECONDS),
+          power: Math.min(100, Math.max(0, r.power + (daylight ? (6 * stormFactor * deltaSeconds) / DEFAULT_SOL_SECONDS : 0) - (10 * deltaSeconds) / DEFAULT_SOL_SECONDS)),
+        }));
+      };
+
+      useEffect(() => {
+        if (!missionStarted || ending || (document.hidden && !TEST_MODE)) return undefined;
+        const timer = window.setInterval(() => {
+          if ((document.hidden && !TEST_MODE) || boundaryBusyRef.current) return;
+          const step = 0.25;
+          clockRef.current += step;
+          setSolElapsed(clockRef.current);
+          commitResourceDrain(step);
+          setTomatoAgeSeconds((age) => {
+            if (tomatoProgress <= 0 || tomatoProgress >= 4) return age;
+            const nextAge = age + step;
+            if (nextAge >= TEST_SOL_SECONDS) setTomatoProgress(4);
+            else if (nextAge >= TEST_SOL_SECONDS / 2) setTomatoProgress(3);
+            else if (nextAge >= TEST_SOL_SECONDS / 4) setTomatoProgress(2);
+            else setTomatoProgress(1);
+            return nextAge;
+          });
+          if (clockRef.current >= TEST_SOL_SECONDS) {
+            clockRef.current = 0;
+            setSolElapsed(0);
+            if (handleEndSolRef.current) {
+              boundaryBusyRef.current = true;
+              autoBoundaryRef.current = true;
+              Promise.resolve(handleEndSolRef.current()).finally(() => {
+                boundaryBusyRef.current = false;
+              });
+            }
+          }
+        }, 250);
+        return () => window.clearInterval(timer);
+      }, [missionStarted, ending, weather, timePhase, tomatoProgress]);
+
+      useEffect(() => {
+        const onVisibility = () => {
+          if (document.hidden) clockRef.current = clockRef.current;
+        };
+        document.addEventListener('visibilitychange', onVisibility);
+        return () => document.removeEventListener('visibilitychange', onVisibility);
+      }, []);
+
       const loadWeatherForSol = async (targetSol) => {
         setLoadingNasa(true);
         const env = await generateDailyMarsEnvironment(targetSol);
@@ -1689,7 +1857,7 @@
       }, 0);
 
       const showPowerDot = !solarCollectedToday;
-      const showGreenhouseDot = tomatoProgress >= 3 || (!greenhouseActedToday && tomatoProgress < 3);
+      const showGreenhouseDot = tomatoProgress === 3 || tomatoProgress === 4 || (!greenhouseActedToday && tomatoProgress < 3);
       const showRoverDot = roverStatus === 'READY' && !pendingExpedition && batteryBars >= 1;
 
       const handleCompleteSolarGame = (caughtCount) => {
@@ -1725,7 +1893,7 @@
       };
 
       const handleTendTomatoOption = (opt) => {
-        if (greenhouseActedToday || tomatoProgress >= 3) return;
+        if (greenhouseActedToday || tomatoProgress === 3 || tomatoProgress === 4) return;
         if (resources.water < opt.waterCost || resources.power < opt.powerCost) return;
 
         setResources((r) => ({
@@ -1736,13 +1904,16 @@
         setGreenhouseActedToday(true);
         setTodayGrowthModeId(opt.id);
         setTomatoSpoiledToday(false);
+        setTomatoProgress(1);
+        setTomatoAgeSeconds(0);
         setDailyReport((prev) => [...prev, `🌱 已用「${opt.title}」照顧番茄，明天就會長大囉！`]);
       };
 
       const handleHarvestTomato = () => {
-        if (tomatoProgress < 3) return;
+        if (tomatoProgress !== 3) return;
         setResources((r) => ({ ...r, food: Math.min(100, r.food + 35) }));
         setTomatoProgress(0);
+        setTomatoAgeSeconds(0);
         setGreenhouseActedToday(true);
         setHarvestCount((c) => c + 1);
         setDailyReport((prev) => [...prev, '🧺 番茄採收進籃子啦！食物增加 +35！']);
@@ -1785,19 +1956,32 @@
           setDustStormSurvived((c) => c + 1);
         }
 
-        const nextPower = Math.min(100, Math.max(0, resources.power + passiveSolar - 10));
-        const nextOxygen = Math.min(100, Math.max(0, resources.oxygen - 11));
-        const nextWater = Math.min(100, Math.max(0, resources.water - 4));
-        const nextFood = Math.min(100, Math.max(0, resources.food - 9));
+        const liveResources = resourcesRef.current;
+        const nextPower = autoBoundaryRef.current
+          ? Math.min(100, Math.max(0, liveResources.power))
+          : Math.min(100, Math.max(0, liveResources.power + passiveSolar - 10));
+        const nextOxygen = autoBoundaryRef.current
+          ? Math.min(100, Math.max(0, liveResources.oxygen))
+          : Math.min(100, Math.max(0, liveResources.oxygen - 11));
+        const nextWater = autoBoundaryRef.current
+          ? Math.min(100, Math.max(0, liveResources.water))
+          : Math.min(100, Math.max(0, liveResources.water - 4));
+        const nextFood = autoBoundaryRef.current
+          ? Math.min(100, Math.max(0, liveResources.food))
+          : Math.min(100, Math.max(0, liveResources.food - 9));
 
         let nextTomatoProgress = tomatoProgress;
         let spoiledFlag = false;
 
-        if (tomatoProgress >= 3) {
+        if (tomatoProgress === 4) {
           nextTomatoProgress = 0;
           spoiledFlag = true;
-          logs.push('🥀 熟透的番茄忘記採收爛掉了，重新種了新幼苗！');
-        } else if (greenhouseActedToday && todayGrowthModeId) {
+          logs.push('Rotten tomatoes were removed. Plant new seeds.');
+        } else if (tomatoProgress === 3 && !autoBoundaryRef.current) {
+          nextTomatoProgress = 0;
+          spoiledFlag = true;
+          logs.push('Tomatoes spoiled because they were not harvested.');
+        } else if (!autoBoundaryRef.current && greenhouseActedToday && todayGrowthModeId) {
           const growthResult = rollTomatoGrowthGain(todayGrowthModeId);
           nextTomatoProgress = Math.min(3, tomatoProgress + growthResult.gain);
           if (nextTomatoProgress >= 3) {
@@ -1813,6 +1997,7 @@
           setResources({ oxygen: nextOxygen, power: nextPower, water: nextWater, food: nextFood });
           setAbortReason(reason);
           setEnding('EMERGENCY_ABORT');
+          autoBoundaryRef.current = false;
           return;
         }
 
@@ -1843,8 +2028,10 @@
           } else {
             if (hazardEval.wasHazardous) setBraveMissions((b) => b + 1);
             nextRoverStatus = 'READY';
-            const found = rollRoverExplorationByCost(pendingExpedition.barsCost);
-            setSamples((prev) => ({ ...prev, [found.id]: prev[found.id] + 1 }));
+            const sampleCount = BATTERY_SAMPLE_LIMITS[pendingExpedition.barsCost] || 1;
+            const foundSamples = Array.from({ length: sampleCount }, () => rollRoverExplorationByCost(pendingExpedition.barsCost));
+            const found = foundSamples.find((sample) => sample.id === 'ANCIENT_BIOSIGNATURE') || foundSamples.find((sample) => sample.id !== 'NONE') || foundSamples[0];
+            setSamples((prev) => foundSamples.reduce((next, sample) => ({ ...next, [sample.id]: next[sample.id] + 1 }), prev));
 
             const record = {
               sol: pendingExpedition.dispatchedSol,
@@ -1852,6 +2039,8 @@
               damageReason: '',
               photo,
               sample: found,
+              sampleCount: foundSamples.filter((sample) => sample.id !== 'NONE').length,
+              samples: foundSamples,
             };
             setExpeditionLogs((prev) => [...prev, record]);
             generatedYesterdayReport = record;
@@ -1859,6 +2048,7 @@
             if (found.id === 'ANCIENT_BIOSIGNATURE') {
               setResources({ oxygen: nextOxygen, power: nextPower, water: nextWater, food: nextFood });
               setEnding('SPECIAL_DISCOVERY');
+              autoBoundaryRef.current = false;
               return;
             }
           }
@@ -1874,6 +2064,7 @@
         if (sol >= 20) {
           setResources({ oxygen: nextOxygen, power: nextPower, water: nextWater, food: nextFood });
           setEnding('NORMAL_20_SOL');
+          autoBoundaryRef.current = false;
           return;
         }
 
@@ -1889,6 +2080,7 @@
 
         setResources({ oxygen: nextOxygen, power: nextPower, water: finalWater, food: finalFood });
         setTomatoProgress(nextTomatoProgress);
+        if (nextTomatoProgress === 0) setTomatoAgeSeconds(0);
         setTomatoSpoiledToday(spoiledFlag);
         setRoverStatus(nextRoverStatus);
         setDamageSolLeft(nextDamageLeft);
@@ -1900,9 +2092,12 @@
         setDailyReport(logs);
         setCurrentScene('EXTERIOR');
         await loadWeatherForSol(nextSol);
+        autoBoundaryRef.current = false;
       };
+      handleEndSolRef.current = handleEndSol;
 
       const handleRestart = () => {
+        setMissionStarted(false);
         setSol(1);
         setResources(INITIAL_RESOURCES);
         setCurrentScene('EXTERIOR');
@@ -1910,6 +2105,7 @@
         setGreenhouseActedToday(false);
         setTodayGrowthModeId(null);
         setTomatoProgress(1);
+        setTomatoAgeSeconds(0);
         setTomatoSpoiledToday(false);
         setHarvestCount(0);
         setBatteryBars(4);
@@ -1938,6 +2134,10 @@
         setAbortReason('');
         loadWeatherForSol(1);
       };
+
+      if (!missionStarted) {
+        return <MissionBriefing onStart={() => { setMissionStarted(true); setShowMorningBriefing(false); }} />;
+      }
 
       if (ending) {
         const unlockedBadges = [];
@@ -1975,8 +2175,9 @@
 
       const radInfo = RADIATION_LABELS[weather?.radiationLevel || 1];
 
+      const lowResources = Object.entries(resources).filter(([, value]) => value < 25);
       return (
-        <div className="min-h-screen bg-[#fdf6e9] text-[#4a3525] flex flex-col">
+        <div className="game-shell min-h-screen bg-[#fdf6e9] text-[#4a3525] flex flex-col" data-phase={timePhase}>
           {/* 頂部手繪圓角狀態列 */}
           <header className="px-3 md:px-6 pt-3 pb-2 max-w-5xl w-full mx-auto flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -1985,32 +2186,44 @@
                 <span className="font-black text-base md:text-lg text-[#4a3525]">Sol {sol} / 20</span>
               </div>
               <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3 py-1.5 shadow-sm text-xs md:text-sm font-black text-sky-700">
-                ⭐ {totalScore} 分
+                ⭐ {totalScore} pts
               </div>
               <button
                 onClick={() => setShowMorningBriefing(true)}
                 className="bg-amber-200 hover:bg-amber-300 border-2 border-amber-400 rounded-2xl px-3 py-1.5 text-xs font-black text-amber-950 shadow-sm"
               >
-                📋 早安報告
+                📋 Mission Report
               </button>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1 max-w-xl">
-              <TopResourcePill label="氧氣" value={resources.oxygen} barColor="bg-sky-400" icon="🫧" />
-              <TopResourcePill label="電力" value={resources.power} barColor="bg-amber-400" icon="⚡" />
-              <TopResourcePill label="水" value={resources.water} barColor="bg-blue-500" icon="💧" />
-              <TopResourcePill label="食物" value={resources.food} barColor="bg-red-500" icon="🍅" />
+              <TopResourcePill label="Oxygen" value={resources.oxygen} barColor="bg-sky-400" icon="🫧" />
+              <TopResourcePill label="Power" value={resources.power} barColor="bg-amber-400" icon="⚡" />
+              <TopResourcePill label="Water" value={resources.water} barColor="bg-blue-500" icon="💧" />
+              <TopResourcePill label="Tomatoes" value={resources.food} barColor="bg-red-500" icon="🍅" />
             </div>
 
             {weather && (
               <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3 py-1.5 shadow-sm flex items-center gap-2 text-xs font-bold">
-                <span>{weather.isDustStorm ? '🌪️ 沙塵暴' : '🌤️ 晴朗'}</span>
+                <span>{weather.isDustStorm ? '🌪️ Dust Storm' : '🌤️ Clear'}</span>
                 <span className={`px-2 py-0.5 rounded-full text-white ${radInfo.color}`}>
-                  輻射：{radInfo.text}
+                  Risk: {radInfo.text}
                 </span>
               </div>
             )}
           </header>
+
+          <div className="max-w-5xl w-full mx-auto px-3 md:px-6 mb-2">
+            <div className="flex items-center justify-between gap-3 text-xs font-black">
+              <span className="bg-white/80 rounded-full px-3 py-1">{timePhase === 'day' ? 'Daytime' : timePhase.charAt(0).toUpperCase() + timePhase.slice(1)}</span>
+              <span className="bg-white/80 rounded-full px-3 py-1">Next Sol in {remainingSeconds}s{TEST_SOL_SECONDS !== DEFAULT_SOL_SECONDS ? ' · Test clock' : ''}</span>
+            </div>
+            {lowResources.length > 0 && (
+              <div className="resource-warning mt-2 flex flex-wrap gap-2" aria-live="polite">
+                {lowResources.map(([key]) => <span key={key} className="rounded-full bg-red-100 border-2 border-red-400 text-red-900 px-3 py-1 font-black">Low {key === 'food' ? 'Tomatoes' : key.charAt(0).toUpperCase() + key.slice(1)}! {key === 'power' ? 'Use the Power Station.' : key === 'water' ? 'Make every drop count.' : 'Check your station.'}</span>)}
+              </div>
+            )}
+          </div>
 
           {/* 系統行動回饋提示條 */}
           {dailyReport.length > 0 && (
@@ -2074,6 +2287,20 @@
                 samples={samples}
                 onBack={() => setCurrentScene('EXTERIOR')}
                 onDispatchRoverWithCost={handleDispatchRoverWithCost}
+              />
+            )}
+
+            {currentScene === 'CONTROL' && (
+              <MissionControlScene
+                sol={sol}
+                weather={weather}
+                resources={resources}
+                roverStatus={roverStatus}
+                damageSolLeft={damageSolLeft}
+                samples={samples}
+                totalScore={totalScore}
+                expeditionLogs={expeditionLogs}
+                onBack={() => setCurrentScene('EXTERIOR')}
               />
             )}
           </main>

@@ -2,6 +2,23 @@
 
 > 本文件是 MARS CREW 後續開發的主要需求來源。遊戲機率、資源數值與事件效果是教育遊戲的平衡參數，不是 NASA 實測數據；尚未定義的內容均標記為「待平衡測試」。
 
+## HTML Game v3 規則修訂（目前實作基準）
+
+本版本以組員在 `main` 的原始根目錄 `index.html` 為主要遊戲檔案，保留其手繪 SVG 基地、四區場景、能源互動、溫室、探測車、NASA 照片與結算相簿。React/Vite 原型不是本版本的執行入口。
+
+| 項目 | v3 規則 |
+| --- | --- |
+| 任務開始 | 顯示英文 Mission Briefing；玩家按下 `Start Mission` 後才開始計時與資源消耗。 |
+| 遊戲時間 | 正式 1 Sol = 120 秒；測試可使用 `?testClock=5`。時間由單一經過時間時鐘驅動，不依賴 React 重繪次數。 |
+| 晝夜 | Sunrise、Daytime、Sunset、Night 由 Sol 內進度推導；Night 場景變暗，太陽能被動發電停止。 |
+| 基地區域 | Farm、Research Lab、Power Station、Mission Control；保留點擊基地場景進入各區的方式。 |
+| 番茄 | Seed/Sprout → Growing → Green Tomatoes → Ripe；成熟後再經半個 Sol 未收成則 Rotten。腐爛不能增加食物，須重新 Plant Seeds。時間從播種起算。 |
+| 探測車 | 電池 0–5 格；0 格不能出發，1–5 格可配置。每格對應暫定最大樣本數 1–5；出發後等待 1 Sol，返航才新增樣本與科研分數。 |
+| NASA 素材 | 照片是 NASA 教育素材，不是遊戲虛構樣本的攝影證據；天氣為歷史資料，不是即時火星天氣。API 失敗使用有來源的 NASA archive fallback。 |
+| 文字 | Mission Briefing、HUD、基地標籤與新控制中心使用簡單英文；原始舊場景仍有待下一輪完整翻譯。 |
+
+本表未明確定義的資源速率、被動發電量、樣本數量上限與事件機率均為「待平衡測試」，不得視為 NASA 實測值。
+
 ## 1. 遊戲概述
 
 | 項目 | 規格 |
