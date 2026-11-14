@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   chargeRover,
   createInitialGameState,
@@ -11,7 +11,8 @@ import {
   waterTomato,
 } from './game/gameState.js'
 import { BALANCE_CONFIG, SOL_CONFIG } from './config/gameConfig.js'
-import { MOCK_MARS_FACTS } from './data/mockMissionData.js'
+import { MOCK_MARS_FACTS, SAMPLE_EDUCATION } from './data/mockMissionData.js'
+import { fetchMissionContent, getRadiationRisk, selectScienceForSol } from './services/nasaService.js'
 
 const RESOURCE_META = {
   oxygen: { label: '氧氣', icon: '◌', color: 'cyan' },
@@ -30,11 +31,22 @@ function App() {
   const [batteryChoice, setBatteryChoice] = useState(3)
   const [lastSample, setLastSample] = useState(null)
   const [notice, setNotice] = useState('準備好管理火星基地了嗎？')
+  const [scienceContent, setScienceContent] = useState(null)
+
+  useEffect(() => {
+    if (!gameState || scienceContent) return undefined
+    let active = true
+    fetchMissionContent().then((content) => {
+      if (active) setScienceContent(content)
+    })
+    return () => { active = false }
+  }, [gameState, scienceContent])
 
   const startMission = () => {
     setGameState(createInitialGameState())
     setActiveStation('energy')
     setLastSample(null)
+    setScienceContent(null)
     setNotice('任務開始！先看看能源站，維持氧氣與電力。')
   }
 
@@ -75,6 +87,8 @@ function App() {
         {Object.entries(RESOURCE_META).map(([resource, meta]) => <ResourceMeter key={resource} value={gameState.resources[resource]} meta={meta} />)}
       </section>
 
+      <ScienceBriefing content={scienceContent} sol={gameState.currentSol} />
+
       <section className="mission-layout">
         <div className="base-panel">
           <div className="section-heading"><div><p className="kicker">MISSION VIEW</p><h1>火星基地</h1></div><span className="status-chip"><span className="status-dot" />基地運作中</span></div>
@@ -103,6 +117,21 @@ function StartScreen({ onStart }) {
   return <main className="start-screen"><div className="stars" aria-hidden="true" /><section className="start-card"><div className="planet-orbit" aria-hidden="true"><div className="planet" /><span className="orbit-dot" /></div><p className="eyebrow">JUNIOR ASTRONAUT MISSION TRAINER</p><h1>MARS <span>CREW</span></h1><p className="start-copy">成為火星基地任務指揮官，守護基地資源，派出探測車找尋珍貴的地質樣本！</p><div className="mission-facts"><span>20 SOL 任務</span><span>單人探索</span><span>科學任務</span></div><button type="button" className="start-button" onClick={onStart}>開始任務 <span>→</span></button><p className="mock-note">目前使用任務示範資料 · NASA 真實資料將於後續加入</p></section></main>
 }
 
+function ScienceBriefing({ content, sol }) {
+  const selected = selectScienceForSol(content, sol)
+  const risk = getRadiationRisk(selected.spaceWeather.events)
+  const liveImages = content?.images?.source === 'live' || content?.images?.source === 'cache'
+  const liveWeather = content?.weather?.source === 'live' || content?.weather?.source === 'cache'
+  return <section className="science-briefing" aria-label="NASA 科學資料">
+    <div className="mars-photo-card">
+      {selected.image?.imageUrl ? <img src={selected.image.imageUrl} alt={`${selected.image.title}，NASA ${selected.image.mission}`} /> : <div className="photo-placeholder">NASA 影像載入中…</div>}
+      <div className="photo-caption"><div className="source-line"><span className={`source-badge ${liveImages ? 'live' : 'fallback'}`}>{liveImages ? 'NASA LIVE' : 'NASA 備援資料'}</span><a href={selected.image?.sourceUrl} target="_blank" rel="noreferrer">查看來源 ↗</a></div><strong>{selected.image?.title ?? '火星照片載入中'}</strong><small>{selected.image?.dateCreated ?? '無資料'} · {selected.image?.mission ?? 'NASA 火星任務'} · {selected.image?.credit ?? 'NASA'}</small><p>{selected.image?.education ?? '正在整理 NASA 科學影像資料。'}</p></div>
+    </div>
+    <div className="weather-card"><div className="science-card-heading"><div><p className="kicker">MARS WEATHER · {selected.weather?.sol ? `SOL ${selected.weather.sol}` : '無資料'}</p><strong>Curiosity 歷史天氣</strong></div><span className={`source-badge ${liveWeather ? 'live' : 'fallback'}`}>{liveWeather ? 'NASA LIVE' : '本地備援'}</span></div><div className="weather-values"><span><b>溫度</b>{selected.weather?.minTemp ?? '--'}°C ~ {selected.weather?.maxTemp ?? '--'}°C</span><span><b>氣壓</b>{selected.weather?.pressure && selected.weather.pressure !== '--' ? `${selected.weather.pressure} Pa` : '無資料'}</span><span><b>風速</b>{selected.weather?.windSpeed && selected.weather.windSpeed !== '--' ? selected.weather.windSpeed : '無資料'}</span></div><small className="weather-note">資料日期：{selected.weather?.terrestrialDate ?? '無資料'} · 缺少欄位顯示「無資料」</small></div>
+    <div className="radiation-card"><div className="science-card-heading"><div><p className="kicker">SPACE WEATHER · DONKI</p><strong>遊戲風險警戒</strong></div><span className={`risk-badge ${risk.color}`}>L{risk.level} {risk.label}</span></div><div className="risk-scale">{[1, 2, 3, 4, 5].map((level) => <span key={level} className={level <= risk.level ? 'on' : ''} />)}</div><p>DONKI 的 SEP 紀錄：{selected.spaceWeather.events.length} 筆。這是遊戲用的五級提示，不等同於火星表面輻射測量。</p><small className="weather-note">{selected.spaceWeather.source === 'fallback' ? '目前使用備援狀態，真實資料暫不可用。' : '資料來自 NASA DONKI，僅作教育與遊戲提示。'}</small></div>
+  </section>
+}
+
 function ResourceMeter({ value, meta }) {
   return <article className={`resource-meter ${meta.color}`}><div className="meter-label"><span className="resource-icon">{meta.icon}</span><span>{meta.label}</span><strong>{value}<small>/100</small></strong></div><div className="meter-track"><div className="meter-fill" style={{ width: `${value}%` }} /></div></article>
 }
@@ -124,7 +153,7 @@ function GreenhouseStation({ state, onPlant, onWater, onHarvest }) {
 
 function ExplorationStation({ state, batteryChoice, setBatteryChoice, onCharge, onDispatch, lastSample }) {
   const explored = state.rover.expeditionSol === state.currentSol
-  return <div className="station-content"><div className="station-art rover-art"><span>◈</span><i>· · ·</i></div><p className="panel-description">選擇電池格數，派遣探測車尋找地質樣本。每個 Sol 最多探勘一次。</p><div className="battery-heading"><strong>探測車電池</strong><span>{state.rover.battery}/5 格</span></div><div className="battery-pips" aria-label={`目前電池 ${state.rover.battery} 格`}>{Array.from({ length: 5 }, (_, index) => <button type="button" key={index} className={`battery-pip ${index < batteryChoice ? 'selected' : ''} ${index < state.rover.battery ? 'charged' : ''}`} onClick={() => setBatteryChoice(index + 1)} aria-label={`選擇 ${index + 1} 格電池`}><span>{index + 1}</span></button>)}</div><div className="button-row"><button type="button" className="action-button" onClick={onCharge} disabled={batteryChoice <= state.rover.battery}>充電到 {batteryChoice} 格</button><button type="button" className="action-button secondary" onClick={onDispatch} disabled={explored || state.rover.battery <= 0}>派遣探測車</button></div>{lastSample && <div className={`sample-result ${lastSample.specialEnding ? 'special' : ''}`}><span className="sample-icon">{lastSample.specialEnding ? '★' : '⌁'}</span><div><small>最近回報</small><strong>{SAMPLE_LABELS[lastSample.type]}</strong>{lastSample.score > 0 && <span>+{lastSample.score} 科研分數</span>}</div></div>}<div className="science-score"><span>目前科研分數</span><strong>{state.samples.score}</strong></div><div className="tip-card"><span>ⓘ</span><p>{MOCK_MARS_FACTS[0]}</p></div></div>
+  return <div className="station-content"><div className="station-art rover-art"><span>◈</span><i>· · ·</i></div><p className="panel-description">選擇電池格數，派遣探測車尋找地質樣本。每個 Sol 最多探勘一次。</p><div className="battery-heading"><strong>探測車電池</strong><span>{state.rover.battery}/5 格</span></div><div className="battery-pips" aria-label={`目前電池 ${state.rover.battery} 格`}>{Array.from({ length: 5 }, (_, index) => <button type="button" key={index} className={`battery-pip ${index < batteryChoice ? 'selected' : ''} ${index < state.rover.battery ? 'charged' : ''}`} onClick={() => setBatteryChoice(index + 1)} aria-label={`選擇 ${index + 1} 格電池`}><span>{index + 1}</span></button>)}</div><div className="button-row"><button type="button" className="action-button" onClick={onCharge} disabled={batteryChoice <= state.rover.battery}>充電到 {batteryChoice} 格</button><button type="button" className="action-button secondary" onClick={onDispatch} disabled={explored || state.rover.battery <= 0}>派遣探測車</button></div>{lastSample && <div className={`sample-result ${lastSample.specialEnding ? 'special' : ''}`}><span className="sample-icon">{lastSample.specialEnding ? '★' : '⌁'}</span><div><small>最近回報</small><strong>{SAMPLE_LABELS[lastSample.type]}</strong>{lastSample.score > 0 && <span>+{lastSample.score} 科研分數</span>}<p className="sample-education">{SAMPLE_EDUCATION[lastSample.type]}</p></div></div>}<div className="science-score"><span>目前科研分數</span><strong>{state.samples.score}</strong></div><div className="tip-card"><span>ⓘ</span><p>{MOCK_MARS_FACTS[0]}</p></div></div>
 }
 
 function BaseIllustration({ activeStation }) {
