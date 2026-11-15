@@ -149,11 +149,6 @@
                       <circle r="10" fill="#cbd5e1" />
                     </g>
                   ))}
-                  {roverStatus !== 'READY' && (
-                    <text x="118" y="55" textAnchor="middle" fill="#dc2626" fontSize="19" fontWeight="900">
-                      🛠️ Fixing {OUR_ROVER_NAME}...
-                    </text>
-                  )}
                 </g>
               )}
             </g>
@@ -208,7 +203,7 @@
               className="absolute rounded-3xl transition flex flex-col items-center justify-start pt-2 cursor-pointer hover:bg-amber-300/15 z-20"
               title={`Click Rover "${OUR_ROVER_NAME}" to inspect mission findings & status`}
             >
-              {roverResultUnread && (
+              {roverResultUnread ? (
                 <div className="flex flex-col items-center animate-alert-pulse">
                   <span className="flex h-11 w-11 items-center justify-center relative">
                     <span className="animate-ping absolute inline-flex h-11 w-11 rounded-full bg-red-400 opacity-80" />
@@ -220,79 +215,119 @@
                     Tap {OUR_ROVER_NAME} for Findings!
                   </span>
                 </div>
-              )}
+              ) : roverStatus !== 'READY' ? (
+                <div className="flex flex-col items-center gap-1 animate-pulse">
+                  <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-50/95 border-2 border-amber-500 shadow-md text-amber-950 font-black text-xs">
+                    <span className="text-sm">🔧</span>
+                    <span>Under Maintenance ({damageSolLeft} Sol left)</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-800 bg-white/95 px-2.5 py-0.5 rounded-full border border-amber-300 shadow-sm">
+                    Tap rover for report
+                  </span>
+                </div>
+              ) : null}
             </div>
           )}
 
-          {/* Power Dispatch Slider */}
+          {/* Power Dispatch Slider & Maintenance Info Card */}
           {!isRoverOut && (
             <div
               style={{ left: '12%', bottom: '2%', width: '76%' }}
               className="absolute z-20 bg-white/95 border-2 border-[#d9c2a3] rounded-2xl p-2.5 shadow-xl flex flex-col gap-1.5"
             >
-              {isDustStorm && (
+              {isDustStorm && roverStatus === 'READY' && (
                 <div className="bg-amber-100 border border-amber-400 text-amber-950 rounded-xl px-2.5 py-1 text-[11px] font-black flex items-center justify-center gap-1.5">
                   <span>🌪️</span>
                   <span>Dust Storm Active — High chance of sand jamming {OUR_ROVER_NAME}&apos;s wheels!</span>
                 </div>
               )}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="flex-1 min-w-0 w-full space-y-1">
-                  <div className="flex items-center justify-between gap-1 text-xs font-black">
-                    <span className="text-sky-950 tabular-nums">
-                      {OUR_ROVER_NAME} Battery: {selectedPowerCost} ⚡
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-100 text-amber-900 border border-amber-300 shrink-0 whitespace-nowrap">
-                      {selectedPowerCost === 0
-                        ? 'Standby'
-                        : selectedPowerCost === 10
-                        ? 'Short Walk'
-                        : selectedPowerCost === 20
-                        ? 'Crater Trip'
-                        : 'Deep Expedition'}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="30"
-                    step="10"
-                    value={selectedPowerCost}
-                    onChange={(e) => setSelectedPowerCost(Number(e.target.value))}
-                    className="w-full accent-sky-500 cursor-pointer"
-                    aria-label="Rover power slider"
-                  />
-                  <div className="flex justify-between text-[10px] font-black text-slate-500 px-1">
-                    <span>0 ⚡</span>
-                    <span>10 ⚡</span>
-                    <span>20 ⚡</span>
-                    <span>30 ⚡</span>
-                  </div>
-                </div>
 
-                <button
-                  onClick={() => {
-                    if (selectedPowerCost > 0) {
-                      onRequestDispatchRover(barsCost);
+              {roverStatus !== 'READY' ? (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-1">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-100 border-2 border-amber-400 flex items-center justify-center text-xl shrink-0 shadow-sm">
+                      🔧
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-black text-amber-950">
+                          {OUR_ROVER_NAME} Garage Maintenance
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-400 text-[10px] font-black">
+                          {damageSolLeft} Sol remaining
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-bold text-slate-600 truncate mt-0.5">
+                        {latestRoverResult?.damageReason
+                          ? `Damage cause: ${latestRoverResult.damageReason}. Repairs in progress.`
+                          : `${OUR_ROVER_NAME} is undergoing repairs and will be ready next Sol!`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setShowReportModal(true)}
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-black text-xs shadow-md active:scale-95 transition shrink-0 whitespace-nowrap"
+                  >
+                    View Report
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0 w-full space-y-1">
+                    <div className="flex items-center justify-between gap-1 text-xs font-black">
+                      <span className="text-sky-950 tabular-nums">
+                        {OUR_ROVER_NAME} Battery: {selectedPowerCost} ⚡
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-100 text-amber-900 border border-amber-300 shrink-0 whitespace-nowrap">
+                        {selectedPowerCost === 0
+                          ? 'Standby'
+                          : selectedPowerCost === 10
+                          ? 'Short Walk'
+                          : selectedPowerCost === 20
+                          ? 'Crater Trip'
+                          : 'Deep Expedition'}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="30"
+                      step="10"
+                      value={selectedPowerCost}
+                      onChange={(e) => setSelectedPowerCost(Number(e.target.value))}
+                      className="w-full accent-sky-500 cursor-pointer"
+                      aria-label="Rover power slider"
+                    />
+                    <div className="flex justify-between text-[10px] font-black text-slate-500 px-1">
+                      <span>0 ⚡</span>
+                      <span>10 ⚡</span>
+                      <span>20 ⚡</span>
+                      <span>30 ⚡</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (selectedPowerCost > 0) {
+                        onRequestDispatchRover(barsCost);
+                      }
+                    }}
+                    disabled={
+                      selectedPowerCost === 0 ||
+                      Boolean(pendingExpedition) ||
+                      power < selectedPowerCost
                     }
-                  }}
-                  disabled={
-                    selectedPowerCost === 0 ||
-                    Boolean(pendingExpedition) ||
-                    roverStatus !== 'READY' ||
-                    power < selectedPowerCost
-                  }
-                  className="w-full sm:w-48 px-3 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-black text-xs shadow-md active:scale-95 transition shrink-0 text-center"
-                >
-                  {selectedPowerCost === 0
-                    ? 'Select Power'
-                    : roverStatus !== 'READY'
-                    ? `Fixing (${damageSolLeft}d)`
-                    : power < selectedPowerCost
-                    ? `Need ${selectedPowerCost} ⚡`
-                    : `Send ${OUR_ROVER_NAME} (-${selectedPowerCost} ⚡)`}
-                </button>
-              </div>
+                    className="w-full sm:w-48 px-3 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-black text-xs shadow-md active:scale-95 transition shrink-0 text-center"
+                  >
+                    {selectedPowerCost === 0
+                      ? 'Select Power'
+                      : power < selectedPowerCost
+                      ? `Need ${selectedPowerCost} ⚡`
+                      : `Send ${OUR_ROVER_NAME} (-${selectedPowerCost} ⚡)`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
