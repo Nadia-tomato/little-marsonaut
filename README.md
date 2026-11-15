@@ -10,7 +10,7 @@
 - **Scientific Accuracy & Transparency**: Clear distinction between live NASA space weather data and simulated Martian gameplay parameters (see [SCIENCE_SOURCES.md](./SCIENCE_SOURCES.md)).
 - **Self-Sustaining Life Support Loop**: Manage Air (O₂), Power (⚡), Water (💧), and Food (🍅) through authentic scientific processes:
   - **Power Lab**: Solar collection with InSight-inspired dust accumulation; water electrolysis for breathable oxygen; subsurface ice extraction.
-  - **Tomato Greenhouse**: Realistic 90-second tomato growth cycle with grow lamp boost and a 70-second unharvested rot timer.
+  - **Tomato Greenhouse**: Realistic 100-second tomato growth cycle with grow lamp boost and a 70-second unharvested rot timer.
   - **Rover Bay (Curiosity Jr.)**: Dispatch expeditions with custom battery power (10 ⚡ / 70s, 20 ⚡ / 100s, 30 ⚡ / 130s) to discover real Martian mineral specimens and ancient biosignature clues.
 - **Verified NASA/CSA Science Facts**: 25 curated, child-friendly scientific fact cards verified against official NASA missions (Curiosity, Perseverance, InSight, MRO, Veggie-05).
 

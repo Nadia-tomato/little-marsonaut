@@ -260,15 +260,6 @@
                     <span>20 ⚡</span>
                     <span>30 ⚡</span>
                   </div>
-                  <div className="text-[11px] font-bold text-sky-900 bg-sky-50 px-2 py-0.5 rounded border border-sky-200 truncate">
-                    {selectedPowerCost === 0
-                      ? 'More power = longer trip & higher chance of rare finds'
-                      : selectedPowerCost === 10
-                      ? '70s • Near Base (saves power, standard rocks)'
-                      : selectedPowerCost === 20
-                      ? '100s • Crater Drive (balanced range & good finds)'
-                      : '130s • Deep Riverbed (farthest range, best rare gem chance!)'}
-                  </div>
                 </div>
 
                 <button

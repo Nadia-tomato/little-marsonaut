@@ -12,21 +12,16 @@ function MorningBriefingModule({
       return (
         <div className="fixed inset-0 bg-[#2d1e12]/75 flex items-center justify-center p-4 z-50">
           <div className="bg-[#fdf6e9] border-4 border-[#d9c2a3] text-[#4a3525] rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
-            <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-3 border-b-2 border-[#eadbc5] pb-3">
-              <div className="flex-1 min-w-0 space-y-0.5">
-                <span className="text-[11px] font-extrabold text-amber-800 uppercase tracking-wide">
-                  LITTLE MARSONAUT • SIMULATED MARS CONDITIONS
-                </span>
-                <h2 className="text-xl md:text-2xl font-black text-[#4a3525]">
-                  Day {sol} — Mars Environment Report
-                </h2>
-                <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
-                  Mars conditions are simulated for gameplay. Space weather is inspired by NASA data.
-                </p>
-              </div>
-              <span className={`px-3 py-1.5 rounded-full text-xs font-black text-white shrink-0 whitespace-nowrap shadow-sm self-start sm:self-center ${radInfo.color}`}>
-                Sun Rays: {radInfo.text}
+            <div className="border-b-2 border-[#eadbc5] pb-3 space-y-1">
+              <span className="text-[11px] font-extrabold text-amber-800 uppercase tracking-wide">
+                LITTLE MARSONAUT • SIMULATED MARS CONDITIONS
               </span>
+              <h2 className="text-xl md:text-2xl font-black text-[#4a3525]">
+                Day {sol} — Mars Environment Report
+              </h2>
+              <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                Mars conditions are simulated for gameplay. Space weather is inspired by NASA data.
+              </p>
             </div>
 
             {weather.isDustStorm && (

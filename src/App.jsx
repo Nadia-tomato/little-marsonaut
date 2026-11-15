@@ -538,11 +538,11 @@ const { useState, useEffect, useRef } = React;
             return prevRoverSec - 1;
           });
 
-          // Continuous real-time tomato growth (90s full growth cycle) & 70s rot timer
+          // Continuous real-time tomato growth (100s full growth cycle) & 70s rot timer
           const lampBonus = todayTempOptionRef.current
-            ? (todayTempOptionRef.current.id === 'TEMP_WARM' ? 0.04 : 0.02)
+            ? (todayTempOptionRef.current.id === 'TEMP_WARM' ? 0.03 : 0.015)
             : 0;
-          const baseGrowthRate = 0.10; // Exactly 90s to grow from seedling (1) to ripe (10) (delta 9 / 90s = 0.10/s)
+          const baseGrowthRate = 0.09; // Exactly 100s to grow from seedling (1) to ripe (10) (delta 9 / 100s = 0.09/s)
           const growthRate = baseGrowthRate + lampBonus;
 
           setTomatoProgresses((prevProgresses) => {
