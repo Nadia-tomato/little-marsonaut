@@ -135,10 +135,10 @@
     const TEST_CLOCK_SECONDS = IS_LOCAL_TEST_HOST
       ? Math.max(0, Number(new URLSearchParams(window.location.search).get('testClock')) || 0)
       : 0;
-    const DAY_DURATION_SECONDS = TEST_CLOCK_SECONDS || 120; // 1 Sol = 120s (2 min)
+    const DAY_DURATION_SECONDS = TEST_CLOCK_SECONDS || 100; // 1 Sol = 100s (1:40)
     const TOMATO_HARVEST_FOOD_GAIN = 24;
     const ROVER_POWER_PER_BAR = 10;
-    const OUR_ROVER_NAME = 'Wonder'; // Named like NASA's Curiosity Rover!
+    const OUR_ROVER_NAME = 'Curiosity Jr.'; // Named after NASA's Curiosity Rover!
 
     const INITIAL_RESOURCES = {
       oxygen: 70,
@@ -170,7 +170,7 @@
       CURIOSITY_ROVER: {
         icon: '🛸',
         title: `About NASA's Curiosity & Our Rover "${OUR_ROVER_NAME}"!`,
-        body: `NASA's real Curiosity rover is a car-sized robot exploring Gale Crater on Mars since 2012! It has 6 wheels, a laser camera head, and a robot arm drill to study rocks and look for signs of ancient water. We named our base rover "${OUR_ROVER_NAME}"—just like Curiosity—because we love asking big questions about Mars!`,
+        body: `NASA's real Curiosity rover is a car-sized robot exploring Gale Crater on Mars since 2012! It has 6 wheels, a laser camera head, and a robot arm drill to study rocks and look for signs of ancient water. We named our base rover "${OUR_ROVER_NAME}" because it follows in Curiosity's tracks to explore Mars!`,
         funTip: `Give "${OUR_ROVER_NAME}" more battery power to drive farther and find rarer rocks!`,
       },
     };
@@ -190,22 +190,25 @@
     const ROVER_DISPATCH_MODES = {
       1: {
         barsCost: 1,
+        durationSeconds: 25,
         name: 'Short Walk (10 ⚡)',
-        desc: 'Checks right outside the garage door. Saves power, fewer rare rocks.',
+        desc: 'Quick trip right outside the garage door. Saves power, fewer rare rocks.',
         discoveryMultiplier: 0.6,
         rareBonus: 0.5,
       },
       2: {
         barsCost: 2,
+        durationSeconds: 45,
         name: 'Crater Trip (20 ⚡)',
-        desc: 'Drives to a nearby crater. Good chance to find cool rocks!',
+        desc: 'Medium drive to a nearby crater. Good chance to find cool rocks!',
         discoveryMultiplier: 1.0,
         rareBonus: 1.0,
       },
       3: {
         barsCost: 3,
+        durationSeconds: 70,
         name: 'Far Riverbed Dig (30 ⚡)',
-        desc: 'Drives far away to an old riverbed. Best chance for rare gems!',
+        desc: 'Long trip far away to an old riverbed. Best chance for rare gems!',
         discoveryMultiplier: 1.35,
         rareBonus: 1.8,
       },
@@ -286,7 +289,7 @@
           'Thick dust covered the ground so the drill could not reach hard rock.',
           'The rock was too soft and turned into dust when the rover grabbed it.',
         ],
-        scientificNote: 'Tip: Give Wonder 20 or 30 Power to drive farther and find more rocks!',
+        scientificNote: 'Tip: Give Curiosity Jr. 20 or 30 Power to drive farther and find more rocks!',
       },
     ];
 
@@ -300,7 +303,7 @@
     ];
 
     const RADIATION_LABELS = {
-      1: { text: 'Very Safe', color: 'bg-emerald-500', advice: 'Calm sun rays—great day to send Wonder out!' },
+      1: { text: 'Very Safe', color: 'bg-emerald-500', advice: 'Calm sun rays—great day to send Curiosity Jr. out!' },
       2: { text: 'Safe', color: 'bg-green-500', advice: 'Good space weather for exploring outside!' },
       3: { text: 'Medium', color: 'bg-amber-500', advice: 'Sun rays (radiation) are a bit strong today.' },
       4: { text: 'High', color: 'bg-orange-500', advice: 'Strong sun rays (radiation) might hurt the rover!' },
@@ -859,7 +862,7 @@
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
                 <p className="text-amber-200 text-base sm:text-lg md:text-xl font-black text-center sm:text-left drop-shadow-md flex-1">
-                  ✨ Survive 20 days and explore the mysteries of Mars!
+                  ✨ Survive and explore the mysteries of Mars!
                 </p>
                 <button
                   onClick={onStartMission}
@@ -1935,34 +1938,42 @@
             </button>
           </div>
 
-          {/* Interactive Grow Lamps & Heater Button Over Overhead Lamps */}
-          <button
-            onClick={() => !todayTempOption && setShowLampModal(true)}
-            disabled={Boolean(todayTempOption)}
-            style={{ left: '22%', top: '12%', width: '48%', height: '22%' }}
-            className="absolute rounded-2xl border-2 border-transparent hover:border-amber-400 hover:bg-amber-200/20 transition cursor-pointer flex items-start justify-center pt-2 z-20"
-            title="Turn on Grow Lamps & Heater to boost tomato growth!"
+          {/* Right-Side Grow Lamps & Heater Control Panel (Moved to right so it never blocks the overhead lamps!) */}
+          <div
+            style={{ right: '3%', top: '16%', width: '21%' }}
+            className="absolute z-30 flex flex-col items-center gap-2"
           >
-            <span
-              className={`px-3.5 py-1 rounded-full border-2 border-white text-xs font-black shadow-md ${
+            <div className="flex items-center gap-1.5">
+              <QuestionMarkButton
+                topicKey="TOMATO_GROWTH"
+                seenTopics={seenTopics}
+                onOpenTopic={onOpenTopic}
+              />
+            </div>
+            <button
+              onClick={() => !todayTempOption && setShowLampModal(true)}
+              disabled={Boolean(todayTempOption)}
+              className={`w-full rounded-2xl border-2 p-2.5 shadow-lg transition cursor-pointer flex flex-col items-center text-center gap-1 ${
                 todayTempOption
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-amber-400 text-[#3b2514] animate-float'
+                  ? 'bg-emerald-600 border-white text-white'
+                  : 'bg-[#fffaf0]/95 hover:bg-amber-100 border-amber-400 text-[#4a3525] animate-float'
               }`}
+              title="Turn on Grow Lamps & Heater to boost tomato growth!"
             >
-              {todayTempOption
-                ? `💡 Grow Lamps On: ${todayTempOption.title}`
-                : '💡 Tap Grow Lamps to Shine Light & Warm Plants!'}
-            </span>
-          </button>
-
-          {/* Big Question Mark (?) for Tomato Grow Lights & Care */}
-          <div style={{ left: '72%', top: '14%' }} className="absolute z-30">
-            <QuestionMarkButton
-              topicKey="TOMATO_GROWTH"
-              seenTopics={seenTopics}
-              onOpenTopic={onOpenTopic}
-            />
+              <span className="text-2xl leading-none">💡</span>
+              <span className="text-[11px] font-black leading-tight">
+                {todayTempOption
+                  ? `On: ${todayTempOption.title}`
+                  : 'Grow Lamps & Heater'}
+              </span>
+              <span
+                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                  todayTempOption ? 'bg-emerald-700 text-emerald-100' : 'bg-amber-300 text-amber-950'
+                }`}
+              >
+                {todayTempOption ? '✓ Active' : 'Tap to Set ⚡'}
+              </span>
+            </button>
           </div>
 
           {/* Dedicated Watering Can placed on Table on Left of Planter */}
@@ -2107,11 +2118,11 @@
               </div>
             ) : needsWater ? (
               <div className="bg-[#fdf6e9]/95 border border-[#d9c2a3] px-3.5 py-1 rounded-full text-[11px] font-black text-[#5a3e28] shadow">
-                🌱 Drag watering can over dry plants (-2 Water each) & turn on Grow Lamps above!
+                🌱 Drag watering can over dry plants (-2 Water each) & set Grow Lamps on the right!
               </div>
             ) : (
               <div className="bg-emerald-100/95 border border-emerald-400 px-3.5 py-1 rounded-full text-[11px] font-black text-emerald-900 shadow">
-                ✨ All growing plants watered! {todayTempOption ? 'Grow lamps are shining!' : 'Tap Grow Lamps above for extra growth!'}
+                ✨ All growing plants watered! {todayTempOption ? 'Grow lamps are shining!' : 'Tap Grow Lamps on the right for extra growth!'}
               </div>
             )}
           </div>
@@ -2180,8 +2191,8 @@
     // =========================================================================
     // [Module 9: Rover Garage Interactive Scene Module]
     // - Uses game.html background
-    // - Names our rover "Wonder" (similar to NASA's Curiosity)
-    // - Adds Big Question Mark (?) button to learn about NASA's Curiosity & Wonder
+    // - Names our rover "Curiosity Jr."
+    // - Rover returns based on trip duration rather than waiting for next day!
     // =========================================================================
     function RoverRoomModule({
       weather,
@@ -2190,6 +2201,7 @@
       roverStatus,
       damageSolLeft,
       pendingExpedition,
+      roverTripProgress,
       latestRoverResult,
       roverResultUnread,
       samples,
@@ -2281,10 +2293,19 @@
                 <g>
                   <line x1="125" y1="210" x2="125" y2="255" stroke="#475569" strokeWidth="8" strokeDasharray="6 5" opacity="0.6" strokeLinecap="round" />
                   <line x1="205" y1="210" x2="205" y2="255" stroke="#475569" strokeWidth="8" strokeDasharray="6 5" opacity="0.6" strokeLinecap="round" />
-                  <rect x="65" y="152" width="200" height="32" rx="16" fill="#0284c7" stroke="#fff" strokeWidth="2.5" />
-                  <text x="165" y="173" textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="900">
-                    🛸 Rover &ldquo;{OUR_ROVER_NAME}&rdquo; Exploring!
+                  <rect x="45" y="146" width="240" height="44" rx="18" fill="#0284c7" stroke="#fff" strokeWidth="2.5" />
+                  <text x="165" y="166" textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="900">
+                    🛸 {OUR_ROVER_NAME} Exploring...
                   </text>
+                  <rect x="75" y="174" width="180" height="8" rx="4" fill="#0369a1" />
+                  <rect
+                    x="75"
+                    y="174"
+                    width={Math.max(8, Math.round(180 * (roverTripProgress || 0)))}
+                    height="8"
+                    rx="4"
+                    fill="#fde047"
+                  />
                 </g>
               ) : (
                 <g
@@ -2297,9 +2318,9 @@
                   <rect x="155" y="-12" width="54" height="30" rx="8" fill="#fff" stroke="#5a4636" strokeWidth="4" />
                   <circle cx="192" cy="3" r="8" fill="#38bdf8" />
                   <rect x="30" y="65" width="175" height="75" rx="22" fill="#fffaf0" stroke="#5a4636" strokeWidth="5" />
-                  <rect x="55" y="82" width="125" height="25" rx="8" fill="#fb923c" />
-                  <text x="118" y="99" textAnchor="middle" fill="#ffffff" fontSize="13" fontWeight="900">
-                    {OUR_ROVER_NAME.toUpperCase()}
+                  <rect x="50" y="82" width="135" height="25" rx="8" fill="#fb923c" />
+                  <text x="118" y="99" textAnchor="middle" fill="#ffffff" fontSize="11.5" fontWeight="900">
+                    CURIOSITY JR.
                   </text>
                   {[55, 118, 180].map((wx, i) => (
                     <g key={i} transform={`translate(${wx}, 152)`}>
@@ -2308,8 +2329,8 @@
                     </g>
                   ))}
                   {roverStatus !== 'READY' && (
-                    <text x="118" y="55" textAnchor="middle" fill="#dc2626" fontSize="21" fontWeight="900">
-                      🛠️ Fixing {OUR_ROVER_NAME} ({damageSolLeft}d)...
+                    <text x="118" y="55" textAnchor="middle" fill="#dc2626" fontSize="19" fontWeight="900">
+                      🛠️ Fixing {OUR_ROVER_NAME}...
                     </text>
                   )}
                 </g>
@@ -2386,10 +2407,10 @@
                     {selectedPowerCost === 0
                       ? 'Standby (0 Power)'
                       : selectedPowerCost === 10
-                      ? 'Short Walk'
+                      ? 'Short Walk (Quick Trip)'
                       : selectedPowerCost === 20
-                      ? 'Crater Trip'
-                      : 'Far Riverbed Dig'}
+                      ? 'Crater Trip (Medium Trip)'
+                      : 'Far Riverbed Dig (Long Trip)'}
                   </span>
                 </div>
                 <input
@@ -2981,7 +3002,7 @@
               <div>
                 <span className="text-xs font-extrabold text-amber-700">LITTLE MARSONAUT • DAILY WEATHER</span>
                 <h2 className="text-xl font-black text-[#4a3525]">
-                  Day {sol} of 20 — Mars Weather Report
+                  Day {sol} — Mars Weather Report
                 </h2>
               </div>
               <span className={`px-2.5 py-1 rounded-full text-xs font-black text-white ${radInfo.color}`}>
@@ -3117,7 +3138,7 @@
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
               <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-3 rounded-2xl">
                 <div className="text-xs text-[#7a5a40] font-bold">Days on Mars</div>
-                <div className="text-xl font-black">{sol} / 20 Days</div>
+                <div className="text-xl font-black">{sol} Days</div>
               </div>
               <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-3 rounded-2xl">
                 <div className="text-xs text-[#7a5a40] font-bold">Science Score</div>
@@ -3242,6 +3263,7 @@
       const [roverStatus, setRoverStatus] = useState('READY');
       const [damageSolLeft, setDamageSolLeft] = useState(0);
       const [pendingExpedition, setPendingExpedition] = useState(null);
+      const [roverSecondsLeft, setRoverSecondsLeft] = useState(0);
 
       const [totalMissions, setTotalMissions] = useState(0);
       const [deepDrillMissions, setDeepDrillMissions] = useState(0);
@@ -3449,9 +3471,9 @@
         const mode = ROVER_DISPATCH_MODES[barsCost];
         setPendingConfirmAction({
           icon: '🚀',
-          title: `Send Rover "${OUR_ROVER_NAME}": ${mode.name}`,
+          title: `Send "${OUR_ROVER_NAME}": ${mode.name}`,
           costText: `-${powerCost} ⚡ Power`,
-          gainText: `${OUR_ROVER_NAME} drives outside & returns Day ${sol + 1} with rocks!`,
+          gainText: `${OUR_ROVER_NAME} drives out & returns automatically when the trip finishes!`,
           note: mode.desc,
           onExecute: () => {
             if (barsCost === 3) setDeepDrillMissions((c) => c + 1);
@@ -3459,20 +3481,89 @@
             setRoverStatus('OUT_ON_MISSION');
             setTotalMissions((m) => m + 1);
 
+            const tripDuration = mode.durationSeconds || 40;
+            setRoverSecondsLeft(tripDuration);
             setPendingExpedition({
               dispatchedSol: sol,
               barsCost,
+              totalDuration: tripDuration,
               isDustStorm: weather.isDustStorm,
               radiationLevel: weather.radiationLevel,
             });
 
             setDailyReport((prev) => [
               ...prev,
-              `🛸 Rover "${OUR_ROVER_NAME}" drove out of the garage (-${powerCost} Power)!`,
+              `🛸 "${OUR_ROVER_NAME}" drove out of the garage (-${powerCost} Power)!`,
             ]);
           },
         });
       };
+
+      // Real-time Rover Return Handler (triggered when roverSecondsLeft reaches 0, independent of day change!)
+      const completeRoverExpeditionRef = useRef(null);
+      const completingRoverRef = useRef(false);
+
+      const completeRoverExpedition = async () => {
+        if (!pendingExpedition || completingRoverRef.current) return;
+        completingRoverRef.current = true;
+        try {
+          const exp = pendingExpedition;
+          const photo = await NasaService.fetchNextCuriosityPhoto(usedPhotoIds);
+          setUsedPhotoIds((prev) => new Set(prev).add(photo.id));
+
+          const hazardEval = GameLogicModule.evaluateRoverReturnHazard(
+            exp.isDustStorm,
+            exp.radiationLevel
+          );
+
+          if (hazardEval.isDamaged) {
+            setRoverStatus(hazardEval.damagedSols === 2 ? 'DAMAGED_2_SOL' : 'DAMAGED_1_SOL');
+            setDamageSolLeft(hazardEval.damagedSols);
+            const dmgReport = {
+              sol: exp.dispatchedSol,
+              damagedSols: hazardEval.damagedSols,
+              damageReason: hazardEval.reasonText,
+              photo,
+              sample: null,
+              collectedToVault: false,
+            };
+            setYesterdayReport(dmgReport);
+            setLatestRoverReport(dmgReport);
+            setRoverResultUnread(true);
+            setDailyReport((prev) => [
+              ...prev,
+              `⚠️ ${OUR_ROVER_NAME} returned to the garage with wheel damage! Tap it in the garage to inspect.`,
+            ]);
+          } else {
+            if (hazardEval.wasHazardous) setBraveMissions((b) => b + 1);
+            setRoverStatus('READY');
+            const found = GameLogicModule.rollRoverExplorationByCost(exp.barsCost);
+
+            const record = {
+              sol: exp.dispatchedSol,
+              damagedSols: 0,
+              damageReason: '',
+              photo,
+              sample: found,
+              collectedToVault: false,
+            };
+            setExpeditionLogs((prev) => [...prev, record]);
+            setYesterdayReport(record);
+            setLatestRoverReport(record);
+            setRoverResultUnread(true);
+            setDailyReport((prev) => [
+              ...prev,
+              `🛸 ${OUR_ROVER_NAME} returned to the garage with findings! Tap it in the Rover Garage!`,
+            ]);
+          }
+          setPendingExpedition(null);
+          setRoverSecondsLeft(0);
+        } finally {
+          completingRoverRef.current = false;
+        }
+      };
+
+      completeRoverExpeditionRef.current = completeRoverExpedition;
 
       const executeEndSol = async () => {
         if (!weather || ending) return;
@@ -3549,50 +3640,11 @@
           return;
         }
 
-        let generatedYesterdayReport = null;
         let nextRoverStatus = roverStatus;
         let nextDamageLeft = damageSolLeft;
 
-        if (pendingExpedition) {
-          const photo = await NasaService.fetchNextCuriosityPhoto(usedPhotoIds);
-          setUsedPhotoIds((prev) => new Set(prev).add(photo.id));
-
-          const hazardEval = GameLogicModule.evaluateRoverReturnHazard(
-            pendingExpedition.isDustStorm,
-            pendingExpedition.radiationLevel
-          );
-
-          if (hazardEval.isDamaged) {
-            nextRoverStatus = hazardEval.damagedSols === 2 ? 'DAMAGED_2_SOL' : 'DAMAGED_1_SOL';
-            nextDamageLeft = hazardEval.damagedSols;
-            generatedYesterdayReport = {
-              sol: pendingExpedition.dispatchedSol,
-              damagedSols: hazardEval.damagedSols,
-              damageReason: hazardEval.reasonText,
-              photo,
-              sample: null,
-              collectedToVault: false,
-            };
-            setRoverResultUnread(true);
-          } else {
-            if (hazardEval.wasHazardous) setBraveMissions((b) => b + 1);
-            nextRoverStatus = 'READY';
-            const found = GameLogicModule.rollRoverExplorationByCost(pendingExpedition.barsCost);
-
-            const record = {
-              sol: pendingExpedition.dispatchedSol,
-              damagedSols: 0,
-              damageReason: '',
-              photo,
-              sample: found,
-              collectedToVault: false,
-            };
-            setExpeditionLogs((prev) => [...prev, record]);
-            generatedYesterdayReport = record;
-            setRoverResultUnread(true);
-          }
-          setPendingExpedition(null);
-        } else if (damageSolLeft > 0) {
+        // Only tick down repair days on Sol transition; active rover trips continue based on their real-time duration!
+        if (!pendingExpedition && damageSolLeft > 0) {
           nextDamageLeft = damageSolLeft - 1;
           if (nextDamageLeft === 0) {
             nextRoverStatus = 'READY';
@@ -3601,12 +3653,13 @@
         }
 
         if (sol >= 20) {
-          if (generatedYesterdayReport && !generatedYesterdayReport.collectedToVault) {
-            if (generatedYesterdayReport.photo) {
-              setDailyPhotoAlbum((prev) => [...prev, { sol: generatedYesterdayReport.sol, photo: generatedYesterdayReport.photo }]);
+          const uncollected = latestRoverReport || yesterdayReport;
+          if (uncollected && !uncollected.collectedToVault) {
+            if (uncollected.photo) {
+              setDailyPhotoAlbum((prev) => [...prev, { sol: uncollected.sol, photo: uncollected.photo }]);
             }
-            if (generatedYesterdayReport.sample && generatedYesterdayReport.sample.id !== 'NONE') {
-              setSamples((prev) => ({ ...prev, [generatedYesterdayReport.sample.id]: (prev[generatedYesterdayReport.sample.id] || 0) + 1 }));
+            if (uncollected.sample && uncollected.sample.id !== 'NONE') {
+              setSamples((prev) => ({ ...prev, [uncollected.sample.id]: (prev[uncollected.sample.id] || 0) + 1 }));
             }
           }
           setResources({ oxygen: nextOxygen, power: nextPower, water: nextWater, food: nextFood });
@@ -3629,10 +3682,6 @@
         setWateredPlants([false, false, false, false]);
         setRoverStatus(nextRoverStatus);
         setDamageSolLeft(nextDamageLeft);
-        setYesterdayReport(generatedYesterdayReport);
-        if (generatedYesterdayReport) {
-          setLatestRoverReport(generatedYesterdayReport);
-        }
         setYesterdayConsumption(consumption);
         setSol(nextSol);
         setSecondsLeftInDay(DAY_DURATION_SECONDS);
@@ -3649,6 +3698,18 @@
       useEffect(() => {
         if (showCoverPage || showLaunchTransition || ending || specialDiscoveryPending || showMorningBriefing || loadingNasa) return;
         const interval = setInterval(() => {
+          // Tick real-time Rover expedition timer
+          setRoverSecondsLeft((prevRoverSec) => {
+            if (prevRoverSec <= 0) return 0;
+            if (prevRoverSec === 1) {
+              if (completeRoverExpeditionRef.current) {
+                completeRoverExpeditionRef.current();
+              }
+              return 0;
+            }
+            return prevRoverSec - 1;
+          });
+
           setSecondsLeftInDay((prev) => {
             if (prev <= 1 && !settlingRef.current) {
               settlingRef.current = true;
@@ -3724,6 +3785,7 @@
         setRoverStatus('READY');
         setDamageSolLeft(0);
         setPendingExpedition(null);
+        setRoverSecondsLeft(0);
         setTotalMissions(0);
         setDeepDrillMissions(0);
         setBraveMissions(0);
@@ -3840,22 +3902,65 @@
       }
 
       const radInfo = RADIATION_LABELS[weather?.radiationLevel || 1];
-      // Preserves index.html's MM:SS countdown timer!
-      const mins = Math.floor(secondsLeftInDay / 60);
-      const secs = String(secondsLeftInDay % 60).padStart(2, '0');
+      const clockProgress = Math.max(0, Math.min(1, (DAY_DURATION_SECONDS - secondsLeftInDay) / DAY_DURATION_SECONDS));
+      const clockAngleDeg = clockProgress * 360;
+      const roverTripProgress =
+        pendingExpedition && pendingExpedition.totalDuration > 0
+          ? Math.max(0, Math.min(1, (pendingExpedition.totalDuration - roverSecondsLeft) / pendingExpedition.totalDuration))
+          : 0;
 
       return (
         <div className="min-h-screen bg-[#fdf6e9] text-[#4a3525] flex flex-col">
-          {/* Top Header with index.html's Day X/20 + MM:SS Countdown Timer + Weather Button */}
+          {/* Top Header with Day X (no "of 20") + Rotating Clock Animation (no numbers) */}
           <header className="px-3 md:px-6 pt-3 pb-2 max-w-5xl w-full mx-auto space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3.5 py-1.5 shadow-sm flex items-center gap-2">
+                <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3.5 py-1.5 shadow-sm flex items-center gap-2.5">
                   <span className="text-base">{isNightPhase ? '🌙' : '☀️'}</span>
-                  <span className="font-black text-sm md:text-base text-[#4a3525]">Day {sol}/20</span>
-                  <span className={`px-2 py-0.5 rounded-lg text-xs font-black tabular-nums ${isNightPhase ? 'bg-indigo-950 text-amber-200' : 'bg-amber-100 text-amber-900'}`}>
-                    {mins}:{secs}
-                  </span>
+                  <span className="font-black text-sm md:text-base text-[#4a3525]">Day {sol}</span>
+                  {/* Rotating Analog Clock Face without Numbers */}
+                  <div
+                    className={`w-7 h-7 rounded-full flex items-center justify-center border-2 ${
+                      isNightPhase ? 'bg-indigo-950 border-indigo-400' : 'bg-amber-100 border-amber-500'
+                    }`}
+                    title="Day Progress Clock"
+                  >
+                    <svg viewBox="0 0 32 32" className="w-6 h-6">
+                      {/* Pie sweep showing elapsed fraction of the day */}
+                      <circle
+                        cx="16"
+                        cy="16"
+                        r="7"
+                        fill="none"
+                        stroke={isNightPhase ? '#6366f1' : '#fbbf24'}
+                        strokeWidth="14"
+                        strokeDasharray={`${(clockProgress * 44).toFixed(2)} 44`}
+                        transform="rotate(-90 16 16)"
+                        opacity="0.45"
+                      />
+                      {/* 4 Subtle Tick Marks at 12, 3, 6, 9 */}
+                      <line x1="16" y1="2.5" x2="16" y2="5" stroke={isNightPhase ? '#c7d2fe' : '#92400e'} strokeWidth="1.8" strokeLinecap="round" />
+                      <line x1="29.5" y1="16" x2="27" y2="16" stroke={isNightPhase ? '#c7d2fe' : '#92400e'} strokeWidth="1.8" strokeLinecap="round" />
+                      <line x1="16" y1="29.5" x2="16" y2="27" stroke={isNightPhase ? '#c7d2fe' : '#92400e'} strokeWidth="1.8" strokeLinecap="round" />
+                      <line x1="2.5" y1="16" x2="5" y2="16" stroke={isNightPhase ? '#c7d2fe' : '#92400e'} strokeWidth="1.8" strokeLinecap="round" />
+                      {/* Rotating Clock Hand */}
+                      <g
+                        transform={`rotate(${clockAngleDeg} 16 16)`}
+                        style={{ transition: 'transform 0.95s linear' }}
+                      >
+                        <line
+                          x1="16"
+                          y1="16"
+                          x2="16"
+                          y2="5.5"
+                          stroke={isNightPhase ? '#fde047' : '#b45309'}
+                          strokeWidth="2.4"
+                          strokeLinecap="round"
+                        />
+                      </g>
+                      <circle cx="16" cy="16" r="2.2" fill={isNightPhase ? '#fde047' : '#78350f'} />
+                    </svg>
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowMorningBriefing(true)}
@@ -3944,6 +4049,7 @@
                 roverStatus={roverStatus}
                 damageSolLeft={damageSolLeft}
                 pendingExpedition={pendingExpedition}
+                roverTripProgress={roverTripProgress}
                 latestRoverResult={latestRoverReport || yesterdayReport}
                 roverResultUnread={roverResultUnread}
                 samples={samples}
