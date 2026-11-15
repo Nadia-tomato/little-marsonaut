@@ -24,12 +24,6 @@
       const [selectedPowerCost, setSelectedPowerCost] = useState(20); // 0, 10, 20, 30
       const [showReportModal, setShowReportModal] = useState(false);
 
-      useEffect(() => {
-        if (roverResultUnread) {
-          setShowReportModal(true);
-        }
-      }, [roverResultUnread]);
-
       const palette = getDayNightPalette(nightFactor);
       const isDustStorm = Boolean(weather?.isDustStorm);
       const isHighRadiation = (weather?.radiationLevel || 1) >= 4;
@@ -337,8 +331,9 @@
               className="fixed inset-0 z-50 bg-[#2d1e12]/75 flex items-center justify-center p-4 overflow-y-auto"
               onClick={handleConfirmReport}
             >
+              {latestRoverResult?.sample?.id === 'ANCIENT_BIOSIGNATURE' && <ConfettiRibbonCelebration />}
               <div
-                className="bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl max-w-sm w-full p-4 md:p-5 shadow-2xl space-y-3"
+                className="bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl max-w-sm w-full p-4 md:p-5 shadow-2xl space-y-3 relative z-10"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center gap-2 border-b-2 border-[#eadbc5] pb-2">
@@ -347,6 +342,11 @@
                       ? `Rover "${OUR_ROVER_NAME}" Findings`
                       : `Rover "${OUR_ROVER_NAME}" in Garage`}
                   </h3>
+                  {latestRoverResult?.sample?.id === 'ANCIENT_BIOSIGNATURE' && (
+                    <span className="ml-auto px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 font-black text-[10px] animate-pulse">
+                      ⭐ Major Discovery!
+                    </span>
+                  )}
                 </div>
 
                 {latestRoverResult ? (
@@ -356,7 +356,7 @@
                         Oh no! {OUR_ROVER_NAME} got hurt by {latestRoverResult.damageReason} and needs {latestRoverResult.damagedSols} day(s) of repair in the garage!
                       </div>
                     ) : latestRoverResult.sample && latestRoverResult.sample.id !== 'NONE' ? (
-                      <div className="bg-white border-2 border-emerald-200 rounded-2xl p-2.5 flex items-center gap-3 shadow-sm">
+                      <div className={`bg-white border-2 ${latestRoverResult.sample.id === 'ANCIENT_BIOSIGNATURE' ? 'border-amber-400 ring-2 ring-amber-300/80 bg-amber-50/50' : 'border-emerald-200'} rounded-2xl p-2.5 flex items-center gap-3 shadow-sm`}>
                         <RockSpecimenIcon rock={latestRoverResult.sample} size={46} />
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-center gap-1">

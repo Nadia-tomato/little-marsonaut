@@ -154,38 +154,91 @@ function TopResourcePill({ label, value, barColor, icon }) {
 
     function ConfettiRibbonCelebration() {
       const pieces = [
-        { left: '4%', delay: '0s', duration: '3.1s', color: '#f59e0b', width: '9px', height: '30px', rotate: '25deg' },
-        { left: '9%', delay: '0.6s', duration: '3.7s', color: '#ef4444', width: '11px', height: '14px', rotate: '-45deg' },
-        { left: '15%', delay: '1.2s', duration: '3.3s', color: '#38bdf8', width: '8px', height: '34px', rotate: '15deg' },
-        { left: '21%', delay: '0.2s', duration: '4.0s', color: '#10b981', width: '13px', height: '13px', rotate: '60deg' },
-        { left: '27%', delay: '1.5s', duration: '3.2s', color: '#ec4899', width: '9px', height: '28px', rotate: '-30deg' },
-        { left: '33%', delay: '0.4s', duration: '3.6s', color: '#facc15', width: '14px', height: '14px', rotate: '40deg' },
-        { left: '39%', delay: '1.8s', duration: '3.4s', color: '#8b5cf6', width: '8px', height: '32px', rotate: '-15deg' },
-        { left: '45%', delay: '0.1s', duration: '4.1s', color: '#fb923c', width: '10px', height: '26px', rotate: '50deg' },
-        { left: '52%', delay: '0.8s', duration: '3.5s', color: '#ef4444', width: '13px', height: '13px', rotate: '-55deg' },
-        { left: '58%', delay: '1.4s', duration: '3.8s', color: '#06b6d4', width: '8px', height: '36px', rotate: '35deg' },
-        { left: '64%', delay: '0.3s', duration: '3.2s', color: '#f59e0b', width: '11px', height: '22px', rotate: '-20deg' },
-        { left: '71%', delay: '1.1s', duration: '3.9s', color: '#10b981', width: '8px', height: '30px', rotate: '45deg' },
-        { left: '78%', delay: '0.5s', duration: '3.4s', color: '#ec4899', width: '12px', height: '12px', rotate: '-40deg' },
-        { left: '84%', delay: '1.7s', duration: '4.0s', color: '#3b82f6', width: '9px', height: '32px', rotate: '25deg' },
-        { left: '91%', delay: '0.7s', duration: '3.6s', color: '#facc15', width: '10px', height: '24px', rotate: '-35deg' },
-        { left: '96%', delay: '1.3s', duration: '3.3s', color: '#8b5cf6', width: '13px', height: '13px', rotate: '70deg' },
-        { left: '12%', delay: '2.0s', duration: '3.5s', color: '#fb923c', width: '9px', height: '34px', rotate: '10deg' },
-        { left: '25%', delay: '2.4s', duration: '3.8s', color: '#ef4444', width: '11px', height: '16px', rotate: '-50deg' },
-        { left: '48%', delay: '2.2s', duration: '3.4s', color: '#10b981', width: '8px', height: '28px', rotate: '30deg' },
-        { left: '68%', delay: '2.6s', duration: '4.0s', color: '#f59e0b', width: '10px', height: '30px', rotate: '-25deg' },
-        { left: '87%', delay: '2.3s', duration: '3.6s', color: '#38bdf8', width: '12px', height: '12px', rotate: '45deg' },
+        { left: '3%', delay: '0s', duration: '3.0s', color: '#f59e0b', width: '9px', height: '32px', rotate: '25deg' },
+        { left: '8%', delay: '0.4s', duration: '3.6s', color: '#ef4444', width: '12px', height: '14px', rotate: '-45deg' },
+        { left: '14%', delay: '0.9s', duration: '3.2s', color: '#38bdf8', width: '8px', height: '36px', rotate: '15deg' },
+        { left: '19%', delay: '0.1s', duration: '4.0s', color: '#10b981', width: '14px', height: '14px', rotate: '60deg' },
+        { left: '25%', delay: '1.2s', duration: '3.1s', color: '#ec4899', width: '9px', height: '28px', rotate: '-30deg' },
+        { left: '31%', delay: '0.3s', duration: '3.5s', color: '#facc15', width: '16px', height: '16px', rotate: '40deg' },
+        { left: '37%', delay: '1.5s', duration: '3.3s', color: '#8b5cf6', width: '8px', height: '34px', rotate: '-15deg' },
+        { left: '43%', delay: '0.2s', duration: '4.1s', color: '#fb923c', width: '10px', height: '26px', rotate: '50deg' },
+        { left: '50%', delay: '0.7s', duration: '3.4s', color: '#ef4444', width: '13px', height: '13px', rotate: '-55deg' },
+        { left: '56%', delay: '1.1s', duration: '3.8s', color: '#06b6d4', width: '8px', height: '38px', rotate: '35deg' },
+        { left: '62%', delay: '0.3s', duration: '3.2s', color: '#f59e0b', width: '11px', height: '22px', rotate: '-20deg' },
+        { left: '69%', delay: '0.8s', duration: '3.9s', color: '#10b981', width: '8px', height: '30px', rotate: '45deg' },
+        { left: '75%', delay: '0.5s', duration: '3.4s', color: '#ec4899', width: '13px', height: '13px', rotate: '-40deg' },
+        { left: '81%', delay: '1.3s', duration: '4.0s', color: '#3b82f6', width: '9px', height: '34px', rotate: '25deg' },
+        { left: '87%', delay: '0.6s', duration: '3.6s', color: '#facc15', width: '10px', height: '24px', rotate: '-35deg' },
+        { left: '93%', delay: '1.0s', duration: '3.3s', color: '#8b5cf6', width: '14px', height: '14px', rotate: '70deg' },
+        { left: '11%', delay: '1.8s', duration: '3.5s', color: '#fb923c', width: '9px', height: '34px', rotate: '10deg' },
+        { left: '23%', delay: '2.1s', duration: '3.8s', color: '#ef4444', width: '12px', height: '16px', rotate: '-50deg' },
+        { left: '46%', delay: '1.9s', duration: '3.4s', color: '#10b981', width: '8px', height: '28px', rotate: '30deg' },
+        { left: '66%', delay: '2.3s', duration: '4.0s', color: '#f59e0b', width: '10px', height: '30px', rotate: '-25deg' },
+        { left: '85%', delay: '2.0s', duration: '3.6s', color: '#38bdf8', width: '13px', height: '13px', rotate: '45deg' },
+        { left: '96%', delay: '2.4s', duration: '3.5s', color: '#ec4899', width: '9px', height: '28px', rotate: '-20deg' },
+      ];
+
+      const sparkles = [
+        { left: '10%', top: '15%', delay: '0.1s', size: '26px', icon: '✨' },
+        { left: '82%', top: '18%', delay: '0.5s', size: '30px', icon: '⭐' },
+        { left: '20%', top: '45%', delay: '0.8s', size: '28px', icon: '🌟' },
+        { left: '78%', top: '50%', delay: '0.3s', size: '32px', icon: '✨' },
+        { left: '14%', top: '75%', delay: '1.1s', size: '24px', icon: '🎉' },
+        { left: '86%', top: '78%', delay: '0.7s', size: '28px', icon: '🌟' },
       ];
 
       return (
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-[75]">
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            pointerEvents: 'none',
+            overflow: 'hidden',
+            zIndex: 99999,
+          }}
+        >
+          <style>{`
+            @keyframes confettiFallCustom {
+              0% {
+                transform: translateY(-50px) rotate(0deg) rotateX(0deg) translateX(0px);
+                opacity: 0;
+              }
+              10% {
+                opacity: 1;
+              }
+              50% {
+                transform: translateY(50vh) rotate(220deg) rotateX(360deg) translateX(35px);
+              }
+              90% {
+                opacity: 0.95;
+              }
+              100% {
+                transform: translateY(105vh) rotate(440deg) rotateX(720deg) translateX(-25px);
+                opacity: 0;
+              }
+            }
+            @keyframes sparkleShimmer {
+              0%, 100% { transform: scale(0.6) rotate(0deg); opacity: 0.2; }
+              50% { transform: scale(1.3) rotate(20deg); opacity: 1; }
+            }
+            .confetti-custom-piece {
+              animation: confettiFallCustom 3.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+              will-change: transform, opacity;
+            }
+            .sparkle-custom-piece {
+              animation: sparkleShimmer 1.8s ease-in-out infinite;
+              will-change: transform, opacity;
+            }
+          `}</style>
+
           {pieces.map((p, idx) => (
             <div
-              key={idx}
-              className="absolute animate-ribbon"
+              key={`ribbon-${idx}`}
+              className="confetti-custom-piece"
               style={{
+                position: 'absolute',
                 left: p.left,
-                top: '-45px',
+                top: '-50px',
                 width: p.width,
                 height: p.height,
                 backgroundColor: p.color,
@@ -196,6 +249,23 @@ function TopResourcePill({ label, value, barColor, icon }) {
                 boxShadow: `0 0 10px ${p.color}aa`,
               }}
             />
+          ))}
+
+          {sparkles.map((s, idx) => (
+            <div
+              key={`sparkle-${idx}`}
+              className="sparkle-custom-piece"
+              style={{
+                position: 'absolute',
+                left: s.left,
+                top: s.top,
+                fontSize: s.size,
+                animationDelay: s.delay,
+                textShadow: '0 0 16px rgba(250, 204, 21, 0.9)',
+              }}
+            >
+              {s.icon}
+            </div>
           ))}
         </div>
       );

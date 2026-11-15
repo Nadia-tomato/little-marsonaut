@@ -18,14 +18,15 @@ function EndGameModule({
       const successfulDrills = expeditionLogs.filter((log) => log.sample && log.sample.id !== 'NONE');
 
       return (
-        <div className="min-h-screen bg-[#fdf6e9] text-[#4a3525] p-4 md:p-8 flex flex-col items-center">
-          <div className="max-w-4xl w-full bg-white border-4 border-[#d9c2a3] rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
+        <div className="min-h-screen bg-[#fdf6e9] text-[#4a3525] p-4 md:p-8 flex flex-col items-center relative">
+          {(ending === 'SPECIAL_DISCOVERY' || ending === 'NORMAL_20_SOL') && <ConfettiRibbonCelebration />}
+          <div className="max-w-4xl w-full bg-white border-4 border-[#d9c2a3] rounded-3xl p-6 md:p-8 shadow-xl space-y-6 relative z-10">
             <div className={`text-center space-y-2 ${ending === 'EMERGENCY_ABORT' ? 'bg-red-100 border-4 border-red-300 rounded-3xl p-4' : ''}`}>
               <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-200 text-amber-900">
                 LITTLE MARSONAUT • REPORT CARD
               </span>
               <h1 className={`text-2xl md:text-3xl font-black ${ending === 'EMERGENCY_ABORT' ? 'text-red-900' : ''}`}>
-                {ending === 'SPECIAL_DISCOVERY' && 'Amazing Find! You Won the Mission!'}
+                {ending === 'SPECIAL_DISCOVERY' && '🎉 Amazing Find! You Won the Mission!'}
                 {ending === 'NORMAL_20_SOL' && 'Awesome Job! You Lived 20 Days on Mars!'}
                 {ending === 'EMERGENCY_ABORT' && (
                   <div className="space-y-1.5">
@@ -50,7 +51,9 @@ function EndGameModule({
               </div>
               <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-3 rounded-2xl">
                 <div className="text-xs text-[#7a5a40] font-bold">Science Score</div>
-                <div className="text-xl font-black text-sky-700">{totalScore} pts</div>
+                <div className="text-xl font-black text-sky-700">
+                  {ending === 'SPECIAL_DISCOVERY' ? 'Amazing!' : `${totalScore} pts`}
+                </div>
               </div>
               <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-3 rounded-2xl col-span-2">
                 <div className="text-xs text-[#7a5a40] font-bold">Astronaut Title</div>
