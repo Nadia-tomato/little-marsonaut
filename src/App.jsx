@@ -58,6 +58,8 @@ const { useState, useEffect, useRef } = React;
       const [loadingNasa, setLoadingNasa] = useState(true);
 
       const [showMorningBriefing, setShowMorningBriefing] = useState(true);
+      const [showRandomScienceFactModal, setShowRandomScienceFactModal] = useState(false);
+      const [currentRandomFact, setCurrentRandomFact] = useState(null);
       const [dailyReport, setDailyReport] = useState([]);
       const [pendingConfirmAction, setPendingConfirmAction] = useState(null);
       const [ending, setEnding] = useState(null);
@@ -87,6 +89,29 @@ const { useState, useEffect, useRef } = React;
       };
 
       const executeEndSolRef = useRef(null);
+
+      const handleOpenRandomScienceFact = () => {
+        if (typeof SCIENCE_FACTS_DATABASE !== "undefined" && SCIENCE_FACTS_DATABASE.length > 0) {
+          const available = currentRandomFact
+            ? SCIENCE_FACTS_DATABASE.filter((f) => f.id !== currentRandomFact.id)
+            : SCIENCE_FACTS_DATABASE;
+          const pool = available.length > 0 ? available : SCIENCE_FACTS_DATABASE;
+          const picked = pool[Math.floor(Math.random() * pool.length)];
+          setCurrentRandomFact(picked);
+          setShowRandomScienceFactModal(true);
+        }
+      };
+
+      const handleNextRandomFact = () => {
+        if (typeof SCIENCE_FACTS_DATABASE !== "undefined" && SCIENCE_FACTS_DATABASE.length > 0) {
+          const available = currentRandomFact
+            ? SCIENCE_FACTS_DATABASE.filter((f) => f.id !== currentRandomFact.id)
+            : SCIENCE_FACTS_DATABASE;
+          const pool = available.length > 0 ? available : SCIENCE_FACTS_DATABASE;
+          const picked = pool[Math.floor(Math.random() * pool.length)];
+          setCurrentRandomFact(picked);
+        }
+      };
       const settlingRef = useRef(false);
       const currentSolRatesRef = useRef({ power: 12, oxygen: 10, water: 6, food: 12 });
       const deductedInCurrentSolRef = useRef({ power: 0, oxygen: 0, water: 0, food: 0 });
@@ -481,7 +506,7 @@ const { useState, useEffect, useRef } = React;
       executeEndSolRef.current = executeEndSol;
 
       useEffect(() => {
-        if (showCoverPage || showLaunchTransition || ending || specialDiscoveryPending || showMorningBriefing || loadingNasa) return;
+        if (showCoverPage || showLaunchTransition || ending || specialDiscoveryPending || showMorningBriefing || showRandomScienceFactModal || loadingNasa) return;
         const interval = setInterval(() => {
           setRoverSecondsLeft((prevRoverSec) => {
             if (prevRoverSec <= 0) return 0;
@@ -553,7 +578,7 @@ const { useState, useEffect, useRef } = React;
           });
         }, 1000);
         return () => clearInterval(interval);
-      }, [showCoverPage, showLaunchTransition, ending, specialDiscoveryPending, showMorningBriefing, loadingNasa]);
+      }, [showCoverPage, showLaunchTransition, ending, specialDiscoveryPending, showMorningBriefing, showRandomScienceFactModal, loadingNasa]);
 
       const handleRestart = () => {
         deductedInCurrentSolRef.current = { power: 0, oxygen: 0, water: 0, food: 0 };
@@ -818,6 +843,7 @@ const { useState, useEffect, useRef } = React;
                 showRoverDot={showRoverDot}
                 roverResultUnread={roverResultUnread}
                 onEnterRoom={(room) => setCurrentScene(room)}
+                onOpenRandomScienceFact={handleOpenRandomScienceFact}
               />
             )}
 
@@ -910,6 +936,14 @@ const { useState, useEffect, useRef } = React;
               isDustStorm={weather?.isDustStorm}
               onComplete={handleCompleteSolarGame}
               onClose={() => setShowSolarGameModal(false)}
+            />
+          )}
+
+          {showRandomScienceFactModal && (
+            <RandomScienceFactModal
+              fact={currentRandomFact}
+              onNextRandomFact={handleNextRandomFact}
+              onClose={() => setShowRandomScienceFactModal(false)}
             />
           )}
 

@@ -13,6 +13,7 @@
       showRoverDot,
       onEnterRoom,
       roverResultUnread,
+      onOpenRandomScienceFact,
     }) {
       const palette = getDayNightPalette(nightFactor);
       const isNight = nightFactor >= 0.55;
@@ -203,6 +204,19 @@
               ? '🌇 Mars Sunset — Tap a Building'
               : '☀️ Mars Daytime — Tap a Building'}
           </div>
+
+          {/* Top-Right Science Fact "?" Button */}
+          <button
+            onClick={onOpenRandomScienceFact}
+            aria-label="Open Mars Science Fact"
+            title="Learn a Mars Science Fact!"
+            className="top-3 right-3 absolute bg-[#fdf6e9]/95 hover:bg-white border-2 border-[#d9c2a3] px-3 py-1 rounded-full font-black text-xs md:text-sm text-[#5a3e28] shadow flex items-center gap-1.5 active:scale-95 transition cursor-pointer z-30"
+          >
+            <span className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-amber-400 text-amber-950 font-black text-[11px] md:text-xs flex items-center justify-center shadow-inner">
+              ?
+            </span>
+            <span>Science Fact</span>
+          </button>
 
           <button
             onClick={() => onEnterRoom('CONTROL')}

@@ -111,7 +111,6 @@ function TitleCoverPage({ onStartMission, isGuide = false }) {
 
           <footer className="relative z-10 pb-5 px-6 flex items-center justify-between text-xs md:text-sm font-black tracking-wider text-slate-200">
             <span>2026 NASA HACKATHON</span>
-            <span className="text-slate-400 font-bold">Ages 7–12 Science Mission</span>
           </footer>
         </div>
       );

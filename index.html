@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>LITTLE MARSONAUT — 2026 NASA Space Apps</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Module 1: Constants & Theme Palette -->
+  <script type="text/babel" src="./src/constants.js"></script>
+  <script type="text/babel" src="./src/data/scienceFactsDatabase.js"></script>
+  <script type="text/babel" src="./src/logic/palette.js"></script>
+
+  <!-- Module 2: NASA API Service -->
+  <script type="text/babel" src="./src/services/nasaService.js"></script>
+
+  <!-- Module 3: Core Game Rules & Calculations -->
+  <script type="text/babel" src="./src/logic/gameLogic.js"></script>
+
+  <!-- Module 4: Shared UI Components -->
+  <script type="text/babel" src="./src/components/SharedUI.jsx"></script>
+  <script type="text/babel" src="./src/components/TitleCoverPage.jsx"></script>
+  <script type="text/babel" src="./src/components/MarsLaunchTransition.jsx"></script>
+
+  <!-- Module 5: Modals -->
+  <script type="text/babel" src="./src/modals/ScienceExplanationModal.jsx"></script>
+  <script type="text/babel" src="./src/modals/SolarMiniGameModal.jsx"></script>
+  <script type="text/babel" src="./src/modals/MorningBriefingModal.jsx"></script>
+  <script type="text/babel" src="./src/modals/EndGameModal.jsx"></script>
+  <script type="text/babel" src="./src/modals/RandomScienceFactModal.jsx"></script>
+
+  <!-- Module 6: Interactive Scene Modules -->
+  <script type="text/babel" src="./src/scenes/BaseExteriorScene.jsx"></script>
+  <script type="text/babel" src="./src/scenes/PowerRoomScene.jsx"></script>
+  <script type="text/babel" src="./src/scenes/GreenhouseRoomScene.jsx"></script>
+  <script type="text/babel" src="./src/scenes/RoverRoomScene.jsx"></script>
+  <script type="text/babel" src="./src/scenes/MissionControlScene.jsx"></script>
+
+  <!-- Module 7: Main App Controller -->
+  <script type="text/babel" src="./src/App.jsx"></script>
+</body>
+</html>
