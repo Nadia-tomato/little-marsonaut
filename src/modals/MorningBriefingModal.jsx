@@ -36,10 +36,10 @@ function MorningBriefingModule({
               </div>
             )}
 
-            {sol === 10 && (
+            {sol % 6 === 0 && (
               <div className="bg-amber-200 border-2 border-amber-500 rounded-2xl p-3 text-xs font-black text-amber-950 flex items-center gap-2.5">
                 <span className="text-2xl">🚀</span>
-                <span>Supply Rocket Landed Outside! Water and Food are refilled to 100!</span>
+                <span>Day {sol} Supply Rocket Landed! +50 Water and +50 Food delivered from Earth!</span>
               </div>
             )}
 

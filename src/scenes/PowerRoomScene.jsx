@@ -45,19 +45,22 @@
                 </g>
               )}
               <polygon points="240,165 320,125 410,150 500,115 610,160 760,135 760,250 240,250" fill={palette.mountainFill} className="smooth-sky-fill" />
-              <polygon points="240,175 760,165 760,250 240,250" fill={palette.groundTop} className="smooth-sky-fill" />
+              <polygon points="240,170 760,170 760,250 240,250" fill={palette.groundTop} className="smooth-sky-fill" />
 
-              <g transform="translate(280, 95)">
+              <g transform="translate(280, 94)">
+                <ellipse cx="29.5" cy="76" rx="8" ry="2.5" fill="#2d1e12" opacity="0.35" />
                 <rect x="26" y="44" width="7" height="32" fill="#5a4636" />
                 <polygon points="4,44 18,10 64,10 48,44" fill="#3b82f6" stroke="#fff" strokeWidth="2.2" />
                 <line x1="11" y1="27" x2="56" y2="27" stroke="#bae6fd" strokeWidth="1.8" />
               </g>
-              <g transform="translate(465, 88)">
+              <g transform="translate(465, 94)">
+                <ellipse cx="29.5" cy="76" rx="8" ry="2.5" fill="#2d1e12" opacity="0.35" />
                 <rect x="26" y="44" width="7" height="32" fill="#5a4636" />
                 <polygon points="4,44 18,10 64,10 48,44" fill="#3b82f6" stroke="#fff" strokeWidth="2.2" />
                 <line x1="11" y1="27" x2="56" y2="27" stroke="#bae6fd" strokeWidth="1.8" />
               </g>
-              <g transform="translate(650, 95)">
+              <g transform="translate(650, 94)">
+                <ellipse cx="29.5" cy="76" rx="8" ry="2.5" fill="#2d1e12" opacity="0.35" />
                 <rect x="26" y="44" width="7" height="32" fill="#5a4636" />
                 <polygon points="4,44 18,10 64,10 48,44" fill="#3b82f6" stroke="#fff" strokeWidth="2.2" />
                 <line x1="11" y1="27" x2="56" y2="27" stroke="#bae6fd" strokeWidth="1.8" />

@@ -417,14 +417,14 @@ const { useState, useEffect, useRef } = React;
           if (nextTomatoProgresses[i] >= MAX_TOMATO_GROWTH) {
             // Already ripe
           } else if (wateredPlants[i]) {
-            const gain = 2 + lampBonus;
+            const gain = 4 + lampBonus;
             nextTomatoProgresses[i] = Math.min(MAX_TOMATO_GROWTH, nextTomatoProgresses[i] + gain);
             grewCount++;
             if (nextTomatoProgresses[i] >= MAX_TOMATO_GROWTH) {
               newlyRipeCount++;
             }
           } else if (lampBonus > 0) {
-            nextTomatoProgresses[i] = Math.min(MAX_TOMATO_GROWTH, nextTomatoProgresses[i] + 1);
+            nextTomatoProgresses[i] = Math.min(MAX_TOMATO_GROWTH, nextTomatoProgresses[i] + 2);
             grewCount++;
             if (nextTomatoProgresses[i] >= MAX_TOMATO_GROWTH) {
               newlyRipeCount++;
@@ -482,10 +482,10 @@ const { useState, useEffect, useRef } = React;
         let finalWater = nextWater;
         let finalFood = nextFood;
 
-        if (nextSol === 10) {
-          finalWater = 100;
-          finalFood = 100;
-          logs.push('📦 [Day 10 Supply Rocket Landed!] Water and Food refilled to 100!');
+        if (nextSol % 6 === 0) {
+          finalWater = Math.min(100, nextWater + 50);
+          finalFood = Math.min(100, nextFood + 50);
+          logs.push(`📦 [Day ${nextSol} Supply Rocket Landed!] +50 Water & +50 Food delivered from Earth!`);
         }
 
         setResources({ oxygen: nextOxygen, power: nextPower, water: finalWater, food: finalFood });
@@ -812,15 +812,6 @@ const { useState, useEffect, useRef } = React;
                   ❓ Guide
                 </button>
               </div>
-
-              {weather && (
-                <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3.5 py-1.5 shadow-sm flex items-center gap-2 text-xs font-bold">
-                  <span>{weather.isDustStorm ? '🌪️ Dust Storm' : '🌤️ Clear'}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-white ${radInfo.color}`}>
-                    Rays: {radInfo.text}
-                  </span>
-                </div>
-              )}
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full items-stretch">

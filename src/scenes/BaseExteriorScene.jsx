@@ -17,7 +17,7 @@
     }) {
       const palette = getDayNightPalette(nightFactor);
       const isNight = nightFactor >= 0.55;
-      const isSupplyDay = sol === 10;
+      const isSupplyDay = sol % 6 === 0;
 
       return (
         <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden border-4 border-[#e6d5bc] shadow-xl bg-[#f3a678]">
@@ -31,6 +31,12 @@
               <linearGradient id="marsGroundGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={palette.groundTop} />
                 <stop offset="100%" stopColor={palette.groundBot} />
+              </linearGradient>
+              <linearGradient id="marsDustStormHaze" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ea580c" stopOpacity="0.45" />
+                <stop offset="35%" stopColor="#c2410c" stopOpacity="0.55" />
+                <stop offset="70%" stopColor="#9a3412" stopOpacity="0.65" />
+                <stop offset="100%" stopColor="#7c2d12" stopOpacity="0.75" />
               </linearGradient>
               <clipPath id="baseCenterGlassClip">
                 <path d="M75,115 C75,45 235,45 235,115 Z" />
@@ -168,9 +174,16 @@
               <text x="155" y="86" textAnchor="middle" fill="#5a3e28" fontSize="15" fontWeight="900">🛸 Rover Garage</text>
             </g>
 
-            {/* Day 10 Supply Rocket Ship */}
+            <g transform="translate(175, 485)">
+              <line x1="15" y1="0" x2="15" y2="85" stroke="#fff" strokeWidth="5" strokeLinecap="round" />
+              <rect x="18" y="5" width="64" height="42" rx="4" fill="#fff" stroke="#7c6855" strokeWidth="3" />
+              <circle cx="50" cy="26" r="15" fill="#1d4ed8" />
+              <text x="50" y="30" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="900">NASA</text>
+            </g>
+
+            {/* Supply Rocket Ship (Landed beside the NASA Flag) */}
             {isSupplyDay && (
-              <g className="animate-supply-hover" transform="translate(28, 455) scale(0.62)">
+              <g className="animate-supply-hover" transform="translate(195, 465) scale(0.58)">
                 <ellipse cx="95" cy="185" rx="85" ry="18" fill="#2d1e12" opacity="0.4" />
                 <path d="M55,140 L30,182 M135,140 L160,182 M95,148 L95,186" stroke="#475569" strokeWidth="6" strokeLinecap="round" />
                 <polygon points="68,142 82,142 86,158 64,158" fill="#334155" />
@@ -190,28 +203,18 @@
               </g>
             )}
 
-            <g transform="translate(175, 485)">
-              <line x1="15" y1="0" x2="15" y2="85" stroke="#fff" strokeWidth="5" strokeLinecap="round" />
-              <rect x="18" y="5" width="64" height="42" rx="4" fill="#fff" stroke="#7c6855" strokeWidth="3" />
-              <circle cx="50" cy="26" r="15" fill="#1d4ed8" />
-              <text x="50" y="30" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="900">NASA</text>
-            </g>
-
-            {/* Martian Dust Storm Atmospheric Hazy Fog */}
+            {/* Martian Dust Storm Atmospheric Hazy Fog (Seamless Single Overlay) */}
             <g
               className="pointer-events-none smooth-dust-fog"
               style={{ opacity: weather?.isDustStorm ? 1 : 0 }}
             >
-              <rect width="1000" height="625" fill="#ea580c" opacity="0.30" />
-              <rect width="1000" height="625" fill="#78350f" opacity="0.22" />
-              <rect width="1000" height="380" fill="#f97316" opacity="0.16" />
-              <rect y="220" width="1000" height="405" fill="#9a3412" opacity="0.22" />
+              <rect width="1000" height="625" fill="url(#marsDustStormHaze)" />
             </g>
           </svg>
 
           <div className="top-3 left-3 absolute bg-[#fdf6e9]/95 border-2 border-[#d9c2a3] px-3.5 py-1 rounded-full font-black text-xs md:text-sm text-[#5a3e28] shadow">
             {isSupplyDay
-              ? '🚀 Day 10 Supply Rocket Landed!'
+              ? `🚀 Day ${sol} Supply Rocket Landed!`
               : weather?.isDustStorm
               ? '🌪️ Dust Storm Active — Visibility Hazy!'
               : isNight
@@ -237,14 +240,14 @@
           <button
             onClick={() => onEnterRoom('CONTROL')}
             style={{ left: '35%', top: '22%', width: '30%', height: '35%' }}
-            className="absolute rounded-3xl border-2 border-transparent hover:border-indigo-300 hover:bg-indigo-300/20 active:scale-95 transition cursor-pointer"
+            className="absolute rounded-3xl border-0 outline-none hover:border-2 hover:border-indigo-300 hover:bg-indigo-300/20 active:scale-95 transition cursor-pointer"
             title="Open Base Center"
           />
 
           <button
             onClick={() => onEnterRoom('POWER')}
             style={{ left: '9%', top: '34%', width: '22%', height: '31%' }}
-            className="absolute rounded-3xl border-2 border-transparent hover:border-yellow-300 hover:bg-yellow-200/25 active:scale-95 transition cursor-pointer flex items-start justify-end p-2"
+            className="absolute rounded-3xl border-0 outline-none hover:border-2 hover:border-yellow-300 hover:bg-yellow-200/25 active:scale-95 transition cursor-pointer flex items-start justify-end p-2"
           >
             {showPowerDot && (
               <span className="flex h-5 w-5">
@@ -257,7 +260,7 @@
           <button
             onClick={() => onEnterRoom('GREENHOUSE')}
             style={{ left: '68%', top: '33%', width: '24%', height: '32%' }}
-            className="absolute rounded-3xl border-2 border-transparent hover:border-emerald-300 hover:bg-emerald-200/25 active:scale-95 transition cursor-pointer flex flex-col items-end justify-between p-2"
+            className="absolute rounded-3xl border-0 outline-none hover:border-2 hover:border-emerald-300 hover:bg-emerald-200/25 active:scale-95 transition cursor-pointer flex flex-col items-end justify-between p-2"
           >
             {showGreenhouseDot && (
               <span className="flex h-5 w-5">
@@ -276,7 +279,7 @@
           <button
             onClick={() => onEnterRoom('ROVER')}
             style={{ left: '34%', top: '66%', width: '32%', height: '28%' }}
-            className="absolute rounded-3xl border-2 border-transparent hover:border-sky-300 hover:bg-sky-200/25 active:scale-95 transition cursor-pointer flex items-start justify-end p-2"
+            className="absolute rounded-3xl border-0 outline-none hover:border-2 hover:border-sky-300 hover:bg-sky-200/25 active:scale-95 transition cursor-pointer flex items-start justify-end p-2"
           >
             {showRoverDot && (
               roverResultUnread ? (

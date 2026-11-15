@@ -35,7 +35,7 @@
         const reasons = [];
 
         if (isDustStorm) {
-          hazardChance += 0.35;
+          hazardChance += 0.50;
           reasons.push('dust storm sand stuck in the wheels');
         }
         if (radiationLevel === 4) {
