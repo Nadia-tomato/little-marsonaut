@@ -397,7 +397,7 @@
       return (
         <div className="fixed inset-0 z-[70] bg-[#2d1e12]/80 backdrop-blur-sm flex items-center justify-center p-4">
           <ConfettiRibbonCelebration />
-          <div className="relative max-w-sm w-full rounded-3xl border-4 border-amber-400 bg-[#fff9ef] p-6 text-center shadow-2xl space-y-3 z-[80] animate-alert-pulse">
+          <div className="relative max-w-sm w-full rounded-3xl border-4 border-amber-400 bg-[#fff9ef] p-6 text-center shadow-2xl space-y-3 z-[80]">
             <div className="text-5xl animate-bounce">🎉</div>
             <div className="space-y-0.5">
               <span className="inline-block px-3.5 py-1 rounded-full bg-amber-400 text-amber-950 text-xs font-black shadow-sm tracking-wide">

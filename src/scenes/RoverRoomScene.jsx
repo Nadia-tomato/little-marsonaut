@@ -192,7 +192,10 @@
           {/* Clickable Rover Area */}
           {!isRoverOut && (
             <div
-              onClick={() => setShowReportModal(true)}
+              onClick={() => {
+                setShowReportModal(true);
+                if (roverResultUnread && onViewLatestResult) onViewLatestResult();
+              }}
               style={{ left: '26%', top: '35%', width: '48%', height: '42%' }}
               className="absolute rounded-3xl transition flex flex-col items-center justify-start pt-2 cursor-pointer hover:bg-amber-300/15 z-20"
               title={`Click Rover "${OUR_ROVER_NAME}" to inspect mission findings & status`}

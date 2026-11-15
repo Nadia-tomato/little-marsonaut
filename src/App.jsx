@@ -75,6 +75,7 @@ const { useState, useEffect, useRef } = React;
       const [abortReason, setAbortReason] = useState('');
       const [specialDiscoveryPending, setSpecialDiscoveryPending] = useState(null);
       const [roverResultUnread, setRoverResultUnread] = useState(false);
+      const [seenSupplySols, setSeenSupplySols] = useState(() => new Set());
 
       const [seenTopics, setSeenTopics] = useState(() => new Set());
       const [activeScienceTopic, setActiveScienceTopic] = useState(null);
@@ -705,6 +706,7 @@ const { useState, useEffect, useRef } = React;
         setAbortReason('');
         setSpecialDiscoveryPending(null);
         setRoverResultUnread(false);
+        setSeenSupplySols(new Set());
         setShowGuidePage(false);
         setShowCoverPage(true);
         loadWeatherForSol(1);
@@ -928,6 +930,8 @@ const { useState, useEffect, useRef } = React;
                 roverResultUnread={roverResultUnread}
                 hasRipeTomatoes={hasRipeTomatoes}
                 hasRottenTomatoes={hasRottenTomatoes}
+                seenSupplySols={seenSupplySols}
+                onDismissSupplyAlert={(targetSol) => setSeenSupplySols((prev) => new Set(prev).add(targetSol))}
                 onEnterRoom={(room) => setCurrentScene(room)}
                 onOpenRandomScienceFact={handleOpenRandomScienceFact}
               />

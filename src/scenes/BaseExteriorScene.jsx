@@ -18,14 +18,15 @@
       onOpenRandomScienceFact,
       hasRipeTomatoes = false,
       hasRottenTomatoes = false,
+      seenSupplySols,
+      onDismissSupplyAlert,
     }) {
       const [showSupplyModal, setShowSupplyModal] = useState(false);
-      const [supplySeenSol, setSupplySeenSol] = useState(0);
 
       const palette = getDayNightPalette(nightFactor);
       const isNight = nightFactor >= 0.55;
       const isSupplyDay = sol % 6 === 0;
-      const supplyUnread = isSupplyDay && supplySeenSol !== sol;
+      const supplyUnread = isSupplyDay && !(seenSupplySols && seenSupplySols.has(sol));
 
       return (
         <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden border-4 border-[#e6d5bc] shadow-xl bg-[#f3a678]">
@@ -310,7 +311,10 @@
           {isSupplyDay && (
             <button
               type="button"
-              onClick={() => setShowSupplyModal(true)}
+              onClick={() => {
+                if (onDismissSupplyAlert) onDismissSupplyAlert(sol);
+                setShowSupplyModal(true);
+              }}
               style={{ left: '72%', top: '65%', width: '16%', height: '27%' }}
               className="absolute rounded-3xl border-0 outline-none hover:bg-amber-400/20 active:scale-95 transition cursor-pointer flex flex-col items-center justify-start pt-1 z-30"
               title="Tap Supply Rocket to inspect delivered resources!"
@@ -329,10 +333,7 @@
           {showSupplyModal && (
             <SupplyRocketModal
               sol={sol}
-              onClose={() => {
-                setSupplySeenSol(sol);
-                setShowSupplyModal(false);
-              }}
+              onClose={() => setShowSupplyModal(false)}
             />
           )}
         </div>

@@ -278,7 +278,7 @@ function TopResourcePill({ label, value, barColor, icon }) {
           onClick={onClose}
         >
           <div
-            className="bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 text-center animate-alert-pulse"
+            className="bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 text-center"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-100 border-2 border-amber-400 flex items-center justify-center text-3xl shadow-sm">
