@@ -3,6 +3,8 @@
     // - Shows dedicated Dust Storm Alert banner when a dust storm is happening!
     // - Trip durations: 10 ⚡ = 70s, 20 ⚡ = 100s, 30 ⚡ = 130s
     // =========================================================================
+    const { useState, useEffect } = React;
+
     function RoverRoomModule({
       weather,
       nightFactor,
@@ -21,6 +23,12 @@
     }) {
       const [selectedPowerCost, setSelectedPowerCost] = useState(20); // 0, 10, 20, 30
       const [showReportModal, setShowReportModal] = useState(false);
+
+      useEffect(() => {
+        if (roverResultUnread) {
+          setShowReportModal(true);
+        }
+      }, [roverResultUnread]);
 
       const palette = getDayNightPalette(nightFactor);
       const isDustStorm = Boolean(weather?.isDustStorm);

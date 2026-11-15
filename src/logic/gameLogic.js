@@ -35,7 +35,7 @@
         const reasons = [];
 
         if (isDustStorm) {
-          hazardChance += 0.50;
+          hazardChance += 0.60;
           reasons.push('dust storm sand stuck in the wheels');
         }
         if (radiationLevel === 4) {
@@ -130,9 +130,9 @@
           waterCost += 1;
         }
 
-        let foodCost = 10;
+        let foodCost = 15;
         if (roverStatus === 'OUT_ON_MISSION' || weather.isDustStorm) {
-          foodCost += 2;
+          foodCost += 3;
         } else if (Math.random() < 0.5) {
           foodCost += 1;
         }

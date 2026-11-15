@@ -122,7 +122,8 @@ const { useState, useEffect, useRef } = React;
         }
       };
       const settlingRef = useRef(false);
-      const currentSolRatesRef = useRef({ power: 12, oxygen: 10, water: 6, food: 12 });
+      const justDamagedInCurrentSolRef = useRef(false);
+      const currentSolRatesRef = useRef({ power: 12, oxygen: 10, water: 6, food: 16 });
       const deductedInCurrentSolRef = useRef({ power: 0, oxygen: 0, water: 0, food: 0 });
 
       const elapsedSeconds = DAY_DURATION_SECONDS - secondsLeftInDay;
@@ -148,7 +149,7 @@ const { useState, useEffect, useRef } = React;
           power: c.powerCost,
           oxygen: c.oxygenCost,
           water: c.waterCost,
-          food: Math.max(12, c.foodCost),
+          food: Math.max(16, c.foodCost),
         };
       }, [weather, roverStatus]);
 
@@ -363,13 +364,14 @@ const { useState, useEffect, useRef } = React;
           setUsedPhotoIds((prev) => new Set(prev).add(photo.id));
 
           const hazardEval = GameLogicModule.evaluateRoverReturnHazard(
-            exp.isDustStorm,
-            exp.radiationLevel
+            exp.isDustStorm || Boolean(weather?.isDustStorm),
+            Math.max(exp.radiationLevel || 1, weather?.radiationLevel || 1)
           );
 
           if (hazardEval.isDamaged) {
             setRoverStatus(hazardEval.damagedSols === 2 ? 'DAMAGED_2_SOL' : 'DAMAGED_1_SOL');
             setDamageSolLeft(hazardEval.damagedSols);
+            justDamagedInCurrentSolRef.current = true;
             const dmgReport = {
               sol: exp.dispatchedSol,
               damagedSols: hazardEval.damagedSols,
@@ -383,7 +385,7 @@ const { useState, useEffect, useRef } = React;
             setRoverResultUnread(true);
             setDailyReport((prev) => [
               ...prev,
-              `⚠️ ${OUR_ROVER_NAME} returned to the garage with wheel damage! Tap it in the garage to inspect.`,
+              `⚠️ ${OUR_ROVER_NAME} returned to the garage with damage (${hazardEval.reasonText})! Requires ${hazardEval.damagedSols} day(s) repair.`,
             ]);
           } else {
             if (hazardEval.wasHazardous) setBraveMissions((b) => b + 1);
@@ -433,7 +435,7 @@ const { useState, useEffect, useRef } = React;
         }
 
         const consumption = GameLogicModule.calculateDailyResourceConsumption(weather, roverStatus);
-        const dailyFoodCost = Math.max(12, consumption.foodCost);
+        const dailyFoodCost = Math.max(16, consumption.foodCost);
 
         const deducted = deductedInCurrentSolRef.current;
         const remPower = Math.max(0, consumption.powerCost - (deducted.power || 0));
@@ -477,10 +479,17 @@ const { useState, useEffect, useRef } = React;
         let nextDamageLeft = damageSolLeft;
 
         if (!pendingExpedition && damageSolLeft > 0) {
-          nextDamageLeft = damageSolLeft - 1;
-          if (nextDamageLeft === 0) {
-            nextRoverStatus = 'READY';
-            logs.push(`🛠️ Rover "${OUR_ROVER_NAME}" repairs finished in the garage!`);
+          if (justDamagedInCurrentSolRef.current) {
+            justDamagedInCurrentSolRef.current = false;
+            logs.push(`🔧 Rover "${OUR_ROVER_NAME}" is undergoing repairs in the garage (${damageSolLeft} day(s) remaining).`);
+          } else {
+            nextDamageLeft = damageSolLeft - 1;
+            if (nextDamageLeft === 0) {
+              nextRoverStatus = 'READY';
+              logs.push(`🛠️ Rover "${OUR_ROVER_NAME}" repairs finished in the garage!`);
+            } else {
+              logs.push(`🔧 Rover "${OUR_ROVER_NAME}" repairs continuing in the garage (${nextDamageLeft} day(s) remaining).`);
+            }
           }
         }
 
@@ -651,7 +660,8 @@ const { useState, useEffect, useRef } = React;
 
       const handleRestart = () => {
         deductedInCurrentSolRef.current = { power: 0, oxygen: 0, water: 0, food: 0 };
-        currentSolRatesRef.current = { power: 12, oxygen: 10, water: 6, food: 12 };
+        currentSolRatesRef.current = { power: 12, oxygen: 10, water: 6, food: 16 };
+        justDamagedInCurrentSolRef.current = false;
         setSol(1);
         setSecondsLeftInDay(DAY_DURATION_SECONDS);
         setResources(INITIAL_RESOURCES);
