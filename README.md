@@ -4,7 +4,7 @@
 
 ---
 
-## 🌟 Project Highlights
+## Project Highlights
 
 - **NASA Space Weather & Image Integration**: Live integration with the NASA DONKI Solar Energetic Particle (SEP) API and the NASA Image and Video Library API with automatic fallbacks and offline resilience.
 - **Scientific Accuracy & Transparency**: Clear distinction between live NASA space weather data and simulated Martian gameplay parameters (see [SCIENCE_SOURCES.md](./SCIENCE_SOURCES.md)).
@@ -16,7 +16,7 @@
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```text
 mars-crew/
@@ -57,7 +57,7 @@ mars-crew/
 
 ---
 
-## 🚀 How to Run Locally
+## How to Run Locally
 
 Because the modular frontend loads scripts using `<script type="text/babel" src="...">`, run a local static file server to avoid browser CORS restrictions on `file://`:
 
@@ -73,6 +73,6 @@ Open your browser at `http://127.0.0.1:5173/` or `http://localhost:5173/`.
 
 ---
 
-## 📜 Scientific References
+## Scientific References
 
 For detailed mapping of all 25 scientific fact cards, official NASA Photo IDs (`PIA25286`, `PIA26045`, `PIA24203`, etc.), and API endpoint documentation, refer to [SCIENCE_SOURCES.md](./SCIENCE_SOURCES.md).
