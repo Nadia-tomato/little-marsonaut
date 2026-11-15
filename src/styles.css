@@ -85,6 +85,29 @@ body {
   100% { transform: translateY(360px) rotate(260deg); opacity: 0; }
 }
 .confetti-piece { animation: confettiFall 2.4s ease-in forwards; }
+@keyframes ribbonFlutter {
+  0% {
+    transform: translateY(-40px) rotate(0deg) rotateX(0deg) translateX(0px);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(50vh) rotate(210deg) rotateX(360deg) translateX(30px);
+  }
+  90% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateY(105vh) rotate(420deg) rotateX(720deg) translateX(-20px);
+    opacity: 0;
+  }
+}
+.animate-ribbon {
+  animation: ribbonFlutter 3.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  will-change: transform, opacity;
+}
 @keyframes roverCruise {
   0% { transform: translate(180px, 195px) scale(0.7, 0.7); opacity: 0; }
   3% { opacity: 1; }

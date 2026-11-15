@@ -3,6 +3,8 @@
     // - Garage red dot is the exact same size (h-5 w-5) as other red dots!
     // - When rover returns with findings (roverResultUnread === true), dot turns into "!"
     // =========================================================================
+    const { useState } = React;
+
     function BaseExteriorModule({
       sol,
       weather,
@@ -17,9 +19,13 @@
       hasRipeTomatoes = false,
       hasRottenTomatoes = false,
     }) {
+      const [showSupplyModal, setShowSupplyModal] = useState(false);
+      const [supplySeenSol, setSupplySeenSol] = useState(0);
+
       const palette = getDayNightPalette(nightFactor);
       const isNight = nightFactor >= 0.55;
       const isSupplyDay = sol % 6 === 0;
+      const supplyUnread = isSupplyDay && supplySeenSol !== sol;
 
       return (
         <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden border-4 border-[#e6d5bc] shadow-xl bg-[#f3a678]">
@@ -198,10 +204,6 @@
                   <polygon points="135,105 162,145 135,138" fill="#ef4444" stroke="#475569" strokeWidth="3" strokeLinejoin="round" />
                   <circle cx="95" cy="68" r="16" fill="#38bdf8" stroke="#475569" strokeWidth="4" />
                   <circle cx="91" cy="64" r="5" fill="#ffffff" opacity="0.75" />
-                  <rect x="5" y="-36" width="180" height="32" rx="16" fill="#ffffff" stroke="#5a3e28" strokeWidth="3.5" />
-                  <text x="95" y="-15" textAnchor="middle" fill="#1e293b" fontSize="16" fontWeight="900">
-                    Supply Ship (+30)
-                  </text>
                 </g>
               </g>
             )}
@@ -304,6 +306,35 @@
               )
             )}
           </button>
+          {/* Supply Rocket Ship Clickable Area & Alert "!" */}
+          {isSupplyDay && (
+            <button
+              type="button"
+              onClick={() => setShowSupplyModal(true)}
+              style={{ left: '72%', top: '65%', width: '16%', height: '27%' }}
+              className="absolute rounded-3xl border-0 outline-none hover:bg-amber-400/20 active:scale-95 transition cursor-pointer flex flex-col items-center justify-start pt-1 z-30"
+              title="Tap Supply Rocket to inspect delivered resources!"
+            >
+              {supplyUnread && (
+                <span className="relative flex h-8 w-8 items-center justify-center animate-alert-pulse">
+                  <span className="animate-ping absolute inline-flex h-8 w-8 rounded-full bg-red-400 opacity-85" />
+                  <span className="relative inline-flex rounded-full h-7 w-7 bg-red-600 border-2 border-white shadow-xl text-white font-black text-sm leading-none items-center justify-center">
+                    !
+                  </span>
+                </span>
+              )}
+            </button>
+          )}
+
+          {showSupplyModal && (
+            <SupplyRocketModal
+              sol={sol}
+              onClose={() => {
+                setSupplySeenSol(sol);
+                setShowSupplyModal(false);
+              }}
+            />
+          )}
         </div>
       );
     }

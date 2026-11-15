@@ -152,4 +152,105 @@ function TopResourcePill({ label, value, barColor, icon }) {
       );
     }
 
+    function ConfettiRibbonCelebration() {
+      const pieces = [
+        { left: '4%', delay: '0s', duration: '3.1s', color: '#f59e0b', width: '9px', height: '30px', rotate: '25deg' },
+        { left: '9%', delay: '0.6s', duration: '3.7s', color: '#ef4444', width: '11px', height: '14px', rotate: '-45deg' },
+        { left: '15%', delay: '1.2s', duration: '3.3s', color: '#38bdf8', width: '8px', height: '34px', rotate: '15deg' },
+        { left: '21%', delay: '0.2s', duration: '4.0s', color: '#10b981', width: '13px', height: '13px', rotate: '60deg' },
+        { left: '27%', delay: '1.5s', duration: '3.2s', color: '#ec4899', width: '9px', height: '28px', rotate: '-30deg' },
+        { left: '33%', delay: '0.4s', duration: '3.6s', color: '#facc15', width: '14px', height: '14px', rotate: '40deg' },
+        { left: '39%', delay: '1.8s', duration: '3.4s', color: '#8b5cf6', width: '8px', height: '32px', rotate: '-15deg' },
+        { left: '45%', delay: '0.1s', duration: '4.1s', color: '#fb923c', width: '10px', height: '26px', rotate: '50deg' },
+        { left: '52%', delay: '0.8s', duration: '3.5s', color: '#ef4444', width: '13px', height: '13px', rotate: '-55deg' },
+        { left: '58%', delay: '1.4s', duration: '3.8s', color: '#06b6d4', width: '8px', height: '36px', rotate: '35deg' },
+        { left: '64%', delay: '0.3s', duration: '3.2s', color: '#f59e0b', width: '11px', height: '22px', rotate: '-20deg' },
+        { left: '71%', delay: '1.1s', duration: '3.9s', color: '#10b981', width: '8px', height: '30px', rotate: '45deg' },
+        { left: '78%', delay: '0.5s', duration: '3.4s', color: '#ec4899', width: '12px', height: '12px', rotate: '-40deg' },
+        { left: '84%', delay: '1.7s', duration: '4.0s', color: '#3b82f6', width: '9px', height: '32px', rotate: '25deg' },
+        { left: '91%', delay: '0.7s', duration: '3.6s', color: '#facc15', width: '10px', height: '24px', rotate: '-35deg' },
+        { left: '96%', delay: '1.3s', duration: '3.3s', color: '#8b5cf6', width: '13px', height: '13px', rotate: '70deg' },
+        { left: '12%', delay: '2.0s', duration: '3.5s', color: '#fb923c', width: '9px', height: '34px', rotate: '10deg' },
+        { left: '25%', delay: '2.4s', duration: '3.8s', color: '#ef4444', width: '11px', height: '16px', rotate: '-50deg' },
+        { left: '48%', delay: '2.2s', duration: '3.4s', color: '#10b981', width: '8px', height: '28px', rotate: '30deg' },
+        { left: '68%', delay: '2.6s', duration: '4.0s', color: '#f59e0b', width: '10px', height: '30px', rotate: '-25deg' },
+        { left: '87%', delay: '2.3s', duration: '3.6s', color: '#38bdf8', width: '12px', height: '12px', rotate: '45deg' },
+      ];
+
+      return (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden z-[75]">
+          {pieces.map((p, idx) => (
+            <div
+              key={idx}
+              className="absolute animate-ribbon"
+              style={{
+                left: p.left,
+                top: '-45px',
+                width: p.width,
+                height: p.height,
+                backgroundColor: p.color,
+                borderRadius: p.width === p.height ? '50%' : '3px',
+                transform: `rotate(${p.rotate})`,
+                animationDelay: p.delay,
+                animationDuration: p.duration,
+                boxShadow: `0 0 10px ${p.color}aa`,
+              }}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    function SupplyRocketModal({ sol, onClose }) {
+      return (
+        <div
+          className="fixed inset-0 z-50 bg-[#2d1e12]/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          onClick={onClose}
+        >
+          <div
+            className="bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 text-center animate-alert-pulse"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-100 border-2 border-amber-400 flex items-center justify-center text-3xl shadow-sm">
+              🚀
+            </div>
+
+            <div>
+              <h3 className="text-xl font-black text-[#4a3525]">
+                Day {sol} Supply Rocket
+              </h3>
+              <p className="text-xs font-bold text-amber-900 mt-0.5">
+                Emergency supplies safely delivered from Earth!
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 py-1">
+              <div className="bg-white border-2 border-sky-300 rounded-2xl p-3 shadow-sm flex flex-col items-center">
+                <span className="text-2xl">💧</span>
+                <span className="text-base font-black text-sky-950 mt-1">+30 Water</span>
+                <span className="text-[10px] font-bold text-sky-700">Drinking & Plants</span>
+              </div>
+
+              <div className="bg-white border-2 border-red-300 rounded-2xl p-3 shadow-sm flex flex-col items-center">
+                <span className="text-2xl">🍅</span>
+                <span className="text-base font-black text-red-950 mt-1">+30 Food</span>
+                <span className="text-[10px] font-bold text-red-700">Crew Rations</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] font-semibold text-[#6d5138]">
+              Base life-support reserves have been replenished.
+            </p>
+
+            <button
+              onClick={onClose}
+              className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-black text-xs shadow-md active:scale-95 transition cursor-pointer"
+            >
+              Collect Supplies
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     // =========================================================================

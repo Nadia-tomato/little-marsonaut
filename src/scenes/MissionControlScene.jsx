@@ -395,16 +395,22 @@
 
     function SpecialDiscoveryModal({ record, onReturnToEarth }) {
       return (
-        <div className="fixed inset-0 z-[70] bg-[#2d1e12]/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative max-w-sm w-full rounded-3xl border-4 border-amber-400 bg-[#fff9ef] p-6 text-center shadow-2xl space-y-3">
-            <div className="text-4xl">🌟</div>
-            <span className="inline-block px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-xs font-black text-amber-900">
-              Rare Scientific Discovery (3%)
-            </span>
+        <div className="fixed inset-0 z-[70] bg-[#2d1e12]/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <ConfettiRibbonCelebration />
+          <div className="relative max-w-sm w-full rounded-3xl border-4 border-amber-400 bg-[#fff9ef] p-6 text-center shadow-2xl space-y-3 z-[80] animate-alert-pulse">
+            <div className="text-5xl animate-bounce">🎉</div>
+            <div className="space-y-0.5">
+              <span className="inline-block px-3.5 py-1 rounded-full bg-amber-400 text-amber-950 text-xs font-black shadow-sm tracking-wide">
+                🏆 MAJOR SCIENTIFIC DISCOVERY!
+              </span>
+              <p className="text-[11px] font-bold text-amber-900 mt-1">
+                Congratulations! You found a historic Mars clue!
+              </p>
+            </div>
             <h2 className="text-2xl font-black text-[#4a3525]">
               {record?.sample?.name || 'Mystery Life-Clue Stone'}
             </h2>
-            <p className="text-sm font-bold text-[#5a4636]">
+            <p className="text-sm font-bold text-[#5a3e28] bg-amber-50/80 p-2.5 rounded-2xl border border-amber-200">
               {record?.sample?.chosenExplanation || 'Potential biosignature sample collected by Curiosity Jr.!'}
             </p>
             <p className="text-[11px] text-amber-800 font-semibold">
@@ -413,7 +419,7 @@
             <div className="pt-2">
               <button
                 onClick={onReturnToEarth}
-                className="w-full py-3 px-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-black text-sm border-2 border-amber-600 shadow-md active:scale-95 transition cursor-pointer"
+                className="w-full py-3 px-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-black text-sm border-2 border-amber-600 shadow-lg active:scale-95 transition cursor-pointer"
               >
                 🚀 Return Findings to Earth (Win!)
               </button>
