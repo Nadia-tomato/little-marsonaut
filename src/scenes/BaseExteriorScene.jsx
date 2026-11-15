@@ -185,22 +185,21 @@
 
             {/* Supply Rocket Ship (Landed on bottom-right beside Rover Garage) */}
             {isSupplyDay && (
-              <g transform="translate(740, 480) scale(0.38)">
+              <g transform="translate(735, 435) scale(0.68)">
                 <g className="animate-supply-hover">
-                  <ellipse cx="95" cy="185" rx="85" ry="18" fill="#2d1e12" opacity="0.4" />
-                  <path d="M55,140 L30,182 M135,140 L160,182 M95,148 L95,186" stroke="#475569" strokeWidth="6" strokeLinecap="round" />
+                  <ellipse cx="95" cy="185" rx="80" ry="16" fill="#2d1e12" opacity="0.38" />
+                  <path d="M55,140 L28,182 M135,140 L162,182 M95,148 L95,186" stroke="#475569" strokeWidth="6" strokeLinecap="round" />
                   <polygon points="68,142 82,142 86,158 64,158" fill="#334155" />
                   <polygon points="108,142 122,142 126,158 104,158" fill="#334155" />
                   <path d="M55,142 C55,65 72,22 95,5 C118,22 135,65 135,142 Z" fill="#f8fafc" stroke="#475569" strokeWidth="4" />
                   <path d="M76,34 Q95,22 114,34 L95,5 Z" fill="#ef4444" />
                   <rect x="57" y="108" width="76" height="16" fill="#3b82f6" />
-                  <polygon points="55,105 32,145 55,138" fill="#ef4444" stroke="#475569" strokeWidth="3" />
-                  <polygon points="135,105 158,145 135,138" fill="#ef4444" stroke="#475569" strokeWidth="3" />
+                  <polygon points="55,105 28,145 55,138" fill="#ef4444" stroke="#475569" strokeWidth="3" strokeLinejoin="round" />
+                  <polygon points="135,105 162,145 135,138" fill="#ef4444" stroke="#475569" strokeWidth="3" strokeLinejoin="round" />
                   <circle cx="95" cy="68" r="16" fill="#38bdf8" stroke="#475569" strokeWidth="4" />
-                  <rect x="12" y="152" width="28" height="24" rx="4" fill="#38bdf8" stroke="#1e3a8a" strokeWidth="2.5" />
-                  <rect x="148" y="152" width="28" height="24" rx="4" fill="#ef4444" stroke="#7f1d1d" strokeWidth="2.5" />
-                  <rect x="0" y="-32" width="190" height="28" rx="14" fill="#facc15" stroke="#78350f" strokeWidth="3" />
-                  <text x="95" y="-13" textAnchor="middle" fill="#451a03" fontSize="13" fontWeight="900">
+                  <circle cx="91" cy="64" r="5" fill="#ffffff" opacity="0.75" />
+                  <rect x="5" y="-36" width="180" height="32" rx="16" fill="#ffffff" stroke="#5a3e28" strokeWidth="3.5" />
+                  <text x="95" y="-15" textAnchor="middle" fill="#1e293b" fontSize="16" fontWeight="900">
                     Supply Ship (+30)
                   </text>
                 </g>
