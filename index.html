@@ -32,23 +32,6 @@
     .animate-float {
       animation: floatBadge 2.2s ease-in-out infinite;
     }
-    @keyframes launch-progress {
-      from { transform: scaleX(0); }
-      to { transform: scaleX(1); }
-    }
-    @keyframes launchFade {
-      0%, 76% { opacity: 1; }
-      100% { opacity: 0; }
-    }
-    .animate-launch-fade { animation: launchFade 6.5s ease-in forwards; }
-    @keyframes confettiFall {
-      0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
-      15% { opacity: 1; }
-      100% { transform: translateY(360px) rotate(260deg); opacity: 0; }
-    }
-    .confetti-piece { animation: confettiFall 2.4s ease-in forwards; }
-    @keyframes unreadBounce { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-5px) scale(1.08); } }
-    .unread-badge { animation: unreadBounce 1s ease-in-out infinite; }
     @keyframes roverCruise {
       0%, 100% { transform: translateX(0px) translateY(0px); }
       50% { transform: translateX(18px) translateY(-2px); }
@@ -75,13 +58,8 @@
     // [Module 1: Game Constants & Elementary-Friendly English Text]
     // =========================================================================
     const MAX_TOMATO_GROWTH = 10;
-    const IS_LOCAL_TEST_HOST = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const TEST_CLOCK_SECONDS = IS_LOCAL_TEST_HOST
-      ? Math.max(0, Number(new URLSearchParams(window.location.search).get('testClock')) || 0)
-      : 0;
-    const DAY_DURATION_SECONDS = TEST_CLOCK_SECONDS || 120;
+    const DAY_DURATION_SECONDS = 120;
     const TOMATO_HARVEST_FOOD_GAIN = 24; // Reduced from 35 to 24
-    const ROVER_POWER_PER_BAR = 10;
 
     const INITIAL_RESOURCES = {
       oxygen: 70,
@@ -627,13 +605,41 @@
     // [Module 4: Shared UI Components & Visual Cover Page]
     // =========================================================================
 
-    /** Compact mission briefing that keeps the original warm vector style. */
-    function TitleCoverPage({ onStartMission, isGuide = false }) {
+    /**
+     * Title Cover Page & Visual Icon-Driven Quick Guide
+     * - No "Step 1~4" buttons
+     * - Includes clear GOAL card explaining the aim is achieving higher science results!
+     */
+    function TitleCoverPage({ onStartMission }) {
       const guideCards = [
-        ['🍅', 'Grow tomatoes'],
-        ['☀️', 'Collect solar power'],
-        ['🛸', 'Explore Mars'],
-        ['🫧', 'Keep the crew alive'],
+        {
+          icon: '🏆',
+          badge: 'MISSION GOAL',
+          color: 'border-yellow-400 bg-yellow-950/70',
+          visualFlow: '🪨 Rare Rocks + 🔬 Science = ⭐ High Score!',
+          shortLine: 'Goal: Get the highest science results in 20 days!',
+        },
+        {
+          icon: '⚡',
+          badge: 'POWER LAB',
+          color: 'border-amber-400 bg-amber-950/60',
+          visualFlow: '☀️ Panels → ⚡ Power  |  💧+⚡ → 🫧 Air',
+          shortLine: 'Catch sunbeams & make breathable air!',
+        },
+        {
+          icon: '🍅',
+          badge: 'GREENHOUSE',
+          color: 'border-emerald-400 bg-emerald-950/60',
+          visualFlow: '🌡️ Heat + 💧 Water + 🎮 Game → 🍅 10/10',
+          shortLine: 'Grow red tomatoes & pick before they dry!',
+        },
+        {
+          icon: '🛸',
+          badge: 'ROVER & SUPPLY',
+          color: 'border-sky-400 bg-sky-950/60',
+          visualFlow: '🔋 1–3 Bars → 🚀 Rover  |  🚀 Day 10 Supply',
+          shortLine: 'Send rover out to hunt rare Mars rocks!',
+        },
       ];
 
       return (
@@ -692,30 +698,51 @@
           {/* Visual Guide Cards & Start Mission Button */}
           <main className="relative z-10 max-w-4xl w-full mx-auto px-4 my-auto py-4 space-y-4">
             <div className="bg-slate-950/75 backdrop-blur-md border-2 border-amber-300/40 rounded-3xl p-4 md:p-6 shadow-2xl space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">🧑‍🚀</span>
-                <span className="font-black text-base md:text-lg text-amber-200 tracking-wide">MISSION GOALS</span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🧑‍🚀</span>
+                  <span className="font-black text-base md:text-lg text-amber-200 tracking-wide">
+                    MISSION GUIDE & GOAL
+                  </span>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-amber-400/20 border border-amber-300/50 text-xs font-black text-amber-200">
+                  🎯 Goal: Collect Rare Mars Rocks for Top Science Score!
+                </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {guideCards.map(([icon, label], idx) => (
+                {guideCards.map((card, idx) => (
                   <div
                     key={idx}
-                    className="rounded-2xl border-2 border-amber-300/50 bg-slate-900/70 p-4 flex items-center gap-3"
+                    className={`rounded-2xl border-2 p-3.5 flex flex-col justify-between space-y-2 ${card.color}`}
                   >
-                    <span className="text-3xl">{icon}</span>
-                    <span className="text-sm font-black text-slate-100">{label}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-3xl">{card.icon}</span>
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/15 text-white">
+                        {card.badge}
+                      </span>
+                    </div>
+                    <div className="bg-black/40 rounded-xl px-2.5 py-2 text-center text-xs font-black text-amber-200">
+                      {card.visualFlow}
+                    </div>
+                    <div className="text-xs font-bold text-slate-100 text-center">
+                      {card.shortLine}
+                    </div>
                   </div>
                 ))}
               </div>
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+                <div className="text-xs font-bold text-slate-200 text-center sm:text-left">
+                  ⏱️ Each Mars day is <span className="text-amber-300 font-black">2 minutes</span> (or tap the center <span className="text-indigo-300 font-black">End Day Dome</span>).
+                </div>
+
                 <button
                   onClick={onStartMission}
                   className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-base md:text-lg shadow-[0_0_25px_rgba(251,191,36,0.6)] active:scale-95 transition flex items-center justify-center gap-2"
                 >
                   <span>🚀</span>
-                  <span>{isGuide ? 'RETURN TO MISSION' : 'START MISSION'}</span>
+                  <span>START MISSION</span>
                 </button>
               </div>
             </div>
@@ -723,40 +750,8 @@
 
           <footer className="relative z-10 pb-5 px-6 flex items-center justify-between text-xs md:text-sm font-black tracking-wider text-slate-200">
             <span>2026 NASA HACKATHON</span>
+            <span className="text-slate-400 font-bold">Ages 7–12 Science Mission</span>
           </footer>
-        </div>
-      );
-    }
-
-    function MarsLaunchTransition({ fact, onSkip, onComplete }) {
-      useEffect(() => {
-        const timer = window.setTimeout(onComplete, 6500);
-        return () => window.clearTimeout(timer);
-      }, [onComplete]);
-
-      return (
-        <div className="animate-launch-fade min-h-screen bg-[#060911] text-white flex items-center justify-center relative overflow-hidden p-5">
-          <svg viewBox="0 0 1200 700" className="absolute inset-0 w-full h-full" aria-hidden="true">
-            <rect width="1200" height="700" fill="#060911" />
-            {Array.from({ length: 36 }).map((_, i) => (
-              <circle key={i} cx={(i * 173) % 1200} cy={(i * 97) % 680 + 10} r={i % 3 === 0 ? 2.5 : 1.5} fill="#fef3c7" opacity=".9" />
-            ))}
-            <g>
-              <circle cx="1020" cy="500" r="155" fill="#9c3d1e" opacity=".35" />
-              <circle cx="1020" cy="500" r="120" fill="#d96b38" stroke="#f39c6b" strokeWidth="8" />
-              <path d="M950 475 Q1020 430 1095 470 M970 535 Q1040 500 1100 530" fill="none" stroke="#9c3d1e" strokeWidth="18" opacity=".55" />
-            </g>
-          </svg>
-          <div className="relative z-10 max-w-lg w-full text-center space-y-5">
-            <p className="text-amber-200 font-black tracking-[.25em] text-xs">MISSION LAUNCH</p>
-            <h1 className="text-3xl md:text-5xl font-black">On the way to Mars...</h1>
-            <p className="text-amber-100 text-sm md:text-base">{fact}</p>
-            <div className="relative h-4 rounded-full bg-white/20 border border-white/30 overflow-hidden">
-              <div className="h-full w-full bg-amber-400 origin-left animate-[launch-progress_6.5s_linear]" />
-              <span className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 text-lg">🚀</span>
-            </div>
-            <button onClick={onSkip} className="px-5 py-2 rounded-xl bg-white/15 border border-white/40 hover:bg-white/25 font-black text-sm">Skip</button>
-          </div>
         </div>
       );
     }
@@ -788,7 +783,7 @@
             <div className="flex items-center gap-3 border-b-2 border-[#eadbc5] pb-3">
               <span className="text-3xl">{pendingAction.icon}</span>
               <div>
-                <div className="text-xs font-extrabold text-amber-700">ACTION</div>
+                <div className="text-xs font-extrabold text-amber-700">Check Before You Go</div>
                 <h3 className="text-lg font-black text-[#4a3525]">{pendingAction.title}</h3>
               </div>
             </div>
@@ -806,7 +801,7 @@
                   <span className="font-black text-emerald-700 text-right">{pendingAction.gainText}</span>
                 </div>
               )}
-              {false && pendingAction.note && (
+              {pendingAction.note && (
                 <p className="text-xs text-[#6b4c35] bg-white p-2.5 rounded-xl border border-[#e6d5bc]">
                   {pendingAction.note}
                 </p>
@@ -979,6 +974,7 @@
                 ☀️ Move the Solar Panel to Catch Sunbeams!
               </span>
               <div className="flex items-center gap-2 font-bold">
+                <span className="text-[#6b4c35]">{timeLeft}s left</span>
                 <span className="px-2.5 py-0.5 rounded-full bg-amber-300 text-amber-950 font-black">
                   Power: +{livePowerPreview} ⚡
                 </span>
@@ -1196,7 +1192,7 @@
       showGreenhouseDot,
       showRoverDot,
       onEnterRoom,
-      roverResultUnread,
+      onRequestEndSol,
     }) {
       const palette = getDayNightPalette(nightFactor);
       const isNight = nightFactor >= 0.55;
@@ -1251,14 +1247,14 @@
             {/* Solar Array */}
             <g transform="translate(55, 160)">
               {[0, 75, 150].map((dx, idx) => (
-                <g key={idx} transform={`translate(${dx}, 0)`}>
+                <g key={idx} transform={`translate(${dx}, ${-idx * 12})`}>
                   <rect x="26" y="55" width="8" height="35" fill="#7c6855" />
                   <polygon points="0,55 18,10 68,10 50,55" fill={lerpHexColor('#4f86c6', '#1e3a8a', nightFactor)} stroke="#fff" strokeWidth="3" />
                 </g>
               ))}
             </g>
 
-            {/* Center Dome = Mission Control */}
+            {/* Center Dome = End Day Dome */}
             <g transform="translate(345, 140)">
               <ellipse cx="155" cy="215" rx="150" ry="30" fill="#2d1e12" opacity="0.35" />
               <path d="M35,150 C35,40 275,40 275,150 L295,205 C295,225 15,225 15,205 Z" fill="#f5ede0" stroke="#7c6855" strokeWidth="5" />
@@ -1270,7 +1266,7 @@
               <rect x="65" y="172" width="26" height="22" rx="5" fill="#fef08a" stroke="#5a4636" strokeWidth="3" />
               <rect x="218" y="172" width="26" height="22" rx="5" fill="#fef08a" stroke="#5a4636" strokeWidth="3" />
               <rect x="70" y="124" width="170" height="32" rx="16" fill="#4f46e5" stroke="#fff" strokeWidth="3" />
-              <text x="155" y="145" textAnchor="middle" fill="#ffffff" fontSize="15" fontWeight="900">BASE CENTER</text>
+              <text x="155" y="145" textAnchor="middle" fill="#ffffff" fontSize="15" fontWeight="900">🌙 End Day {sol}</text>
             </g>
 
             {/* Power Dome */}
@@ -1357,10 +1353,10 @@
           </div>
 
           <button
-              onClick={() => onEnterRoom('CONTROL')}
+            onClick={onRequestEndSol}
             style={{ left: '35%', top: '22%', width: '30%', height: '35%' }}
             className="absolute rounded-3xl border-2 border-transparent hover:border-indigo-300 hover:bg-indigo-300/20 active:scale-95 transition cursor-pointer"
-            title="Open Mission Control"
+            title="Tap Center Dome to End Today"
           />
 
           <button
@@ -1400,9 +1396,9 @@
             className="absolute rounded-3xl border-2 border-transparent hover:border-sky-300 hover:bg-sky-200/25 active:scale-95 transition cursor-pointer flex items-start justify-end p-2"
           >
             {showRoverDot && (
-              <span className="flex h-9 w-9 items-center justify-center">
-                {roverResultUnread && <span className="animate-ping absolute inline-flex h-9 w-9 rounded-full bg-red-400 opacity-60" />}
-                <span className="relative inline-flex rounded-full h-8 w-8 bg-red-600 border-2 border-white shadow text-white font-black text-xl leading-none items-center justify-center">{roverResultUnread ? '!' : '•'}</span>
+              <span className="flex h-5 w-5">
+                <span className="animate-ping absolute inline-flex h-5 w-5 rounded-full bg-red-400 opacity-80" />
+                <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 border-2 border-white shadow" />
               </span>
             )}
           </button>
@@ -1418,9 +1414,12 @@
       weather,
       nightFactor,
       solarCollectedToday,
+      batteryBars,
+      roverStatus,
       onBack,
       onOpenSolarGame,
       onRequestElectrolysis,
+      onRequestChargeRover,
     }) {
       const palette = getDayNightPalette(nightFactor);
 
@@ -1488,7 +1487,17 @@
 
             <path d="M520,120 L520,60 L790,60 L790,150" fill="none" stroke="#eab308" strokeWidth="18" strokeLinejoin="round" />
 
-            <g transform="translate(565, 145)">
+            <g transform="translate(335, 135)">
+              <rect x="0" y="0" width="290" height="320" rx="20" fill="#f5ede0" stroke="#5a4636" strokeWidth="6" />
+              <rect x="28" y="28" width="234" height="145" rx="14" fill="#2b5876" stroke="#5a4636" strokeWidth="5" />
+              <polygon points="155,48 115,105 145,105 132,152 178,92 148,92" fill="#facc15" stroke="#fff" strokeWidth="3" />
+              <rect x="45" y="195" width="200" height="85" rx="12" fill="#cbd5e1" stroke="#5a4636" strokeWidth="4" />
+              <text x="145" y="232" textAnchor="middle" fill="#1e293b" fontSize="16" fontWeight="900">
+                Rover Charger ({batteryBars}/5)
+              </text>
+            </g>
+
+            <g transform="translate(715, 145)">
               <rect x="20" y="0" width="170" height="310" rx="65" fill="#e2e8f0" stroke="#5a4636" strokeWidth="6" />
               <rect x="42" y="65" width="126" height="170" rx="20" fill="#38bdf8" stroke="#0284c7" strokeWidth="4" />
               <circle cx="105" cy="145" r="44" fill="#fff" stroke="#0284c7" strokeWidth="4" />
@@ -1503,7 +1512,7 @@
               className="px-3.5 py-1.5 rounded-full bg-[#fdf6e9]/95 hover:bg-amber-200 border-2 border-[#d9c2a3] font-black text-xs text-[#4a3525] shadow-md flex items-center gap-1"
             >
               <span className="text-base leading-none">‹</span>
-              <span>Back</span>
+              <span>Power Lab | Back</span>
             </button>
             <div className="bg-white/95 border-2 border-[#d9c2a3] px-3 py-1 rounded-full text-xs font-black text-[#5a3e28] shadow">
               ⚡ {resources.power} | 💧 {resources.water} | 🫧 {resources.oxygen}
@@ -1519,20 +1528,35 @@
             <span className="animate-float px-2.5 py-1 rounded-full bg-amber-400 text-[#3b2514] border-2 border-white text-[11px] font-black shadow-md text-center max-w-full truncate">
               {solarCollectedToday
                 ? '✅ Solar Done'
-                : '☀️ Catch Sun'}
+                : `☀️ Catch Sun (+${weather?.isDustStorm ? 13 : 25}⚡)`}
+            </span>
+          </button>
+
+          <button
+            onClick={onRequestChargeRover}
+            disabled={resources.power < 12 || batteryBars >= 5 || roverStatus === 'OUT_ON_MISSION'}
+            style={{ left: '33%', top: '22%', width: '30%', height: '52%' }}
+            className="absolute rounded-2xl border-2 border-transparent hover:border-emerald-300 hover:bg-emerald-300/15 disabled:opacity-75 transition cursor-pointer flex flex-col items-center justify-end pb-2 px-1"
+          >
+            <span className="px-3 py-1.5 rounded-full bg-emerald-500 text-white border-2 border-white text-[11px] font-black shadow-md text-center max-w-full truncate">
+              {roverStatus === 'OUT_ON_MISSION'
+                ? '🛸 Rover Outside'
+                : batteryBars >= 5
+                ? '🔋 Battery Full (5/5)'
+                : '🔋 Charge (-12⚡ → +1)'}
             </span>
           </button>
 
           <button
             onClick={onRequestElectrolysis}
             disabled={resources.water < 10 || resources.power < 15}
-            style={{ left: '57%', top: '22%', width: '28%', height: '52%' }}
+            style={{ left: '70%', top: '22%', width: '23%', height: '52%' }}
             className="absolute rounded-2xl border-2 border-transparent hover:border-sky-300 hover:bg-sky-300/20 disabled:opacity-75 transition cursor-pointer flex flex-col items-center justify-end pb-2 px-1"
           >
             <span className="px-2.5 py-1 rounded-full bg-sky-500 text-white border-2 border-white text-[11px] font-black shadow-md text-center max-w-full">
-              🫧 Make Oxygen
+              🫧 Make Air
               <br />
-              <span className="text-[10px]">Uses Water + Power</span>
+              <span className="text-[10px]">-10💧-15⚡→+22🫧</span>
             </span>
           </button>
         </div>
@@ -1551,8 +1575,6 @@
       todayWaterOption,
       plantMiniGamePlayedToday,
       onBack,
-      onWaterTomatoes,
-      onPlantSeeds,
       onRequestSelectTempOption,
       onRequestSelectWaterOption,
       onOpenPlantMiniGame,
@@ -1579,6 +1601,8 @@
             setFlyingTomato(true);
             setTimeout(() => setFlyingTomato(false), 800);
           });
+        } else if (!plantMiniGamePlayedToday) {
+          onOpenPlantMiniGame();
         }
       };
 
@@ -1657,8 +1681,10 @@
             {[275, 455, 635].map((lx, i) => (
               <g key={i} transform={`translate(${lx - 45}, 115)`}>
                 <line x1="45" y1="-35" x2="45" y2="10" stroke="#6b7280" strokeWidth="5" />
-                <path d="M10,35 C10,10 80,10 80,35 Z" fill="#f59e0b" stroke="#5a4636" strokeWidth="4" />
-                <polygon points="15,35 75,35 98,145 -8,145" fill="#fef08a" opacity="0.38" />
+                <path d="M10,35 C10,10 80,10 80,35 Z" fill={todayTempOption ? '#f59e0b' : '#9ca3af'} stroke="#5a4636" strokeWidth="4" />
+                {todayTempOption && (
+                  <polygon points="15,35 75,35 98,145 -8,145" fill="#fef08a" opacity={todayTempOption.id === 'TEMP_WARM' ? '0.48' : '0.25'} />
+                )}
               </g>
             ))}
 
@@ -1666,12 +1692,26 @@
               <rect x="0" y="0" width="130" height="190" rx="16" fill="#eff6ff" stroke="#3b82f6" strokeWidth="5" />
               <path d="M65,25 C65,25 45,52 45,65 A20,20 0 0,0 85,65 C85,52 65,25 65,25 Z" fill="#38bdf8" stroke="#0284c7" strokeWidth="3" />
               <text x="65" y="108" textAnchor="middle" fill="#1e3a8a" fontSize="14" fontWeight="900">
-                💧 Watering Can
+                💧 Water Valve
               </text>
               <text x="65" y="132" textAnchor="middle" fill="#0369a1" fontSize="13" fontWeight="800">
-                {todayWaterOption ? '✅ Watered' : 'Tap to water'}
+                {todayWaterOption ? '✅ Watered' : 'Not Watered'}
               </text>
               <path d="M130,145 L185,145 L185,180" fill="none" stroke="#38bdf8" strokeWidth="10" strokeLinecap="round" />
+            </g>
+
+            <g transform="translate(770, 185)">
+              <rect x="0" y="0" width="165" height="210" rx="16" fill="#fffaf0" stroke="#ea580c" strokeWidth="5" />
+              <rect x="18" y="18" width="129" height="45" rx="8" fill="#ffedd5" />
+              <text x="82" y="46" textAnchor="middle" fill="#9a3412" fontSize="14" fontWeight="900">
+                🌡️ Night {safeTempMin}°C
+              </text>
+              <text x="82" y="95" textAnchor="middle" fill="#7c2d12" fontSize="14" fontWeight="900">
+                🔥 Heat Lamps
+              </text>
+              <text x="82" y="120" textAnchor="middle" fill="#c2410c" fontSize="13" fontWeight="800">
+                {todayTempOption ? '✅ Heated' : 'Not Set'}
+              </text>
             </g>
 
             <g transform="translate(215, 290)">
@@ -1746,8 +1786,11 @@
               className="px-3.5 py-1.5 rounded-full bg-[#fdf6e9]/95 hover:bg-emerald-200 border-2 border-[#d9c2a3] font-black text-xs text-[#4a3525] shadow-md flex items-center gap-1"
             >
               <span className="text-base leading-none">‹</span>
-              <span>Back</span>
+              <span>Greenhouse | Back</span>
             </button>
+            <div className="bg-white/95 border-2 border-[#d9c2a3] px-3 py-1 rounded-full text-xs font-black text-[#5a3e28] shadow">
+              💧 {resources.water} | ⚡ {resources.power} | 🍅 {resources.food}
+            </div>
           </div>
 
           {tomatoSpoiledToday && (
@@ -1756,21 +1799,19 @@
             </div>
           )}
 
-          <div
-            draggable={!todayWaterOption && tomatoProgress < MAX_TOMATO_GROWTH}
-            onDragStart={(event) => event.dataTransfer.setData('text/plain', 'water')}
-            onClick={onWaterTomatoes}
-            className="absolute left-6 bottom-5 z-20 w-28 h-20 rounded-2xl border-2 border-sky-400 bg-sky-100 shadow-md flex flex-col items-center justify-center cursor-grab"
-            title="Drag the watering can to the plants"
+          <button
+            onClick={() => tomatoProgress < MAX_TOMATO_GROWTH && !todayWaterOption && setActiveModal('WATER')}
+            disabled={tomatoProgress >= MAX_TOMATO_GROWTH || Boolean(todayWaterOption)}
+            style={{ left: '5%', top: '31%', width: '14%', height: '32%' }}
+            className="absolute rounded-2xl border-2 border-transparent hover:border-sky-400 hover:bg-sky-200/25 transition cursor-pointer flex items-end justify-center pb-1 px-0.5"
           >
-            <span className="text-3xl">💧</span>
-            <span className="text-[10px] font-black text-sky-900">{todayWaterOption ? 'Watered' : 'Water Can (-2)'}</span>
-          </div>
+            <span className="px-2 py-0.5 rounded-full bg-sky-500 text-white border border-white text-[10px] font-black shadow text-center max-w-full truncate">
+              {todayWaterOption ? '✅ Watered' : '💧 Water'}
+            </span>
+          </button>
 
           <button
             onClick={handlePlanterBoxClick}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => { event.preventDefault(); event.dataTransfer.getData('text/plain') === 'seed' ? onPlantSeeds() : onWaterTomatoes(); }}
             disabled={tomatoProgress < MAX_TOMATO_GROWTH && plantMiniGamePlayedToday}
             style={{ left: '21%', top: '36%', width: '52%', height: '42%' }}
             className="absolute rounded-3xl border-2 border-transparent hover:border-emerald-400 hover:bg-emerald-200/15 transition cursor-pointer flex flex-col items-center justify-end pb-2 px-2"
@@ -1786,24 +1827,22 @@
             >
               {tomatoProgress >= MAX_TOMATO_GROWTH
                 ? `🧺 Tap to Pick Ripe Tomatoes (+${TOMATO_HARVEST_FOOD_GAIN} Food)`
-                : tomatoProgress === 0
-                ? '🌱 Drop Seeds Here'
-                : `🌱 Water plants to grow (${tomatoProgress}/${MAX_TOMATO_GROWTH})`}
+                : plantMiniGamePlayedToday
+                ? `🌱 Growth ${tomatoProgress}/${MAX_TOMATO_GROWTH} (Game Done)`
+                : `🎮 Tap Planter Box to Play (${tomatoProgress}/${MAX_TOMATO_GROWTH})`}
             </span>
           </button>
 
-          {tomatoProgress === 0 && (
-            <div
-              draggable
-              onDragStart={(event) => event.dataTransfer.setData('text/plain', 'seed')}
-              onClick={onPlantSeeds}
-              className="absolute right-8 bottom-5 z-20 w-28 h-20 rounded-2xl border-2 border-amber-500 bg-amber-100 shadow-md flex flex-col items-center justify-center cursor-grab"
-              title="Drag seeds to the planter"
-            >
-              <span className="text-3xl">🌱</span>
-              <span className="text-[10px] font-black text-amber-900">Seeds</span>
-            </div>
-          )}
+          <button
+            onClick={() => tomatoProgress < MAX_TOMATO_GROWTH && !todayTempOption && setActiveModal('TEMP')}
+            disabled={tomatoProgress >= MAX_TOMATO_GROWTH || Boolean(todayTempOption)}
+            style={{ left: '76%', top: '28%', width: '18%', height: '35%' }}
+            className="absolute rounded-2xl border-2 border-transparent hover:border-orange-400 hover:bg-orange-200/25 transition cursor-pointer flex items-end justify-center pb-1 px-0.5"
+          >
+            <span className="px-2 py-0.5 rounded-full bg-orange-500 text-white border border-white text-[10px] font-black shadow max-w-full truncate">
+              {todayTempOption ? '✅ Heated' : '🌡️ Heat (⚡)'}
+            </span>
+          </button>
 
           {activeModal === 'TEMP' && (
             <div className="inset-0 absolute bg-[#2d1e12]/70 flex items-center justify-center p-4 z-30">
@@ -1898,20 +1937,16 @@
     function RoverRoomModule({
       weather,
       nightFactor,
-      power,
+      batteryBars,
       roverStatus,
       damageSolLeft,
       pendingExpedition,
-      latestRoverResult,
-      roverResultUnread,
       samples,
       onBack,
-      onViewLatestResult,
       onRequestDispatchRover,
     }) {
       const [selectedBarsCost, setSelectedBarsCost] = useState(2);
       const [showRockBox, setShowRockBox] = useState(false);
-      const [showLatestResult, setShowLatestResult] = useState(false);
 
       const palette = getDayNightPalette(nightFactor);
       const radInfo = RADIATION_LABELS[weather?.radiationLevel || 1];
@@ -2001,6 +2036,54 @@
               strokeWidth="3"
             />
 
+            <g transform="translate(55, 190)">
+              <rect x="0" y="0" width="215" height="280" rx="18" fill="#f5ede0" stroke="#5a4636" strokeWidth="6" />
+              <rect x="20" y="20" width="175" height="118" rx="12" fill="#1e293b" />
+              <text x="107" y="45" textAnchor="middle" fill="#38bdf8" fontSize="15" fontWeight="900">
+                Trip Cost: {selectedBarsCost} / 3
+              </text>
+
+              <g transform="translate(36, 56)">
+                <rect x="0" y="0" width="136" height="44" rx="8" fill="#0f172a" stroke="#64748b" strokeWidth="3" />
+                <rect x="136" y="13" width="8" height="18" rx="3" fill="#64748b" />
+                {[0, 1, 2].map((idx) => (
+                  <rect
+                    key={idx}
+                    x={10 + idx * 41}
+                    y="8"
+                    width="34"
+                    height="28"
+                    rx="5"
+                    fill={idx < selectedBarsCost ? '#facc15' : '#334155'}
+                  />
+                ))}
+              </g>
+
+              <text x="107" y="122" textAnchor="middle" fill="#fde047" fontSize="12" fontWeight="800">
+                Tap to Change 1–3 Bars
+              </text>
+
+              <rect x="24" y="152" width="167" height="98" rx="12" fill="#cbd5e1" stroke="#5a4636" strokeWidth="4" />
+              <text x="107" y="177" textAnchor="middle" fill="#1e293b" fontSize="14" fontWeight="900">
+                Rover Battery: {batteryBars}/5
+              </text>
+              <g transform="translate(34, 188)">
+                {[0, 1, 2, 3, 4].map((bIdx) => (
+                  <rect
+                    key={bIdx}
+                    x={bIdx * 30}
+                    y="0"
+                    width="24"
+                    height="28"
+                    rx="4"
+                    fill={bIdx < batteryBars ? '#22c55e' : '#94a3b8'}
+                    stroke="#334155"
+                    strokeWidth="2"
+                  />
+                ))}
+              </g>
+            </g>
+
             <g transform="translate(300, 265)">
               <ellipse cx="165" cy="235" rx="150" ry="32" fill="#facc15" stroke="#a16207" strokeWidth="5" />
               <ellipse cx="165" cy="235" rx="115" ry="20" fill="#94a3b8" />
@@ -2046,7 +2129,7 @@
               className="px-3.5 py-1.5 rounded-full bg-[#fdf6e9]/95 hover:bg-sky-200 border-2 border-[#d9c2a3] font-black text-xs text-[#4a3525] shadow-md flex items-center gap-1"
             >
               <span className="text-base leading-none">‹</span>
-              <span>Back</span>
+              <span>Rover Bay | Back</span>
             </button>
             <div className="bg-white/95 border-2 border-[#d9c2a3] px-3 py-1 rounded-full text-xs font-black text-[#5a3e28] shadow">
               {weather?.isDustStorm ? '🌪️ Dust Storm' : '☀️ Clear'} | Sun Rays: {radInfo.text}
@@ -2059,13 +2142,15 @@
             </div>
           )}
 
-          {latestRoverResult && (roverResultUnread || showLatestResult) && (
-            <div className="top-24 left-4 right-4 absolute bg-amber-100/95 border-2 border-amber-500 text-amber-950 px-3 py-2 rounded-2xl text-xs font-black shadow z-20 flex flex-wrap items-center gap-2">
-              {latestRoverResult.photo && <img src={latestRoverResult.photo.imageUrl} alt="Latest Mars photo" className="w-12 h-10 object-cover rounded-lg" />}
-              <span className="flex-1 text-left">Latest result: {latestRoverResult.sample?.name || 'No sample found'}{showLatestResult && latestRoverResult.sample?.chosenExplanation ? ` — ${latestRoverResult.sample.chosenExplanation}` : ''}</span>
-              {!showLatestResult && <button onClick={() => { setShowLatestResult(true); onViewLatestResult(); }} className="underline shrink-0">Open</button>}
-            </div>
-          )}
+          <button
+            onClick={cycleBarsCost}
+            style={{ left: '5%', top: '30%', width: '22%', height: '46%' }}
+            className="absolute rounded-2xl border-2 border-transparent hover:border-amber-400 hover:bg-amber-200/20 transition cursor-pointer flex flex-col items-center justify-end pb-2 px-1"
+          >
+            <span className="px-2.5 py-1 rounded-full bg-amber-300 text-amber-950 border-2 border-white text-[11px] font-black shadow max-w-full truncate">
+              🔄 Set Cost ({selectedBarsCost})
+            </span>
+          </button>
 
           {!isRoverOut && (
             <button
@@ -2073,34 +2158,33 @@
               disabled={
                 Boolean(pendingExpedition) ||
                 roverStatus !== 'READY' ||
-                power < selectedBarsCost * ROVER_POWER_PER_BAR
+                batteryBars < selectedBarsCost
               }
               style={{ left: '30%', top: '36%', width: '38%', height: '52%' }}
               className="absolute rounded-3xl border-2 border-transparent hover:border-sky-400 hover:bg-sky-200/15 disabled:opacity-80 transition cursor-pointer flex flex-col items-center justify-end pb-2 px-2"
             >
               <div className="bg-white/95 border-2 border-sky-400 rounded-2xl px-3 py-1.5 text-center shadow-lg max-w-full">
-                <label className="block text-[11px] font-black text-sky-900">Mission Power: {selectedBarsCost * ROVER_POWER_PER_BAR}</label>
-                <input
-                  type="range"
-                  min="1"
-                  max="3"
-                  step="1"
-                  value={selectedBarsCost}
-                  onChange={(event) => setSelectedBarsCost(Number(event.target.value))}
-                  className="w-40 accent-sky-500"
-                  aria-label="Mission power"
-                />
                 <div className="text-xs font-black text-sky-900 truncate">
                   {roverStatus !== 'READY'
                     ? `⚠️ Fixing Rover (${damageSolLeft} Day${damageSolLeft > 1 ? 's' : ''} left)`
-                    : power < selectedBarsCost * ROVER_POWER_PER_BAR
-                    ? `🪫 Need ${selectedBarsCost * ROVER_POWER_PER_BAR} Power`
-                    : `🚀 Send Rover (-${selectedBarsCost * ROVER_POWER_PER_BAR} Power)`}
+                    : batteryBars < selectedBarsCost
+                    ? `🪫 Need ${selectedBarsCost} Batteries (Charge in Power Lab)`
+                    : `🚀 Tap Rover to Go! (-${selectedBarsCost} Battery)`}
                 </div>
                 <div className="text-[10px] text-[#6b4c35] mt-0.5 truncate">{modeInfo.desc}</div>
               </div>
             </button>
           )}
+
+          <button
+            onClick={() => setShowRockBox(true)}
+            style={{ left: '77%', top: '33%', width: '18%', height: '44%' }}
+            className="absolute rounded-2xl border-2 border-transparent hover:border-amber-400 hover:bg-amber-200/20 transition cursor-pointer flex items-end justify-center pb-2 px-1"
+          >
+            <span className="px-2.5 py-1 rounded-full bg-white/95 border border-[#8c6d4f] text-[11px] font-black text-[#4a3525] shadow max-w-full truncate">
+              🔍 View Rocks
+            </span>
+          </button>
 
           {showRockBox && (
             <div className="inset-0 absolute bg-[#2d1e12]/70 flex items-center justify-center p-4 z-30">
@@ -2139,111 +2223,6 @@
       );
     }
 
-    function MissionControlModule({
-      sol,
-      weather,
-      dailyReport,
-      yesterdayReport,
-      samples,
-      totalScore,
-      expeditionLogs,
-      dailyPhotoAlbum,
-      resources,
-      onBack,
-    }) {
-      const [tab, setTab] = useState('NEWS');
-      const [selectedPhoto, setSelectedPhoto] = useState(null);
-      const ownedRocks = SAMPLE_CATALOG.filter((item) => item.id !== 'NONE' && samples[item.id] > 0);
-      const tabs = ['NEWS', 'DISCOVERIES', 'PHOTOS', 'STATUS'];
-      return (
-        <div className="relative w-full rounded-3xl border-4 border-[#d9c2a3] bg-[#f5ede0] shadow-xl p-4 md:p-6 space-y-4 overflow-hidden">
-          <svg viewBox="0 0 1000 625" className="absolute inset-0 w-full h-full pointer-events-none opacity-90" aria-hidden="true">
-            <rect width="1000" height="430" fill="#d9e4ef" />
-            <polygon points="0,430 1000,430 1000,625 0,625" fill="#a66a4a" />
-            <polygon points="0,270 180,145 360,250 560,120 760,235 1000,155 1000,430 0,430" fill="#8f5040" opacity=".55" />
-            <rect x="80" y="95" width="240" height="160" rx="18" fill="#284b68" stroke="#5a4636" strokeWidth="8" />
-            <rect x="105" y="120" width="190" height="100" rx="10" fill="#7dc2e8" />
-            <circle cx="735" cy="185" r="90" fill="#f5ede0" stroke="#7c6855" strokeWidth="8" />
-            <rect x="660" y="160" width="150" height="38" rx="18" fill="#4f46e5" stroke="#fff" strokeWidth="4" />
-            <text x="735" y="185" textAnchor="middle" fill="#fff" fontSize="15" fontWeight="900">BASE CENTER</text>
-            <rect x="405" y="110" width="210" height="135" rx="15" fill="#f5ede0" stroke="#7c6855" strokeWidth="7" />
-            <circle cx="510" cy="175" r="42" fill="#38bdf8" stroke="#0369a1" strokeWidth="5" />
-            <path d="M470 175 H550 M510 135 V215" stroke="#fff" strokeWidth="5" />
-          </svg>
-          <div className="relative z-10 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <button onClick={onBack} className="px-4 py-2 rounded-full bg-white border-2 border-[#d9c2a3] font-black text-sm">‹ Back</button>
-            <h2 className="text-xl md:text-2xl font-black text-[#4a3525]">Mission Control</h2>
-            <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-900 font-black">Day {sol}</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {tabs.map((item) => <button key={item} onClick={() => setTab(item)} className={`rounded-xl py-2 text-xs font-black border-2 ${tab === item ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white text-[#4a3525] border-[#d9c2a3]'}`}>{item}</button>)}
-          </div>
-          {tab === 'NEWS' && (
-            <section className="bg-white rounded-2xl border-2 border-amber-200 p-4 space-y-3">
-              <h3 className="font-black text-amber-900">News</h3>
-              {dailyReport.length === 0 && !yesterdayReport && <p className="text-sm text-[#7a5a40]">No new updates.</p>}
-              {dailyReport.slice(-5).reverse().map((item, index) => <p key={`${item}-${index}`} className="text-sm border-b border-amber-100 pb-2">{item}</p>)}
-              {yesterdayReport && <div className="rounded-xl bg-sky-50 p-3 text-sm"><b>Latest rover report:</b> {yesterdayReport.sample ? yesterdayReport.sample.name : 'No sample found'}.</div>}
-            </section>
-          )}
-          {tab === 'DISCOVERIES' && (
-            <section className="bg-white rounded-2xl border-2 border-emerald-200 p-4 space-y-3">
-              <div className="flex justify-between items-center"><h3 className="font-black text-emerald-900">Discoveries</h3><b className="text-amber-700">{totalScore} Science Points</b></div>
-              {ownedRocks.length === 0 ? <p className="text-sm text-[#7a5a40]">No rocks collected yet.</p> : <div className="grid sm:grid-cols-2 gap-2">{ownedRocks.map((item) => <div key={item.id} className="rounded-xl bg-emerald-50 p-3"><b>{item.name}</b><br /><span className="text-xs">× {samples[item.id]} · {item.scientificNote}</span></div>)}</div>}
-              <p className="text-xs text-[#7a5a40]">Game sample chances are game rules, not NASA measurements.</p>
-            </section>
-          )}
-          {tab === 'PHOTOS' && (
-            <section className="bg-white rounded-2xl border-2 border-sky-200 p-4 space-y-3">
-              <h3 className="font-black text-sky-900">Photo Gallery</h3>
-              {dailyPhotoAlbum.length === 0 ? <p className="text-sm text-[#7a5a40]">No rover photos yet.</p> : <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{dailyPhotoAlbum.map((entry, index) => <figure key={`${entry.photo.id}-${index}`} onClick={() => setSelectedPhoto(entry)} className="rounded-xl overflow-hidden border border-sky-200 bg-sky-50 cursor-zoom-in hover:shadow-lg"><img src={entry.photo.imageUrl} alt={entry.photo.title} className="w-full h-28 object-cover" /><figcaption className="p-2 text-[11px]"><b>Day {entry.sol}</b><br />{entry.photo.nasaCaption}<br /><span className="text-sky-800">{entry.photo.credit}</span></figcaption></figure>)}</div>}
-            </section>
-          )}
-          {tab === 'STATUS' && (
-            <section className="bg-white rounded-2xl border-2 border-violet-200 p-4 space-y-3">
-              <h3 className="font-black text-violet-900">Mission Status</h3>
-              <p className="text-sm">Current Sol: <b>{sol} / 20</b></p>
-              <p className="text-sm">Mars Weather: <b>{weather?.isDustStorm ? 'Dust Storm (game event)' : 'Clear (game simulation)'}</b></p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-black">{[['Water', resources.water], ['Food', resources.food], ['Power', resources.power], ['Air', resources.oxygen]].map(([name, value]) => <div key={name} className="rounded-xl bg-violet-50 p-2">{name}<br />{Math.round(value)}</div>)}</div>
-              <p className="text-sm">Returned rover missions: <b>{expeditionLogs.length}</b></p>
-              <p className="text-xs text-[#7a5a40]">NASA weather is historical data. Alerts and rover damage are game simulations.</p>
-            </section>
-          )}
-          {selectedPhoto && (
-            <div className="fixed inset-0 z-50 bg-[#2d1e12]/75 flex items-center justify-center p-4" onClick={() => setSelectedPhoto(null)}>
-              <div className="max-w-2xl w-full bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl p-4 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-                <img src={selectedPhoto.photo.imageUrl} alt={selectedPhoto.photo.title} className="w-full max-h-[60vh] object-contain rounded-2xl bg-slate-900" />
-                <h3 className="mt-3 font-black text-lg">Day {selectedPhoto.sol} · {selectedPhoto.photo.title}</h3>
-                <p className="text-sm mt-1">{selectedPhoto.photo.nasaCaption}</p>
-                <p className="text-xs text-sky-800 mt-2">{selectedPhoto.photo.credit}</p>
-                <button onClick={() => setSelectedPhoto(null)} className="mt-3 px-4 py-2 rounded-full bg-indigo-600 text-white font-black">Close</button>
-              </div>
-            </div>
-          )}
-          </div>
-        </div>
-      );
-    }
-
-    function SpecialDiscoveryModal({ record, onReturnToEarth }) {
-      const colors = ['#facc15', '#fb7185', '#38bdf8', '#34d399', '#c084fc'];
-      return (
-        <div className="fixed inset-0 z-[70] bg-[#2d1e12]/80 flex items-center justify-center p-4 overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none">{Array.from({ length: 28 }).map((_, index) => <span key={index} className="confetti-piece absolute w-2.5 h-5 rounded-sm" style={{ left: `${(index * 37) % 100}%`, top: '-20px', background: colors[index % colors.length], animationDelay: `${(index % 8) * 80}ms` }} />)}</div>
-          <div className="relative max-w-md w-full rounded-3xl border-4 border-amber-300 bg-[#fdf6e9] p-6 text-center shadow-2xl space-y-4">
-            <div className="text-5xl">🌟</div>
-            <p className="text-xs font-black uppercase tracking-[.25em] text-amber-700">Rare Discovery!</p>
-            <h2 className="text-3xl font-black text-[#4a3525]">Amazing Find!</h2>
-            <p className="font-black text-sky-900">{record?.sample?.name || 'A special Mars sample'}</p>
-            <p className="text-sm text-[#5a4636]">{record?.sample?.chosenExplanation}</p>
-            <p className="text-xs text-amber-800">This is a fictional game story, not proof of life on Mars.</p>
-            <button onClick={onReturnToEarth} className="w-full rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white py-3 font-black">Return to Earth</button>
-          </div>
-        </div>
-      );
-    }
-
     // =========================================================================
     // [Module 10: Morning Briefing & End-of-Mission Report Modules]
     // =========================================================================
@@ -2263,8 +2242,9 @@
           <div className="bg-[#fdf6e9] border-4 border-[#d9c2a3] text-[#4a3525] rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b-2 border-[#eadbc5] pb-3">
               <div>
+                <span className="text-xs font-extrabold text-amber-700">LITTLE MARSONAUT • DAILY REPORT</span>
                 <h2 className="text-xl font-black text-[#4a3525]">
-                  D{sol} NEWS
+                  Day {sol} of 20 — Weather & News
                 </h2>
               </div>
               <span className={`px-2.5 py-1 rounded-full text-xs font-black text-white ${radInfo.color}`}>
@@ -2279,7 +2259,7 @@
               </div>
             )}
 
-            {false && sol > 1 && (
+            {sol > 1 && (
               <div className="space-y-3">
                 {yesterdayConsumption && (
                   <div className="bg-amber-50 p-3.5 rounded-2xl border-2 border-amber-300 space-y-2">
@@ -2383,7 +2363,7 @@
                   </div>
                 </div>
               </div>
-              <div className="text-base md:text-lg text-[#5a3e28] font-bold">
+              <div className="text-xs text-[#5a3e28] font-bold">
                 Tip: <span className="text-amber-800">
                   {weather.isDustStorm ? 'Dust storms block sunlight and can hurt the rover!' : radInfo.advice}
                 </span>
@@ -2394,7 +2374,7 @@
               onClick={onConfirm}
               className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-white font-black text-base shadow-md"
             >
-              Continue
+              {sol === 1 ? 'Start Day 1!' : `Start Day ${sol}!`}
             </button>
           </div>
         </div>
@@ -2422,11 +2402,11 @@
       return (
         <div className="min-h-screen bg-[#fdf6e9] text-[#4a3525] p-4 md:p-8 flex flex-col items-center">
           <div className="max-w-4xl w-full bg-white border-4 border-[#d9c2a3] rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
-            <div className={`text-center space-y-2 ${ending === 'EMERGENCY_ABORT' ? 'bg-red-100 border-4 border-red-300 rounded-3xl p-4' : ''}`}>
+            <div className="text-center space-y-2">
               <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-200 text-amber-900">
                 LITTLE MARSONAUT • REPORT CARD
               </span>
-              <h1 className={`text-2xl md:text-3xl font-black ${ending === 'EMERGENCY_ABORT' ? 'text-red-900' : ''}`}>
+              <h1 className="text-2xl md:text-3xl font-black">
                 {ending === 'SPECIAL_DISCOVERY' && '🎉 Amazing Find! You Won the Mission!'}
                 {ending === 'NORMAL_20_SOL' && '🚀 Awesome Job! You Lived 20 Days on Mars!'}
                 {ending === 'EMERGENCY_ABORT' && `⚠️ Mission Stopped Early (${abortReason})`}
@@ -2441,7 +2421,7 @@
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
               <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-3 rounded-2xl">
                 <div className="text-xs text-[#7a5a40] font-bold">Days on Mars</div>
-                <div className="text-xl font-black">{sol} Days</div>
+                <div className="text-xl font-black">{sol} / 20 Days</div>
               </div>
               <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-3 rounded-2xl">
                 <div className="text-xs text-[#7a5a40] font-bold">Science Score</div>
@@ -2562,18 +2542,8 @@
     // =========================================================================
     // [Module 11: Main App Controller]
     // =========================================================================
-    const MARS_FACTS = [
-      'Did you know? Mars has two small moons: Phobos and Deimos.',
-      'A day on Mars is a little longer than a day on Earth.',
-      'Mars looks red because its dust contains rusty iron minerals.',
-      'Mars has the biggest volcano in our solar system: Olympus Mons.',
-    ];
-
     function App() {
       const [showCoverPage, setShowCoverPage] = useState(true);
-      const [showGuidePage, setShowGuidePage] = useState(false);
-      const [showLaunchTransition, setShowLaunchTransition] = useState(false);
-      const [launchFact, setLaunchFact] = useState(MARS_FACTS[0]);
       const [sol, setSol] = useState(1);
       const [secondsLeftInDay, setSecondsLeftInDay] = useState(DAY_DURATION_SECONDS);
       const [resources, setResources] = useState(INITIAL_RESOURCES);
@@ -2625,11 +2595,8 @@
       const [pendingConfirmAction, setPendingConfirmAction] = useState(null);
       const [ending, setEnding] = useState(null);
       const [abortReason, setAbortReason] = useState('');
-      const [specialDiscoveryPending, setSpecialDiscoveryPending] = useState(null);
-      const [roverResultUnread, setRoverResultUnread] = useState(false);
 
       const executeEndSolRef = useRef(null);
-      const settlingRef = useRef(false);
 
       const elapsedSeconds = DAY_DURATION_SECONDS - secondsLeftInDay;
       const nightFactor = Math.max(0, Math.min(1, elapsedSeconds / DAY_DURATION_SECONDS));
@@ -2640,6 +2607,7 @@
         const env = await NasaService.generateDailyMarsEnvironment(targetSol);
         setWeather(env);
         setLoadingNasa(false);
+        setShowMorningBriefing(true);
       };
 
       useEffect(() => {
@@ -2654,8 +2622,8 @@
       const showPowerDot = !solarCollectedToday;
       const showGreenhouseDot =
         tomatoProgress >= MAX_TOMATO_GROWTH ||
-        (!todayWaterOption && tomatoProgress < MAX_TOMATO_GROWTH);
-      const showRoverDot = roverStatus === 'READY' && !pendingExpedition;
+        ((!todayTempOption || !todayWaterOption || !plantMiniGamePlayedToday) && tomatoProgress < MAX_TOMATO_GROWTH);
+      const showRoverDot = roverStatus === 'READY' && !pendingExpedition && batteryBars >= 1;
 
       const handleCompleteSolarGame = (caughtCount) => {
         const gainedPower = GameLogicModule.calculateSolarGameReward(caughtCount, weather?.isDustStorm);
@@ -2733,29 +2701,21 @@
         });
       };
 
-      const handleWaterTomatoes = () => {
-        if (todayWaterOption || tomatoProgress >= MAX_TOMATO_GROWTH || resources.water < 2) return;
+      const handleRequestSelectWaterOption = (opt) => {
+        if (todayWaterOption || tomatoProgress >= MAX_TOMATO_GROWTH || resources.water < opt.waterCost) return;
         setPendingConfirmAction({
           icon: '💧',
-          title: 'Water Tomato Plants',
-          costText: '-2 Water',
-          gainText: 'Tomatoes can grow tonight',
-          note: 'Use the watering can once today?',
+          title: `Greenhouse Water: ${opt.title}`,
+          costText: `-${opt.waterCost} 💧 Water`,
+          gainText: 'Waters tomato roots overnight',
+          note: opt.desc,
           onExecute: () => {
-            setResources((r) => ({ ...r, water: Math.max(0, r.water - 2) }));
-            setTodayWaterOption({ id: 'WATERING_CAN', waterCost: 2 });
+            setResources((r) => ({ ...r, water: Math.max(0, r.water - opt.waterCost) }));
+            setTodayWaterOption(opt);
             setTomatoSpoiledToday(false);
-            setDailyReport((prev) => [...prev, '💧 Tomato plants watered (-2 Water).']);
+            setDailyReport((prev) => [...prev, `💧 Turned on "${opt.title}" (-${opt.waterCost} Water).`]);
           },
         });
-      };
-
-      const handlePlantSeeds = () => {
-        if (tomatoProgress === 0) {
-          setTomatoProgress(1);
-          setTomatoSpoiledToday(false);
-          setDailyReport((prev) => [...prev, '🌱 Seeds planted.']);
-        }
       };
 
       const handleRequestHarvestTomato = (onAnimationTrigger) => {
@@ -2777,19 +2737,18 @@
       };
 
       const handleRequestDispatchRover = (barsCost) => {
-        const powerCost = barsCost * ROVER_POWER_PER_BAR;
-        if (pendingExpedition || roverStatus !== 'READY' || resources.power < powerCost || !weather) return;
+        if (pendingExpedition || roverStatus !== 'READY' || batteryBars < barsCost || !weather) return;
         const mode = ROVER_DISPATCH_MODES[barsCost];
         setPendingConfirmAction({
           icon: '🚀',
           title: `Send Rover: ${mode.name}`,
-          costText: `-${powerCost} Power`,
+          costText: `-${barsCost} Rover Battery (${batteryBars - barsCost}/5 left)`,
           gainText: `Rover drives outside window & returns Day ${sol + 1} with rocks!`,
           note: mode.desc,
           onExecute: () => {
             if (barsCost === 3) setDeepDrillMissions((c) => c + 1);
             const remaining = Math.max(0, batteryBars - barsCost);
-            setResources((r) => ({ ...r, power: Math.max(0, r.power - powerCost) }));
+            setBatteryBars(remaining);
             setRoverStatus('OUT_ON_MISSION');
             setTotalMissions((m) => m + 1);
 
@@ -2803,8 +2762,22 @@
 
             setDailyReport((prev) => [
               ...prev,
-              `🛸 Rover drove out (-${powerCost} Power)! Check the window to see it exploring!`,
+              `🛸 Rover drove out (-${barsCost} battery)! Check the window to see it exploring!`,
             ]);
+          },
+        });
+      };
+
+      const handleRequestEndSol = () => {
+        if (!weather || ending) return;
+        setPendingConfirmAction({
+          icon: '🌙',
+          title: `Sleep & End Day ${sol}?`,
+          costText: null,
+          gainText: `Moves to Day ${sol + 1} and checks plants & rover`,
+          note: 'Ready to finish today and go to sleep?',
+          onExecute: () => {
+            executeEndSol();
           },
         });
       };
@@ -2841,12 +2814,12 @@
           spoiledFlag = true;
           logs.push('Ripe tomatoes dried up unpicked overnight—new seedlings sprouted!');
         } else {
-          const growthGain = todayWaterOption ? 2 : 0;
-          nextTomatoProgress = Math.min(MAX_TOMATO_GROWTH, tomatoProgress + growthGain);
+          const growthResult = GameLogicModule.calculateTomatoGrowthFromSeparateCare(todayTempOption, todayWaterOption);
+          nextTomatoProgress = Math.min(MAX_TOMATO_GROWTH, tomatoProgress + growthResult.gain);
           if (nextTomatoProgress >= MAX_TOMATO_GROWTH) {
             logs.push(`🍅 Tomatoes reached ${MAX_TOMATO_GROWTH}/${MAX_TOMATO_GROWTH} full ripeness! Pick them tomorrow!`);
           } else {
-            logs.push(todayWaterOption ? `💧 Water helped tomatoes grow +${growthGain}.` : 'Tomatoes need water to grow.');
+            logs.push(growthResult.note);
           }
         }
 
@@ -2883,7 +2856,6 @@
               photo,
               sample: null,
             };
-            setRoverResultUnread(true);
           } else {
             if (hazardEval.wasHazardous) setBraveMissions((b) => b + 1);
             nextRoverStatus = 'READY';
@@ -2899,13 +2871,10 @@
             };
             setExpeditionLogs((prev) => [...prev, record]);
             generatedYesterdayReport = record;
-            setRoverResultUnread(true);
 
             if (found.id === 'ANCIENT_BIOSIGNATURE') {
               setResources({ oxygen: nextOxygen, power: nextPower, water: nextWater, food: nextFood });
-              setSpecialDiscoveryPending(record);
-              setRoverStatus('READY');
-              setPendingExpedition(null);
+              setEnding('SPECIAL_DISCOVERY');
               return;
             }
           }
@@ -2948,29 +2917,25 @@
         setTodayWaterOption(null);
         setPlantMiniGamePlayedToday(false);
         setDailyReport(logs);
+        setCurrentScene('EXTERIOR');
         await loadWeatherForSol(nextSol);
       };
 
       executeEndSolRef.current = executeEndSol;
 
       useEffect(() => {
-        if (showCoverPage || showLaunchTransition || ending || specialDiscoveryPending) return;
+        if (showCoverPage || ending || showMorningBriefing || loadingNasa) return;
         const interval = setInterval(() => {
           setSecondsLeftInDay((prev) => {
-            if (prev <= 1 && !settlingRef.current) {
-              settlingRef.current = true;
-              if (executeEndSolRef.current) {
-                Promise.resolve(executeEndSolRef.current()).finally(() => {
-                  settlingRef.current = false;
-                });
-              }
+            if (prev <= 1) {
+              if (executeEndSolRef.current) executeEndSolRef.current();
               return DAY_DURATION_SECONDS;
             }
             return prev - 1;
           });
         }, 1000);
         return () => clearInterval(interval);
-      }, [showCoverPage, showLaunchTransition, ending, specialDiscoveryPending]);
+      }, [showCoverPage, ending, showMorningBriefing, loadingNasa]);
 
       const handleRestart = () => {
         setSol(1);
@@ -3010,9 +2975,6 @@
         setPendingConfirmAction(null);
         setEnding(null);
         setAbortReason('');
-        setSpecialDiscoveryPending(null);
-        setRoverResultUnread(false);
-        setShowGuidePage(false);
         setShowCoverPage(true);
         loadWeatherForSol(1);
       };
@@ -3020,28 +2982,10 @@
       if (showCoverPage) {
         return (
           <TitleCoverPage
-            isGuide={showGuidePage}
             onStartMission={() => {
-              if (showGuidePage) {
-                setShowGuidePage(false);
-                setShowCoverPage(false);
-              } else {
-                setShowCoverPage(false);
-                setLaunchFact(MARS_FACTS[Math.floor(Math.random() * MARS_FACTS.length)]);
-                setShowMorningBriefing(false);
-                setShowLaunchTransition(true);
-              }
+              setShowCoverPage(false);
+              setShowMorningBriefing(true);
             }}
-          />
-        );
-      }
-
-      if (showLaunchTransition) {
-        return (
-          <MarsLaunchTransition
-            fact={launchFact}
-            onSkip={() => setShowLaunchTransition(false) || setShowMorningBriefing(true)}
-            onComplete={() => setShowLaunchTransition(false) || setShowMorningBriefing(true)}
           />
         );
       }
@@ -3080,21 +3024,6 @@
         );
       }
 
-      if (specialDiscoveryPending) {
-        return (
-          <>
-            <div className="min-h-screen bg-[#fdf6e9]" />
-            <SpecialDiscoveryModal
-              record={specialDiscoveryPending}
-              onReturnToEarth={() => {
-                setSpecialDiscoveryPending(null);
-                setEnding('SPECIAL_DISCOVERY');
-              }}
-            />
-          </>
-        );
-      }
-
       const radInfo = RADIATION_LABELS[weather?.radiationLevel || 1];
       const mins = Math.floor(secondsLeftInDay / 60);
       const secs = String(secondsLeftInDay % 60).padStart(2, '0');
@@ -3108,13 +3037,19 @@
               <div className="flex items-center gap-2">
                 <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3.5 py-1.5 shadow-sm flex items-center gap-2">
                   <span className="text-base">{isNightPhase ? '🌙' : '☀️'}</span>
-                  <span className="font-black text-sm md:text-base text-[#4a3525]">Day {sol}</span>
+                  <span className="font-black text-sm md:text-base text-[#4a3525]">Day {sol}/20</span>
                   <span className={`px-2 py-0.5 rounded-lg text-xs font-black ${isNightPhase ? 'bg-indigo-900 text-amber-200' : 'bg-amber-100 text-amber-900'}`}>
                     {mins}:{secs}
                   </span>
                 </div>
                 <button
-                  onClick={() => { setShowGuidePage(true); setShowCoverPage(true); }}
+                  onClick={() => setShowMorningBriefing(true)}
+                  className="bg-amber-200 hover:bg-amber-300 border-2 border-amber-400 rounded-2xl px-3 py-1.5 text-xs font-black text-amber-950 shadow-sm"
+                >
+                  📋 News
+                </button>
+                <button
+                  onClick={() => setShowCoverPage(true)}
                   className="bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-2xl px-3 py-1.5 text-xs font-black shadow-sm"
                 >
                   ❓ Guide
@@ -3140,6 +3075,14 @@
             </div>
           </header>
 
+          {dailyReport.length > 0 && (
+            <div className="max-w-5xl w-full mx-auto px-3 md:px-6 mb-1.5">
+              <div className="bg-amber-100 border-2 border-amber-300 rounded-2xl px-4 py-1.5 text-xs md:text-sm font-bold text-amber-950 flex flex-wrap justify-between items-center gap-2">
+                <div className="truncate">{dailyReport[dailyReport.length - 1]}</div>
+                <span className="text-[11px] text-amber-700 shrink-0">({dailyReport.length} updates)</span>
+              </div>
+            </div>
+          )}
 
           <main className="flex-1 max-w-5xl w-full mx-auto px-3 md:px-6 pb-5 flex flex-col justify-center">
             {currentScene === 'EXTERIOR' && (
@@ -3150,8 +3093,8 @@
                 showPowerDot={showPowerDot}
                 showGreenhouseDot={showGreenhouseDot}
                 showRoverDot={showRoverDot}
-                roverResultUnread={roverResultUnread}
                 onEnterRoom={(room) => setCurrentScene(room)}
+                onRequestEndSol={handleRequestEndSol}
               />
             )}
 
@@ -3161,9 +3104,12 @@
                 weather={weather}
                 nightFactor={nightFactor}
                 solarCollectedToday={solarCollectedToday}
+                batteryBars={batteryBars}
+                roverStatus={roverStatus}
                 onBack={() => setCurrentScene('EXTERIOR')}
                 onOpenSolarGame={() => setShowSolarGameModal(true)}
                 onRequestElectrolysis={handleRequestElectrolysis}
+                onRequestChargeRover={handleRequestChargeRover}
               />
             )}
 
@@ -3177,9 +3123,8 @@
                 todayWaterOption={todayWaterOption}
                 plantMiniGamePlayedToday={plantMiniGamePlayedToday}
                 onBack={() => setCurrentScene('EXTERIOR')}
-                onWaterTomatoes={handleWaterTomatoes}
-                onPlantSeeds={handlePlantSeeds}
                 onRequestSelectTempOption={handleRequestSelectTempOption}
+                onRequestSelectWaterOption={handleRequestSelectWaterOption}
                 onOpenPlantMiniGame={() => setShowPlantMiniGameModal(true)}
                 onRequestHarvestTomato={handleRequestHarvestTomato}
               />
@@ -3189,31 +3134,13 @@
               <RoverRoomModule
                 weather={weather}
                 nightFactor={nightFactor}
-                power={resources.power}
+                batteryBars={batteryBars}
                 roverStatus={roverStatus}
                 damageSolLeft={damageSolLeft}
                 pendingExpedition={pendingExpedition}
-                latestRoverResult={yesterdayReport}
-                roverResultUnread={roverResultUnread}
                 samples={samples}
                 onBack={() => setCurrentScene('EXTERIOR')}
-                onViewLatestResult={() => setRoverResultUnread(false)}
                 onRequestDispatchRover={handleRequestDispatchRover}
-              />
-            )}
-
-            {currentScene === 'CONTROL' && (
-              <MissionControlModule
-                sol={sol}
-                weather={weather}
-                dailyReport={dailyReport}
-                yesterdayReport={yesterdayReport}
-                samples={samples}
-                totalScore={totalScore}
-                expeditionLogs={expeditionLogs}
-                dailyPhotoAlbum={dailyPhotoAlbum}
-                resources={resources}
-                onBack={() => setCurrentScene('EXTERIOR')}
               />
             )}
           </main>

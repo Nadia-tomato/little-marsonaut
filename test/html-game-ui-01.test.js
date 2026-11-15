@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 
-const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const targetUrl = existsSync(new URL('../game.html', import.meta.url))
+  ? new URL('../game.html', import.meta.url)
+  : new URL('../index.html', import.meta.url);
+const html = await readFile(targetUrl, 'utf8');
 
 test('UI update 01 keeps the standalone HTML game and adds the launch flow', () => {
   assert.match(html, /function MarsLaunchTransition/);
