@@ -65,7 +65,7 @@ function TopResourcePill({ label, value, barColor, icon }) {
               )}
               {pendingAction.note && (
                 <p className="text-xs text-[#5a3e28] bg-amber-50 p-3 rounded-xl border border-amber-200 font-semibold leading-relaxed">
-                  💡 {pendingAction.note}
+                  {pendingAction.note}
                 </p>
               )}
             </div>

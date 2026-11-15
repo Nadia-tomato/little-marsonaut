@@ -25,11 +25,11 @@ function EndGameModule({
                 LITTLE MARSONAUT • REPORT CARD
               </span>
               <h1 className={`text-2xl md:text-3xl font-black ${ending === 'EMERGENCY_ABORT' ? 'text-red-900' : ''}`}>
-                {ending === 'SPECIAL_DISCOVERY' && '🎉 Amazing Find! You Won the Mission!'}
-                {ending === 'NORMAL_20_SOL' && '🚀 Awesome Job! You Lived 20 Days on Mars!'}
+                {ending === 'SPECIAL_DISCOVERY' && 'Amazing Find! You Won the Mission!'}
+                {ending === 'NORMAL_20_SOL' && 'Awesome Job! You Lived 20 Days on Mars!'}
                 {ending === 'EMERGENCY_ABORT' && (
                   <div className="space-y-1.5">
-                    <div>⚠️ Mission Stopped Early</div>
+                    <div>Mission Ended Early</div>
                     <div className="text-base md:text-lg font-bold text-red-700 bg-red-200/70 py-1 px-4 rounded-full inline-block">
                       {abortReason}
                     </div>
@@ -62,7 +62,7 @@ function EndGameModule({
 
             <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-4 rounded-2xl space-y-3">
               <h2 className="font-black text-sm text-sky-900">
-                🪨 Mars Rocks &amp; Discoveries ({collectedNonZeroSamples.length} Types, {successfulDrills.length} Finds)
+                Mars Rocks &amp; Discoveries ({collectedNonZeroSamples.length} Types, {successfulDrills.length} Finds)
               </h2>
               {collectedNonZeroSamples.length === 0 ? (
                 <p className="text-xs text-[#7a5a40]">No rocks found this time—send {OUR_ROVER_NAME} out and try again!</p>
@@ -86,45 +86,55 @@ function EndGameModule({
               )}
             </div>
 
-            <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-4 rounded-2xl space-y-3">
-              <h2 className="font-black text-sm text-amber-800">🏆 Astronaut Badges Earned ({unlockedBadges.filter((b) => b.tier !== 'Locked').length} / {unlockedBadges.length})</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                {unlockedBadges.map((b, idx) => {
-                  const isLocked = b.tier === 'Locked';
-                  const tierColor =
-                    b.tier === 'Gold'
-                      ? 'bg-amber-300 text-amber-950 border-amber-500'
-                      : b.tier === 'Silver'
-                      ? 'bg-slate-200 text-slate-800 border-slate-400'
-                      : b.tier === 'Bronze'
-                      ? 'bg-orange-200 text-orange-950 border-orange-400'
-                      : 'bg-stone-200 text-stone-500 border-stone-300';
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 ${
-                        isLocked ? 'bg-stone-100/70 border-stone-200 opacity-65' : 'bg-white border-amber-300 shadow-sm'
-                      }`}
-                    >
-                      <span className="text-3xl shrink-0">{isLocked ? '🔒' : b.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="font-black text-[#4a3525] truncate">{b.category}: {b.title}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border shrink-0 ${tierColor}`}>
-                            {b.tier}
-                          </span>
-                        </div>
-                        <div className="text-[#6b4c35] mt-0.5">{b.desc}</div>
-                      </div>
+            {(() => {
+              const earnedBadges = unlockedBadges.filter((b) => b.tier !== 'Locked');
+              return (
+                <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-4 rounded-2xl space-y-3">
+                  <h2 className="font-black text-sm text-amber-800">
+                    Astronaut Badges Earned ({earnedBadges.length})
+                  </h2>
+                  {earnedBadges.length === 0 ? (
+                    <p className="text-xs text-[#7a5a40]">
+                      No badges earned on this mission yet. Keep exploring to unlock badges!
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                      {earnedBadges.map((b, idx) => {
+                        const tierColor =
+                          b.tier === 'Gold'
+                            ? 'bg-amber-300 text-amber-950 border-amber-500'
+                            : b.tier === 'Silver'
+                            ? 'bg-slate-200 text-slate-800 border-slate-400'
+                            : 'bg-orange-200 text-orange-950 border-orange-400';
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 bg-white border-amber-300 shadow-sm"
+                          >
+                            <span className="text-3xl shrink-0">{b.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="font-black text-[#4a3525] truncate">
+                                  {b.category}: {b.title}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border shrink-0 ${tierColor}`}>
+                                  {b.tier}
+                                </span>
+                              </div>
+                              <div className="text-[#6b4c35] mt-0.5">{b.desc}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="bg-[#fdf6e9] border-2 border-[#eadbc5] p-4 rounded-2xl space-y-3">
               <h2 className="font-black text-sm text-[#4a3525]">
-                📸 Real Mars Rover Photo Album ({dailyPhotoAlbum.length} Photos)
+                Real Mars Rover Photo Album ({dailyPhotoAlbum.length} Photos)
               </h2>
               {dailyPhotoAlbum.length === 0 ? (
                 <p className="text-xs text-[#7a5a40]">The rover did not take any photos this time.</p>

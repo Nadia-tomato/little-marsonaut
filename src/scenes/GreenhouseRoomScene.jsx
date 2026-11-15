@@ -7,6 +7,7 @@
       tomatoProgress,
       tomatoProgresses = [1, 1, 1, 1],
       wateredPlants = [false, false, false, false],
+      rottenPlants = [false, false, false, false],
       todayTempOption,
       seenTopics,
       onOpenTopic,
@@ -14,6 +15,7 @@
       onWaterSinglePlant,
       onPlantSeeds,
       onHarvestSinglePlant,
+      onClearRottenPlant,
       onRequestSelectTempOption,
     }) {
       const plantList = Array.isArray(tomatoProgresses)
@@ -28,13 +30,15 @@
       const safeTempMin = weather && typeof weather.tempMin === 'number' ? weather.tempMin : -75;
       const greenhouseConfig = GameLogicModule.getGreenhouseSeparateOptions(safeTempMin);
 
-      const anyRipe = plantList.some((p) => p >= MAX_TOMATO_GROWTH);
-      const needsWater = plantList.some((p, i) => p < MAX_TOMATO_GROWTH && !wateredPlants[i]);
-      const allWatered = plantList.every((p, i) => p >= MAX_TOMATO_GROWTH || wateredPlants[i]);
+      const anyRipe = plantList.some((p, i) => p >= MAX_TOMATO_GROWTH && !(rottenPlants && rottenPlants[i]));
+      const anyRotten = Boolean(rottenPlants && rottenPlants.some(Boolean));
+      const needsWater = plantList.some((p, i) => p < MAX_TOMATO_GROWTH && !wateredPlants[i] && !(rottenPlants && rottenPlants[i]));
+      const allWatered = plantList.every((p, i) => p >= MAX_TOMATO_GROWTH || wateredPlants[i] || (rottenPlants && rottenPlants[i]));
 
       const applyWaterToPlant = (idx) => {
         const prog = plantList[idx];
-        if (!wateredPlants[idx] && resources.water >= 2 && prog < MAX_TOMATO_GROWTH) {
+        const isRotten = rottenPlants && rottenPlants[idx];
+        if (!wateredPlants[idx] && !isRotten && resources.water >= 2 && prog < MAX_TOMATO_GROWTH) {
           onWaterSinglePlant(idx);
           setActiveWaterPlantIdx(idx);
           setTimeout(() => setActiveWaterPlantIdx(null), 700);
@@ -42,6 +46,10 @@
       };
 
       const handlePlantClick = (idx) => {
+        if (rottenPlants && rottenPlants[idx]) {
+          if (onClearRottenPlant) onClearRottenPlant(idx);
+          return;
+        }
         const prog = plantList[idx];
         if (prog >= MAX_TOMATO_GROWTH) {
           setFlyingTomatoes((prev) => {
@@ -60,28 +68,56 @@
         }
       };
 
-      const renderLeaf = (x, y, scale, rotate) => (
+      const renderLeaf = (x, y, scale, rotate, isWilted = false) => (
         <g transform={`translate(${x}, ${y}) rotate(${rotate}) scale(${scale})`}>
           <path
-            d="M0,0 C-10,-6 -22,-4 -28,2 C-21,6 -12,8 0,4 C12,8 21,6 28,2 C22,-4 10,-6 0,0 Z"
-            fill="#22c55e"
-            stroke="#15803d"
+            d={
+              isWilted
+                ? "M0,0 C-6,-2 -16,0 -20,7 C-15,10 -8,9 0,5 C8,9 15,10 20,7 C16,0 6,-2 0,0 Z"
+                : "M0,0 C-10,-6 -22,-4 -28,2 C-21,6 -12,8 0,4 C12,8 21,6 28,2 C22,-4 10,-6 0,0 Z"
+            }
+            fill={isWilted ? "#78531a" : "#22c55e"}
+            stroke={isWilted ? "#452b06" : "#15803d"}
             strokeWidth="2"
           />
-          <path d="M-22,1 L22,1 M-10,-2 L-6,1 M10,-2 L6,1" stroke="#86efac" strokeWidth="1.5" strokeLinecap="round" />
+          <path
+            d={isWilted ? "M-16,3 L16,3 M-7,1 L-4,3 M7,1 L4,3" : "M-22,1 L22,1 M-10,-2 L-6,1 M10,-2 L6,1"}
+            stroke={isWilted ? "#9a6a22" : "#86efac"}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
         </g>
       );
 
-      const renderTomatoFruit = (x, y, r) => (
+      const renderTomatoFruit = (x, y, r, isRotten = false) => (
         <g transform={`translate(${x}, ${y})`}>
-          <circle cx="0" cy="2" r={r} fill="#ef4444" stroke="#991b1b" strokeWidth="2.2" />
-          <ellipse cx={-r * 0.32} cy={-r * 0.15} rx={r * 0.22} ry={r * 0.35} transform="rotate(-25)" fill="#fca5a5" opacity="0.85" />
-          <polygon
-            points={`0,${-r + 1} -5,${-r - 5} -2,${-r + 3} -9,${-r + 4} -2,${-r + 6} 0,${-r + 9} 2,${-r + 6} 9,${-r + 4} 2,${-r + 3} 5,${-r - 5}`}
-            fill="#16a34a"
-            stroke="#14532d"
-            strokeWidth="1.2"
-          />
+          {isRotten ? (
+            <>
+              {/* Soft, deflated rotten tomato slightly squished */}
+              <ellipse cx="0" cy="2" rx={r * 1.08} ry={r * 0.82} fill="#693710" stroke="#3b1d06" strokeWidth="2.2" />
+              <ellipse cx={-r * 0.3} cy={-r * 0.1} rx={r * 0.3} ry={r * 0.22} fill="#331804" opacity="0.85" />
+              <ellipse cx={r * 0.22} cy={r * 0.2} rx={r * 0.32} ry={r * 0.24} fill="#261002" opacity="0.75" />
+              <path d={`M ${-r * 0.5} 3 Q 0 ${-r * 0.15} ${r * 0.5} 2`} fill="none" stroke="#381b05" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
+              <polygon
+                points={`0,${-r * 0.82 + 2} -5,${-r * 0.82 - 2} -2,${-r * 0.82 + 2} -7,${-r * 0.82 + 4} -2,${-r * 0.82 + 5} 0,${-r * 0.82 + 6} 2,${-r * 0.82 + 5} 7,${-r * 0.82 + 4} 2,${-r * 0.82 + 2} 5,${-r * 0.82 - 2}`}
+                fill="#4a3722"
+                stroke="#292015"
+                strokeWidth="1.2"
+              />
+              <line x1="0" y1={-r * 0.82 + 2} x2="-2" y2={-r * 0.82 - 6} stroke="#3b2b1a" strokeWidth="2" strokeLinecap="round" />
+            </>
+          ) : (
+            <>
+              <circle cx="0" cy="2" r={r} fill="#ef4444" stroke="#991b1b" strokeWidth="2.2" />
+              <ellipse cx={-r * 0.32} cy={-r * 0.15} rx={r * 0.22} ry={r * 0.35} transform="rotate(-25)" fill="#fca5a5" opacity="0.85" />
+              <polygon
+                points={`0,${-r + 1} -5,${-r - 5} -2,${-r + 3} -9,${-r + 4} -2,${-r + 6} 0,${-r + 9} 2,${-r + 6} 9,${-r + 4} 2,${-r + 3} 5,${-r - 5}`}
+                fill="#16a34a"
+                stroke="#14532d"
+                strokeWidth="1.2"
+              />
+            </>
+          )}
         </g>
       );
 
@@ -126,6 +162,7 @@
 
               {[75, 195, 315, 435].map((px, idx) => {
                 const prog = plantList[idx];
+                const isRotten = Boolean(rottenPlants && rottenPlants[idx]);
                 const visualStage =
                   prog >= MAX_TOMATO_GROWTH
                     ? 3
@@ -141,7 +178,60 @@
                       <ellipse cx="0" cy="8" rx="35" ry="8" fill="#0284c7" opacity="0.45" />
                     )}
 
-                    {visualStage === 0 ? (
+                    {isRotten ? (
+                      /* Wilted / Drooping / Slumped Rotten Tomato Plant */
+                      <g className="transition-all duration-500">
+                        {/* Fallen dried leaves resting on the soil */}
+                        <g transform="translate(-24, 7) rotate(-18) scale(0.75)">
+                          <path d="M0,0 C-6,-2 -14,1 -18,5 C-12,8 -6,7 0,4 C6,7 12,8 18,5 C14,1 6,-2 0,0 Z" fill="#654215" stroke="#3d270c" strokeWidth="1.8" />
+                        </g>
+                        <g transform="translate(18, 6) rotate(22) scale(0.7)">
+                          <path d="M0,0 C-6,-2 -14,1 -18,5 C-12,8 -6,7 0,4 C6,7 12,8 18,5 C14,1 6,-2 0,0 Z" fill="#5c3b12" stroke="#332008" strokeWidth="1.8" />
+                        </g>
+
+                        {/* Slumped, drooping wilted main stem bending all the way down */}
+                        <path
+                          d="M 0,0 C -3,-18 -10,-35 -24,-47 C -36,-57 -52,-54 -58,-38 C -62,-26 -58,-14 -54,-4"
+                          fill="none"
+                          stroke="#6e4d2a"
+                          strokeWidth="7"
+                          strokeLinecap="round"
+                        />
+                        {/* Drooping right side branch sagging down */}
+                        <path
+                          d="M -12,-28 C -2,-32 12,-30 22,-18 C 28,-10 28,-2 26,4"
+                          fill="none"
+                          stroke="#6e4d2a"
+                          strokeWidth="5.5"
+                          strokeLinecap="round"
+                        />
+                        {/* Secondary sag branch */}
+                        <path
+                          d="M -30,-48 C -24,-40 -16,-34 -14,-22"
+                          fill="none"
+                          stroke="#604222"
+                          strokeWidth="4.5"
+                          strokeLinecap="round"
+                        />
+
+                        {/* Thin fruit stems hanging limply downwards */}
+                        <line x1="-54" y1="-20" x2="-52" y2="-8" stroke="#4a331c" strokeWidth="2.5" strokeLinecap="round" />
+                        <line x1="24" y1="-10" x2="24" y2="0" stroke="#4a331c" strokeWidth="2.5" strokeLinecap="round" />
+                        <line x1="-16" y1="-28" x2="-18" y2="-16" stroke="#4a331c" strokeWidth="2.5" strokeLinecap="round" />
+
+                        {/* Drooping, hanging wilted leaves (pointing downwards) */}
+                        {renderLeaf(-54, -4, 0.95, 80, true)}
+                        {renderLeaf(-52, -42, 1.0, 55, true)}
+                        {renderLeaf(-22, -48, 0.95, 35, true)}
+                        {renderLeaf(26, 4, 0.95, 95, true)}
+                        {renderLeaf(16, -22, 0.85, 45, true)}
+
+                        {/* Deflated, low-hanging spoiled tomatoes close to the soil */}
+                        {renderTomatoFruit(-52, -4, 13.5, true)}
+                        {renderTomatoFruit(24, 4, 14, true)}
+                        {renderTomatoFruit(-18, -12, 12.5, true)}
+                      </g>
+                    ) : visualStage === 0 ? (
                       <g>
                         <path d="M0,0 L0,-24" stroke="#16a34a" strokeWidth="5" strokeLinecap="round" />
                         {renderLeaf(0, -22, 0.75, -8)}
@@ -332,41 +422,44 @@
             }}
           >
             {[0, 1, 2, 3].map((idx) => {
+              const isRotten = Boolean(rottenPlants && rottenPlants[idx]);
               const isWatered = wateredPlants[idx];
-              const isRipe = plantList[idx] >= MAX_TOMATO_GROWTH;
+              const isRipe = !isRotten && plantList[idx] >= MAX_TOMATO_GROWTH;
               return (
                 <div
                   key={idx}
                   data-plant-idx={idx}
                   onDragOver={(e) => {
                     e.preventDefault();
-                    if (!isWatered && !isRipe) {
+                    if (!isWatered && !isRipe && !isRotten) {
                       applyWaterToPlant(idx);
                     }
                   }}
                   onDrop={(e) => {
                     e.preventDefault();
-                    if (!isRipe) applyWaterToPlant(idx);
+                    if (!isRipe && !isRotten) applyWaterToPlant(idx);
                   }}
                   onMouseEnter={() => {
-                    if (isDraggingCan && !isWatered && !isRipe) {
+                    if (isDraggingCan && !isWatered && !isRipe && !isRotten) {
                       applyWaterToPlant(idx);
                     }
                   }}
                   onPointerEnter={() => {
-                    if (isDraggingCan && !isWatered && !isRipe) {
+                    if (isDraggingCan && !isWatered && !isRipe && !isRotten) {
                       applyWaterToPlant(idx);
                     }
                   }}
                   onClick={() => handlePlantClick(idx)}
                   className={`flex-1 h-full cursor-pointer relative flex flex-col items-center justify-end pb-3 rounded-2xl transition hover:bg-emerald-300/20 active:scale-95 ${
-                    !isWatered && !isRipe ? 'ring-2 ring-sky-400/50' : ''
+                    !isWatered && !isRipe && !isRotten ? 'ring-2 ring-sky-400/50' : ''
                   }`}
                   title={
-                    isRipe
+                    isRotten
+                      ? 'Plant spoiled! Tap to clear and replant seedling'
+                      : isRipe
                       ? 'Tap this plant to pick ripe tomatoes (+6 Food)'
                       : isWatered
-                      ? 'Plant watered!'
+                      ? 'Plant is growing!'
                       : 'Drag watering can onto plant to water (-2 Water)'
                   }
                 >
@@ -378,17 +471,21 @@
 
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-black border shadow-sm transition ${
-                      isRipe
+                      isRotten
+                        ? 'bg-amber-950 text-amber-200 border-amber-700 animate-pulse'
+                        : isRipe
                         ? 'bg-red-600 text-white border-white animate-bounce'
                         : isWatered
                         ? 'bg-sky-500 text-white border-sky-300'
                         : 'bg-white/95 text-sky-900 border-sky-300'
                     }`}
                   >
-                    {isRipe
+                    {isRotten
+                      ? '🥀 Spoiled'
+                      : isRipe
                       ? '🍅 Pick (+6)'
                       : isWatered
-                      ? '💧 Watered'
+                      ? '💧 Growing'
                       : '💧 -2 Water'}
                   </span>
                 </div>
@@ -397,18 +494,22 @@
           </div>
 
           <div className="absolute left-[12%] right-[12%] bottom-2.5 z-20 flex justify-center pointer-events-none">
-            {anyRipe ? (
+            {anyRotten ? (
+              <div className="bg-amber-950 border-2 border-amber-600 text-amber-100 px-5 py-1.5 rounded-full text-xs font-black shadow-xl animate-pulse flex items-center justify-center gap-1.5">
+                <span>🥀</span>
+                <span>Tap spoiled tomato plant to clear and replant!</span>
+              </div>
+            ) : anyRipe ? (
               <div className="bg-red-600 border-2 border-white text-white px-5 py-1.5 rounded-full text-xs font-black shadow-xl animate-bounce flex items-center justify-center gap-1.5">
-                <span>🧺</span>
                 <span>Tap ripe plant to harvest (+6 Food each)!</span>
               </div>
             ) : needsWater ? (
               <div className="bg-[#fdf6e9]/95 border border-[#d9c2a3] px-3.5 py-1 rounded-full text-[11px] font-black text-[#5a3e28] shadow">
-                🌱 Drag watering can over dry plants (-2 Water each) &amp; set Grow Lamps on the right!
+                Drag watering can over dry plants (-2 Water each) &amp; set Grow Lamps on the right!
               </div>
             ) : (
               <div className="bg-emerald-100/95 border border-emerald-400 px-3.5 py-1 rounded-full text-[11px] font-black text-emerald-900 shadow">
-                ✨ All growing plants watered! {todayTempOption ? 'Grow lamps are shining!' : 'Tap Grow Lamps on the right for extra growth!'}
+                All growing plants watered! {todayTempOption ? 'Grow lamps are shining!' : 'Set Grow Lamps on the right for extra growth!'}
               </div>
             )}
           </div>
@@ -421,7 +522,6 @@
               className="absolute right-8 bottom-6 z-20 w-24 h-20 rounded-2xl border-2 border-amber-500 bg-amber-100 shadow-lg flex flex-col items-center justify-center cursor-grab hover:scale-105 active:scale-95 transition"
               title="Drag seeds or click to plant seedlings"
             >
-              <span className="text-3xl">🌱</span>
               <span className="text-[11px] font-black text-amber-900">Plant Seeds</span>
             </div>
           )}
@@ -431,7 +531,7 @@
               <div className="bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl max-w-md w-full p-5 space-y-3 shadow-2xl">
                 <div className="flex justify-between items-center">
                   <span className="font-black text-base text-orange-900">
-                    💡 Grow Lamps &amp; Heater ({greenhouseConfig.weatherTag})
+                    Grow Lamps &amp; Heater ({greenhouseConfig.weatherTag})
                   </span>
                   <button
                     onClick={() => setShowLampModal(false)}
@@ -441,7 +541,7 @@
                   </button>
                 </div>
                 <p className="text-xs text-[#5a3e28] bg-amber-50 p-2.5 rounded-xl border border-amber-200 font-semibold leading-relaxed">
-                  💡 <b>Why Shine Light on Tomatoes?</b> Plants use light to make their own food (photosynthesis), and heaters keep them from freezing at night on Mars!
+                  <b>Why Shine Light on Tomatoes?</b> Plants use light to make their own food (photosynthesis), and heaters keep them from freezing at night on Mars!
                 </p>
 
                 {greenhouseConfig.tempOptions.map((opt) => {

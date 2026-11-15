@@ -108,7 +108,7 @@
                   <line x1="205" y1="210" x2="205" y2="255" stroke="#475569" strokeWidth="8" strokeDasharray="6 5" opacity="0.6" strokeLinecap="round" />
                   <rect x="40" y="142" width="250" height="48" rx="18" fill="#0284c7" stroke="#fff" strokeWidth="2.5" />
                   <text x="165" y="163" textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="900">
-                    🛸 {OUR_ROVER_NAME} Exploring...
+                    {OUR_ROVER_NAME} Exploring...
                   </text>
                   <rect x="75" y="173" width="180" height="8" rx="4" fill="#0369a1" />
                   <rect
@@ -176,7 +176,7 @@
           {/* Radiation Warning if not dust storm */}
           {!isDustStorm && isHighRadiation && roverStatus === 'READY' && (
             <div className="top-12 left-6 right-6 absolute bg-red-100/95 border-2 border-red-400 text-red-900 px-3 py-1 rounded-full text-xs font-extrabold shadow text-center z-20 truncate">
-              ⚠️ Warning: Strong solar radiation outside might damage {OUR_ROVER_NAME}!
+              Warning: Strong solar radiation outside might damage {OUR_ROVER_NAME}!
             </div>
           )}
 
@@ -219,27 +219,29 @@
           {/* Power Dispatch Slider */}
           {!isRoverOut && (
             <div
-              style={{ left: '16%', bottom: '2%', width: '68%' }}
+              style={{ left: '12%', bottom: '2%', width: '76%' }}
               className="absolute z-20 bg-white/95 border-2 border-[#d9c2a3] rounded-2xl p-2.5 shadow-xl flex flex-col gap-1.5"
             >
               {isDustStorm && (
                 <div className="bg-amber-100 border border-amber-400 text-amber-950 rounded-xl px-2.5 py-1 text-[11px] font-black flex items-center justify-center gap-1.5">
                   <span>🌪️</span>
-                  <span>Dust Storm Active Outside — High chance of sand getting stuck in {OUR_ROVER_NAME}&apos;s wheels!</span>
+                  <span>Dust Storm Active — High chance of sand jamming {OUR_ROVER_NAME}&apos;s wheels!</span>
                 </div>
               )}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="flex-1 min-w-0 w-full space-y-1">
-                  <div className="flex justify-between items-center text-xs font-black text-sky-900">
-                    <span className="tabular-nums">{OUR_ROVER_NAME}&apos;s Battery Power: {selectedPowerCost} ⚡</span>
-                    <span className="text-[11px] text-amber-700 text-right truncate">
+                  <div className="flex items-center justify-between gap-1 text-xs font-black">
+                    <span className="text-sky-950 tabular-nums">
+                      {OUR_ROVER_NAME} Battery: {selectedPowerCost} ⚡
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-100 text-amber-900 border border-amber-300 shrink-0 whitespace-nowrap">
                       {selectedPowerCost === 0
                         ? 'Standby'
                         : selectedPowerCost === 10
                         ? 'Short Walk'
                         : selectedPowerCost === 20
                         ? 'Crater Trip'
-                        : 'Far Riverbed Dig'}
+                        : 'Deep Expedition'}
                     </span>
                   </div>
                   <input
@@ -258,6 +260,15 @@
                     <span>20 ⚡</span>
                     <span>30 ⚡</span>
                   </div>
+                  <div className="text-[11px] font-bold text-sky-900 bg-sky-50 px-2 py-0.5 rounded border border-sky-200 truncate">
+                    {selectedPowerCost === 0
+                      ? 'More power = longer trip & higher chance of rare finds'
+                      : selectedPowerCost === 10
+                      ? '70s • Near Base (saves power, standard rocks)'
+                      : selectedPowerCost === 20
+                      ? '100s • Crater Drive (balanced range & good finds)'
+                      : '130s • Deep Riverbed (farthest range, best rare gem chance!)'}
+                  </div>
                 </div>
 
                 <button
@@ -272,7 +283,7 @@
                     roverStatus !== 'READY' ||
                     power < selectedPowerCost
                   }
-                  className="w-full sm:w-52 px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-black text-xs shadow-md active:scale-95 transition shrink-0 text-center"
+                  className="w-full sm:w-48 px-3 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-black text-xs shadow-md active:scale-95 transition shrink-0 text-center"
                 >
                   {selectedPowerCost === 0
                     ? 'Select Power'
@@ -280,7 +291,7 @@
                     ? `Fixing (${damageSolLeft}d)`
                     : power < selectedPowerCost
                     ? `Need ${selectedPowerCost} ⚡`
-                    : `🚀 Send ${OUR_ROVER_NAME} (-${selectedPowerCost} ⚡)`}
+                    : `Send ${OUR_ROVER_NAME} (-${selectedPowerCost} ⚡)`}
                 </button>
               </div>
             </div>
@@ -297,10 +308,9 @@
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center gap-2 border-b-2 border-[#eadbc5] pb-2">
-                  <span className="text-2xl">🛸</span>
                   <h3 className="text-lg font-black text-[#4a3525]">
                     {latestRoverResult
-                      ? `Rover "${OUR_ROVER_NAME}" Findings!`
+                      ? `Rover "${OUR_ROVER_NAME}" Findings`
                       : `Rover "${OUR_ROVER_NAME}" in Garage`}
                   </h3>
                 </div>
@@ -309,7 +319,7 @@
                   <>
                     {latestRoverResult.damagedSols > 0 ? (
                       <div className="bg-red-100 border-2 border-red-300 p-3 rounded-2xl text-xs text-red-900 font-bold">
-                        ⚠️ Oh no! {OUR_ROVER_NAME} got hurt by {latestRoverResult.damageReason} and needs {latestRoverResult.damagedSols} day(s) of repair in the garage!
+                        Oh no! {OUR_ROVER_NAME} got hurt by {latestRoverResult.damageReason} and needs {latestRoverResult.damagedSols} day(s) of repair in the garage!
                       </div>
                     ) : latestRoverResult.sample && latestRoverResult.sample.id !== 'NONE' ? (
                       <div className="bg-white border-2 border-emerald-200 rounded-2xl p-2.5 flex items-center gap-3 shadow-sm">
@@ -338,7 +348,7 @@
                           className="w-full max-h-48 object-contain rounded-xl bg-slate-900"
                         />
                         <div className="text-[10px] font-black text-amber-800">
-                          📸 Real NASA Curiosity Photo: {latestRoverResult.photo.title}
+                          NASA Curiosity Photo: {latestRoverResult.photo.title}
                         </div>
                         <p className="text-[11px] text-[#5a4636] font-bold line-clamp-2">{latestRoverResult.photo.nasaCaption}</p>
                       </div>

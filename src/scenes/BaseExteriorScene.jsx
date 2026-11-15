@@ -14,6 +14,8 @@
       onEnterRoom,
       roverResultUnread,
       onOpenRandomScienceFact,
+      hasRipeTomatoes = false,
+      hasRottenTomatoes = false,
     }) {
       const palette = getDayNightPalette(nightFactor);
       const isNight = nightFactor >= 0.55;
@@ -171,7 +173,7 @@
               <line x1="85" y1="122" x2="225" y2="122" stroke="#9db0cc" strokeWidth="3" />
               <line x1="85" y1="138" x2="225" y2="138" stroke="#9db0cc" strokeWidth="3" />
               <rect x="60" y="65" width="190" height="32" rx="16" fill="#fffaf0" stroke="#9e8267" strokeWidth="3" />
-              <text x="155" y="86" textAnchor="middle" fill="#5a3e28" fontSize="15" fontWeight="900">🛸 Rover Garage</text>
+              <text x="155" y="86" textAnchor="middle" fill="#5a3e28" fontSize="15" fontWeight="900">Rover Garage</text>
             </g>
 
             <g transform="translate(175, 485)">
@@ -181,25 +183,27 @@
               <text x="50" y="30" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="900">NASA</text>
             </g>
 
-            {/* Supply Rocket Ship (Landed beside the NASA Flag) */}
+            {/* Supply Rocket Ship (Landed on bottom-right beside Rover Garage) */}
             {isSupplyDay && (
-              <g className="animate-supply-hover" transform="translate(195, 465) scale(0.58)">
-                <ellipse cx="95" cy="185" rx="85" ry="18" fill="#2d1e12" opacity="0.4" />
-                <path d="M55,140 L30,182 M135,140 L160,182 M95,148 L95,186" stroke="#475569" strokeWidth="6" strokeLinecap="round" />
-                <polygon points="68,142 82,142 86,158 64,158" fill="#334155" />
-                <polygon points="108,142 122,142 126,158 104,158" fill="#334155" />
-                <path d="M55,142 C55,65 72,22 95,5 C118,22 135,65 135,142 Z" fill="#f8fafc" stroke="#475569" strokeWidth="4" />
-                <path d="M76,34 Q95,22 114,34 L95,5 Z" fill="#ef4444" />
-                <rect x="57" y="108" width="76" height="16" fill="#3b82f6" />
-                <polygon points="55,105 32,145 55,138" fill="#ef4444" stroke="#475569" strokeWidth="3" />
-                <polygon points="135,105 158,145 135,138" fill="#ef4444" stroke="#475569" strokeWidth="3" />
-                <circle cx="95" cy="68" r="16" fill="#38bdf8" stroke="#475569" strokeWidth="4" />
-                <rect x="12" y="152" width="28" height="24" rx="4" fill="#38bdf8" stroke="#1e3a8a" strokeWidth="2.5" />
-                <rect x="148" y="152" width="28" height="24" rx="4" fill="#ef4444" stroke="#7f1d1d" strokeWidth="2.5" />
-                <rect x="14" y="-30" width="162" height="26" rx="13" fill="#facc15" stroke="#78350f" strokeWidth="3" />
-                <text x="95" y="-12" textAnchor="middle" fill="#451a03" fontSize="14" fontWeight="900">
-                  🚀 Supply Ship!
-                </text>
+              <g transform="translate(740, 480) scale(0.38)">
+                <g className="animate-supply-hover">
+                  <ellipse cx="95" cy="185" rx="85" ry="18" fill="#2d1e12" opacity="0.4" />
+                  <path d="M55,140 L30,182 M135,140 L160,182 M95,148 L95,186" stroke="#475569" strokeWidth="6" strokeLinecap="round" />
+                  <polygon points="68,142 82,142 86,158 64,158" fill="#334155" />
+                  <polygon points="108,142 122,142 126,158 104,158" fill="#334155" />
+                  <path d="M55,142 C55,65 72,22 95,5 C118,22 135,65 135,142 Z" fill="#f8fafc" stroke="#475569" strokeWidth="4" />
+                  <path d="M76,34 Q95,22 114,34 L95,5 Z" fill="#ef4444" />
+                  <rect x="57" y="108" width="76" height="16" fill="#3b82f6" />
+                  <polygon points="55,105 32,145 55,138" fill="#ef4444" stroke="#475569" strokeWidth="3" />
+                  <polygon points="135,105 158,145 135,138" fill="#ef4444" stroke="#475569" strokeWidth="3" />
+                  <circle cx="95" cy="68" r="16" fill="#38bdf8" stroke="#475569" strokeWidth="4" />
+                  <rect x="12" y="152" width="28" height="24" rx="4" fill="#38bdf8" stroke="#1e3a8a" strokeWidth="2.5" />
+                  <rect x="148" y="152" width="28" height="24" rx="4" fill="#ef4444" stroke="#7f1d1d" strokeWidth="2.5" />
+                  <rect x="0" y="-32" width="190" height="28" rx="14" fill="#facc15" stroke="#78350f" strokeWidth="3" />
+                  <text x="95" y="-13" textAnchor="middle" fill="#451a03" fontSize="13" fontWeight="900">
+                    Supply Ship (+30)
+                  </text>
+                </g>
               </g>
             )}
 
@@ -214,14 +218,14 @@
 
           <div className="top-3 left-3 absolute bg-[#fdf6e9]/95 border-2 border-[#d9c2a3] px-3.5 py-1 rounded-full font-black text-xs md:text-sm text-[#5a3e28] shadow">
             {isSupplyDay
-              ? `🚀 Day ${sol} Supply Rocket Landed!`
+              ? `Day ${sol} Supply Rocket Landed (+30 Water, +30 Food)`
               : weather?.isDustStorm
-              ? '🌪️ Dust Storm Active — Visibility Hazy!'
+              ? 'Dust Storm Active — Visibility Hazy'
               : isNight
-              ? '🌙 Mars Night — Tap a Building'
+              ? 'Mars Night — Tap a Building'
               : nightFactor > 0.25
-              ? '🌇 Mars Sunset — Tap a Building'
-              : '☀️ Mars Daytime — Tap a Building'}
+              ? 'Mars Sunset — Tap a Building'
+              : 'Mars Daytime — Tap a Building'}
           </div>
 
           {/* Top-Right Science Fact "?" Button */}
@@ -268,11 +272,15 @@
                 <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 border-2 border-white shadow" />
               </span>
             )}
-            {tomatoProgress >= MAX_TOMATO_GROWTH && (
+            {hasRottenTomatoes ? (
+              <span className="self-center px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-200 border border-amber-600 text-xs font-black shadow animate-pulse">
+                🥀 Spoiled!
+              </span>
+            ) : hasRipeTomatoes || tomatoProgress >= MAX_TOMATO_GROWTH ? (
               <span className="self-center px-2.5 py-0.5 rounded-full bg-red-600 text-white text-xs font-black shadow animate-bounce">
                 🍅 Ripe! Pick Now
               </span>
-            )}
+            ) : null}
           </button>
 
           {/* Rover Garage Button: Plain red dot is h-5 w-5 (same size as others); turns into "!" when rover has collected findings */}

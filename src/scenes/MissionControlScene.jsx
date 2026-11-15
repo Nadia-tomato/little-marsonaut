@@ -69,9 +69,12 @@
             <g transform="translate(535, 75)">
               <rect x="0" y="0" width="415" height="235" rx="20" fill="#0f172a" stroke="#5a4636" strokeWidth="7" />
               <rect x="10" y="10" width="395" height="215" rx="14" fill="#1e293b" />
-              <circle cx="28" cy="30" r="6" fill="#22c55e" />
-              <text x="44" y="34" fill="#38bdf8" fontSize="13" fontWeight="900" letterSpacing="1">
-                📡 MARS WEATHER TELEMETRY
+              <circle cx="28" cy="27" r="5" fill="#22c55e" />
+              <text x="40" y="31" fill="#38bdf8" fontSize="12" fontWeight="900" letterSpacing="1">
+                📡 SIMULATED MARS CONDITIONS
+              </text>
+              <text x="40" y="43" fill="#94a3b8" fontSize="8.5" fontWeight="600">
+                Mars conditions are simulated for gameplay. Space weather is inspired by NASA data.
               </text>
 
               <rect x="20" y="48" width="375" height="46" rx="10" fill="#0f172a" stroke="#334155" strokeWidth="2" />
@@ -107,7 +110,7 @@
               <rect x="0" y="0" width="430" height="235" rx="20" fill="#fdf6e9" stroke="#5a4636" strokeWidth="6" />
               <rect x="15" y="14" width="400" height="36" rx="10" fill="#fef3c7" stroke="#f59e0b" strokeWidth="2" />
               <text x="215" y="38" textAnchor="middle" fill="#92400e" fontSize="15" fontWeight="900">
-                🪨 MARS ROCKS
+                MARS ROCKS
               </text>
 
               <rect x="15" y="58" width="400" height="110" rx="12" fill="#eff6ff" stroke="#cbd5e1" strokeWidth="2.5" />
@@ -182,7 +185,7 @@
               <rect x="0" y="0" width="415" height="235" rx="20" fill="#fdf6e9" stroke="#5a4636" strokeWidth="6" />
               <rect x="15" y="14" width="385" height="36" rx="10" fill="#e0f2fe" stroke="#38bdf8" strokeWidth="2" />
               <text x="207" y="38" textAnchor="middle" fill="#0369a1" fontSize="15" fontWeight="900">
-                📷 MARS PHOTOS
+                MARS PHOTOS
               </text>
 
               <rect x="15" y="58" width="385" height="110" rx="12" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2.5" />
@@ -391,33 +394,30 @@
     }
 
     function SpecialDiscoveryModal({ record, onReturnToEarth }) {
-      const colors = ['#facc15', '#fb7185', '#38bdf8', '#34d399', '#c084fc'];
       return (
-        <div className="fixed inset-0 z-[70] bg-[#2d1e12]/80 flex items-center justify-center p-4 overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none">
-            {Array.from({ length: 28 }).map((_, index) => (
-              <span
-                key={index}
-                className="confetti-piece absolute w-2.5 h-5 rounded-sm"
-                style={{
-                  left: `${(index * 37) % 100}%`,
-                  top: '-20px',
-                  background: colors[index % colors.length],
-                  animationDelay: `${(index % 8) * 80}ms`,
-                }}
-              />
-            ))}
-          </div>
-          <div className="relative max-w-md w-full rounded-3xl border-4 border-amber-300 bg-[#fdf6e9] p-6 text-center shadow-2xl space-y-4">
-            <div className="text-5xl">🌟</div>
-            <p className="text-xs font-black uppercase tracking-[.25em] text-amber-700">Rare Discovery!</p>
-            <h2 className="text-3xl font-black text-[#4a3525]">Amazing Find!</h2>
-            <p className="font-black text-sky-900">{record?.sample?.name || 'A special Mars sample'}</p>
-            <p className="text-sm text-[#5a4636]">{record?.sample?.chosenExplanation}</p>
-            <p className="text-xs text-amber-800">This is a fun game story inspired by NASA&apos;s search for ancient life on Mars!</p>
-            <button onClick={onReturnToEarth} className="w-full rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white py-3 font-black">
-              Return to Earth
-            </button>
+        <div className="fixed inset-0 z-[70] bg-[#2d1e12]/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative max-w-sm w-full rounded-3xl border-4 border-amber-400 bg-[#fff9ef] p-6 text-center shadow-2xl space-y-3">
+            <div className="text-4xl">🌟</div>
+            <span className="inline-block px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-xs font-black text-amber-900">
+              Rare Scientific Discovery (3%)
+            </span>
+            <h2 className="text-2xl font-black text-[#4a3525]">
+              {record?.sample?.name || 'Mystery Life-Clue Stone'}
+            </h2>
+            <p className="text-sm font-bold text-[#5a4636]">
+              {record?.sample?.chosenExplanation || 'Potential biosignature sample collected by Curiosity Jr.!'}
+            </p>
+            <p className="text-[11px] text-amber-800 font-semibold">
+              Game story inspired by NASA rovers exploring ancient Jezero and Gale craters.
+            </p>
+            <div className="pt-2">
+              <button
+                onClick={onReturnToEarth}
+                className="w-full py-3 px-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-black text-sm border-2 border-amber-600 shadow-md active:scale-95 transition cursor-pointer"
+              >
+                🚀 Return Findings to Earth (Win!)
+              </button>
+            </div>
           </div>
         </div>
       );

@@ -12,14 +12,19 @@ function MorningBriefingModule({
       return (
         <div className="fixed inset-0 bg-[#2d1e12]/75 flex items-center justify-center p-4 z-50">
           <div className="bg-[#fdf6e9] border-4 border-[#d9c2a3] text-[#4a3525] rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
-            <div className="flex items-center justify-between border-b-2 border-[#eadbc5] pb-3">
-              <div>
-                <span className="text-xs font-extrabold text-amber-700">LITTLE MARSONAUT • DAILY WEATHER</span>
-                <h2 className="text-xl font-black text-[#4a3525]">
-                  Day {sol} — Mars Weather Report
+            <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-3 border-b-2 border-[#eadbc5] pb-3">
+              <div className="flex-1 min-w-0 space-y-0.5">
+                <span className="text-[11px] font-extrabold text-amber-800 uppercase tracking-wide">
+                  LITTLE MARSONAUT • SIMULATED MARS CONDITIONS
+                </span>
+                <h2 className="text-xl md:text-2xl font-black text-[#4a3525]">
+                  Day {sol} — Mars Environment Report
                 </h2>
+                <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
+                  Mars conditions are simulated for gameplay. Space weather is inspired by NASA data.
+                </p>
               </div>
-              <span className={`px-2.5 py-1 rounded-full text-xs font-black text-white ${radInfo.color}`}>
+              <span className={`px-3 py-1.5 rounded-full text-xs font-black text-white shrink-0 whitespace-nowrap shadow-sm self-start sm:self-center ${radInfo.color}`}>
                 Sun Rays: {radInfo.text}
               </span>
             </div>
@@ -39,7 +44,7 @@ function MorningBriefingModule({
             {sol % 6 === 0 && (
               <div className="bg-amber-200 border-2 border-amber-500 rounded-2xl p-3 text-xs font-black text-amber-950 flex items-center gap-2.5">
                 <span className="text-2xl">🚀</span>
-                <span>Day {sol} Supply Rocket Landed! +50 Water and +50 Food delivered from Earth!</span>
+                <span>Day {sol} Supply Rocket Landed! +30 Water and +30 Food delivered from Earth!</span>
               </div>
             )}
 

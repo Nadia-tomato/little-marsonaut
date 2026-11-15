@@ -24,6 +24,15 @@ const { useState, useEffect, useRef } = React;
       const tomatoProgress = Math.max(...tomatoProgresses);
       const [harvestCount, setHarvestCount] = useState(0);
       const [wateredPlants, setWateredPlants] = useState([false, false, false, false]);
+      const [rottenPlants, setRottenPlants] = useState([false, false, false, false]);
+      const ripeTimersRef = useRef([0, 0, 0, 0]);
+      const wateredPlantsRef = useRef(wateredPlants);
+      wateredPlantsRef.current = wateredPlants;
+      const rottenPlantsRef = useRef(rottenPlants);
+      rottenPlantsRef.current = rottenPlants;
+      const todayTempOptionRef = useRef(todayTempOption);
+      todayTempOptionRef.current = todayTempOption;
+      const [isPaused, setIsPaused] = useState(false);
 
       const [roverStatus, setRoverStatus] = useState('READY');
       const [damageSolLeft, setDamageSolLeft] = useState(0);
@@ -149,9 +158,11 @@ const { useState, useEffect, useRef } = React;
       }, 0);
 
       const showPowerDot = !solarCollectedToday;
+      const hasRipeTomatoes = tomatoProgresses.some((p, i) => p >= MAX_TOMATO_GROWTH && !(rottenPlants && rottenPlants[i]));
+      const hasRottenTomatoes = Boolean(rottenPlants && rottenPlants.some(Boolean));
       const showGreenhouseDot =
-        tomatoProgresses.some((p) => p >= MAX_TOMATO_GROWTH) ||
-        tomatoProgresses.some((p, i) => p < MAX_TOMATO_GROWTH && !wateredPlants[i]) ||
+        tomatoProgresses.some((p, i) => (p >= MAX_TOMATO_GROWTH && !rottenPlants[i]) || (!rottenPlants[i] && p < MAX_TOMATO_GROWTH && !wateredPlants[i])) ||
+        rottenPlants.some(Boolean) ||
         !todayTempOption;
       const showRoverDot =
         roverResultUnread || (roverStatus === 'READY' && !pendingExpedition);
@@ -226,7 +237,7 @@ const { useState, useEffect, useRef } = React;
       };
 
       const handleWaterSinglePlant = (idx) => {
-        if (wateredPlants[idx] || tomatoProgresses[idx] >= MAX_TOMATO_GROWTH || resources.water < 2) return;
+        if (wateredPlants[idx] || (rottenPlants && rottenPlants[idx]) || tomatoProgresses[idx] >= MAX_TOMATO_GROWTH || resources.water < 2) return;
         setResources((r) => ({ ...r, water: Math.max(0, r.water - 2) }));
         setTotalWaterSpent((w) => w + 2);
         setWateredPlants((prev) => {
@@ -240,10 +251,36 @@ const { useState, useEffect, useRef } = React;
       const handlePlantSeeds = () => {
         setTomatoProgresses([1, 1, 1, 1]);
         setWateredPlants([false, false, false, false]);
+        setRottenPlants([false, false, false, false]);
+        ripeTimersRef.current = [0, 0, 0, 0];
         setDailyReport((prev) => [...prev, '🌱 Seeds planted.']);
       };
 
+      const handleClearRottenPlant = (idx) => {
+        setRottenPlants((prev) => {
+          const next = [...prev];
+          next[idx] = false;
+          return next;
+        });
+        setTomatoProgresses((prev) => {
+          const next = [...prev];
+          next[idx] = 1;
+          return next;
+        });
+        setWateredPlants((prev) => {
+          const next = [...prev];
+          next[idx] = false;
+          return next;
+        });
+        ripeTimersRef.current[idx] = 0;
+        setDailyReport((prev) => [...prev, `🥀 Cleared spoiled plant #${idx + 1} and planted fresh seedling.`]);
+      };
+
       const handleHarvestSinglePlant = (idx) => {
+        if (rottenPlants[idx]) {
+          handleClearRottenPlant(idx);
+          return;
+        }
         if (tomatoProgresses[idx] < MAX_TOMATO_GROWTH) return;
         setResources((r) => ({ ...r, food: Math.min(100, r.food + 6) }));
         setTomatoProgresses((prev) => {
@@ -256,6 +293,7 @@ const { useState, useEffect, useRef } = React;
           next[idx] = false;
           return next;
         });
+        ripeTimersRef.current[idx] = 0;
         setHarvestCount((c) => c + 1);
         setDailyReport((prev) => [...prev, `🍅 Picked ripe tomatoes from plant #${idx + 1} (+6 Food)! Fresh seedling sprouted.`]);
       };
@@ -408,44 +446,27 @@ const { useState, useEffect, useRef } = React;
         const nextWater = Math.min(100, Math.max(0, resources.water - remWater));
         const nextFood = Math.min(100, Math.max(0, resources.food - remFood));
 
-        const lampBonus = todayTempOption ? (todayTempOption.id === 'TEMP_WARM' ? 2 : 1) : 0;
-        let nextTomatoProgresses = [...tomatoProgresses];
-        let grewCount = 0;
-        let newlyRipeCount = 0;
-
-        for (let i = 0; i < 4; i++) {
-          if (nextTomatoProgresses[i] >= MAX_TOMATO_GROWTH) {
-            // Already ripe
-          } else if (wateredPlants[i]) {
-            const gain = 4 + lampBonus;
-            nextTomatoProgresses[i] = Math.min(MAX_TOMATO_GROWTH, nextTomatoProgresses[i] + gain);
-            grewCount++;
-            if (nextTomatoProgresses[i] >= MAX_TOMATO_GROWTH) {
-              newlyRipeCount++;
-            }
-          } else if (lampBonus > 0) {
-            nextTomatoProgresses[i] = Math.min(MAX_TOMATO_GROWTH, nextTomatoProgresses[i] + 2);
-            grewCount++;
-            if (nextTomatoProgresses[i] >= MAX_TOMATO_GROWTH) {
-              newlyRipeCount++;
-            }
-          }
+        const totalRipe = tomatoProgresses.filter((p, i) => p >= MAX_TOMATO_GROWTH && !rottenPlants[i]).length;
+        const totalRotten = rottenPlants.filter(Boolean).length;
+        const totalGrowing = tomatoProgresses.filter((p, i) => p < MAX_TOMATO_GROWTH && wateredPlants[i] && !rottenPlants[i]).length;
+        if (totalRotten > 0) {
+          logs.push(`⚠️ ${totalRotten} tomato plant(s) spoiled from being unharvested! Tap them to clear.`);
         }
-
-        const totalRipe = nextTomatoProgresses.filter((p) => p >= MAX_TOMATO_GROWTH).length;
-        if (newlyRipeCount > 0) {
-          logs.push(`🍅 ${newlyRipeCount} tomato plant(s) fully ripened! Tap each plant to harvest!`);
-        } else if (totalRipe > 0) {
+        if (totalRipe > 0) {
           logs.push(`🍅 ${totalRipe} ripe tomato plant(s) waiting in Greenhouse.`);
-        } else if (grewCount > 0) {
-          logs.push(`🌱 ${grewCount} tomato plant(s) grew overnight.`);
-        } else {
-          logs.push('💧 Unwatered tomato plants did not grow yesterday.');
+        } else if (totalGrowing > 0) {
+          logs.push(`🌱 ${totalGrowing} watered tomato plant(s) growing well.`);
         }
 
-        if (nextOxygen <= 0 || nextWater <= 0 || nextFood <= 0) {
+        if (nextPower <= 0 || nextOxygen <= 0 || nextWater <= 0 || nextFood <= 0) {
           const reason =
-            nextOxygen <= 0 ? 'Ran out of air (oxygen)' : nextWater <= 0 ? 'Ran out of water' : 'Ran out of food';
+            nextPower <= 0
+              ? 'Base completely ran out of electrical power'
+              : nextOxygen <= 0
+              ? 'Ran out of air (oxygen)'
+              : nextWater <= 0
+              ? 'Ran out of water'
+              : 'Ran out of food';
           setResources({ oxygen: nextOxygen, power: nextPower, water: nextWater, food: nextFood });
           setAbortReason(reason);
           setEnding('EMERGENCY_ABORT');
@@ -483,14 +504,12 @@ const { useState, useEffect, useRef } = React;
         let finalFood = nextFood;
 
         if (nextSol % 6 === 0) {
-          finalWater = Math.min(100, nextWater + 50);
-          finalFood = Math.min(100, nextFood + 50);
-          logs.push(`📦 [Day ${nextSol} Supply Rocket Landed!] +50 Water & +50 Food delivered from Earth!`);
+          finalWater = Math.min(100, nextWater + 30);
+          finalFood = Math.min(100, nextFood + 30);
+          logs.push(`📦 [Day ${nextSol} Supply Rocket Landed!] +30 Water & +30 Food delivered from Earth!`);
         }
 
         setResources({ oxygen: nextOxygen, power: nextPower, water: finalWater, food: finalFood });
-        setTomatoProgresses(nextTomatoProgresses);
-        setWateredPlants([false, false, false, false]);
         setRoverStatus(nextRoverStatus);
         setDamageSolLeft(nextDamageLeft);
         setYesterdayConsumption(consumption);
@@ -506,7 +525,7 @@ const { useState, useEffect, useRef } = React;
       executeEndSolRef.current = executeEndSol;
 
       useEffect(() => {
-        if (showCoverPage || showLaunchTransition || ending || specialDiscoveryPending || showMorningBriefing || showRandomScienceFactModal || loadingNasa) return;
+        if (showCoverPage || showLaunchTransition || ending || specialDiscoveryPending || showMorningBriefing || showRandomScienceFactModal || loadingNasa || isPaused) return;
         const interval = setInterval(() => {
           setRoverSecondsLeft((prevRoverSec) => {
             if (prevRoverSec <= 0) return 0;
@@ -517,6 +536,54 @@ const { useState, useEffect, useRef } = React;
               return 0;
             }
             return prevRoverSec - 1;
+          });
+
+          // Continuous real-time tomato growth (90s full growth cycle) & 70s rot timer
+          const lampBonus = todayTempOptionRef.current
+            ? (todayTempOptionRef.current.id === 'TEMP_WARM' ? 0.04 : 0.02)
+            : 0;
+          const baseGrowthRate = 0.10; // Exactly 90s to grow from seedling (1) to ripe (10) (delta 9 / 90s = 0.10/s)
+          const growthRate = baseGrowthRate + lampBonus;
+
+          setTomatoProgresses((prevProgresses) => {
+            let changed = false;
+            const nextProgresses = [...prevProgresses];
+            const currentWatered = wateredPlantsRef.current;
+            const currentRotten = rottenPlantsRef.current;
+
+            for (let i = 0; i < 4; i++) {
+              if (currentRotten && currentRotten[i]) {
+                continue;
+              }
+              if (nextProgresses[i] >= MAX_TOMATO_GROWTH) {
+                ripeTimersRef.current[i] = (ripeTimersRef.current[i] || 0) + 1;
+                if (ripeTimersRef.current[i] >= 70 && !(currentRotten && currentRotten[i])) {
+                  setRottenPlants((prevR) => {
+                    if (prevR[i]) return prevR;
+                    const nextR = [...prevR];
+                    nextR[i] = true;
+                    return nextR;
+                  });
+                }
+              } else if (currentWatered && currentWatered[i]) {
+                const nextVal = Math.min(MAX_TOMATO_GROWTH, Number((nextProgresses[i] + growthRate).toFixed(2)));
+                if (nextVal !== nextProgresses[i]) {
+                  nextProgresses[i] = nextVal;
+                  changed = true;
+                  if (nextVal >= MAX_TOMATO_GROWTH) {
+                    ripeTimersRef.current[i] = 0;
+                    setWateredPlants((prevW) => {
+                      if (!prevW[i]) return prevW;
+                      const nextW = [...prevW];
+                      nextW[i] = false;
+                      return nextW;
+                    });
+                  }
+                }
+              }
+            }
+
+            return changed ? nextProgresses : prevProgresses;
           });
 
           setSecondsLeftInDay((prev) => {
@@ -559,9 +626,11 @@ const { useState, useEffect, useRef } = React;
                   food: Math.max(0, res.food - deltaFood),
                 };
 
-                if (nextRes.oxygen <= 0 || nextRes.water <= 0 || nextRes.food <= 0) {
+                if (nextRes.power <= 0 || nextRes.oxygen <= 0 || nextRes.water <= 0 || nextRes.food <= 0) {
                   const reason =
-                    nextRes.oxygen <= 0
+                    nextRes.power <= 0
+                      ? 'Base completely ran out of electrical power'
+                      : nextRes.oxygen <= 0
                       ? 'Ran out of air (oxygen)'
                       : nextRes.water <= 0
                       ? 'Ran out of water'
@@ -578,7 +647,7 @@ const { useState, useEffect, useRef } = React;
           });
         }, 1000);
         return () => clearInterval(interval);
-      }, [showCoverPage, showLaunchTransition, ending, specialDiscoveryPending, showMorningBriefing, showRandomScienceFactModal, loadingNasa]);
+      }, [showCoverPage, showLaunchTransition, ending, specialDiscoveryPending, showMorningBriefing, showRandomScienceFactModal, loadingNasa, isPaused]);
 
       const handleRestart = () => {
         deductedInCurrentSolRef.current = { power: 0, oxygen: 0, water: 0, food: 0 };
@@ -590,6 +659,9 @@ const { useState, useEffect, useRef } = React;
         setSolarCollectedToday(false);
         setTodayTempOption(null);
         setWateredPlants([false, false, false, false]);
+        setRottenPlants([false, false, false, false]);
+        ripeTimersRef.current = [0, 0, 0, 0];
+        setIsPaused(false);
         setHarvestCount(0);
         setRoverStatus('READY');
         setDamageSolLeft(0);
@@ -803,13 +875,24 @@ const { useState, useEffect, useRef } = React;
                   onClick={() => setShowMorningBriefing(true)}
                   className="bg-amber-200 hover:bg-amber-300 border-2 border-amber-400 rounded-2xl px-3 py-1.5 text-xs font-black text-amber-950 shadow-sm"
                 >
-                  📋 Weather
+                  Weather
                 </button>
                 <button
                   onClick={() => { setShowGuidePage(true); setShowCoverPage(true); }}
                   className="bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-2xl px-3 py-1.5 text-xs font-black shadow-sm"
                 >
-                  ❓ Guide
+                  Guide
+                </button>
+                <button
+                  onClick={() => setIsPaused((p) => !p)}
+                  className={`rounded-2xl px-3 py-1.5 text-xs font-black shadow-sm border-2 transition active:scale-95 ${
+                    isPaused
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400 animate-pulse'
+                      : 'bg-amber-100 hover:bg-amber-200 text-amber-950 border-amber-300'
+                  }`}
+                  title={isPaused ? 'Resume Mission' : 'Pause Mission'}
+                >
+                  {isPaused ? '▶ Resume' : 'Pause'}
                 </button>
               </div>
             </div>
@@ -833,6 +916,8 @@ const { useState, useEffect, useRef } = React;
                 showGreenhouseDot={showGreenhouseDot}
                 showRoverDot={showRoverDot}
                 roverResultUnread={roverResultUnread}
+                hasRipeTomatoes={hasRipeTomatoes}
+                hasRottenTomatoes={hasRottenTomatoes}
                 onEnterRoom={(room) => setCurrentScene(room)}
                 onOpenRandomScienceFact={handleOpenRandomScienceFact}
               />
@@ -859,6 +944,7 @@ const { useState, useEffect, useRef } = React;
                 tomatoProgress={tomatoProgress}
                 tomatoProgresses={tomatoProgresses}
                 wateredPlants={wateredPlants}
+                rottenPlants={rottenPlants}
                 todayTempOption={todayTempOption}
                 seenTopics={seenTopics}
                 onOpenTopic={handleOpenTopic}
@@ -866,6 +952,7 @@ const { useState, useEffect, useRef } = React;
                 onWaterSinglePlant={handleWaterSinglePlant}
                 onPlantSeeds={handlePlantSeeds}
                 onHarvestSinglePlant={handleHarvestSinglePlant}
+                onClearRottenPlant={handleClearRottenPlant}
                 onRequestSelectTempOption={handleRequestSelectTempOption}
               />
             )}
@@ -941,6 +1028,27 @@ const { useState, useEffect, useRef } = React;
             yesterdayConsumption={yesterdayConsumption}
             onConfirm={() => setShowMorningBriefing(false)}
           />
+
+          {/* Pause Modal Overlay */}
+          {isPaused && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-[#fff9ef] border-4 border-amber-600 rounded-3xl p-6 md:p-8 max-w-sm w-full text-center shadow-2xl relative space-y-2">
+                <span className="inline-block px-3 py-1 rounded-full bg-amber-200 text-amber-950 text-xs font-black tracking-wider uppercase">
+                  Game Paused
+                </span>
+                <h3 className="text-2xl font-black text-amber-950">Mission Paused</h3>
+                <p className="text-sm font-bold text-amber-800 pb-3">
+                  Mars base operations and timers are paused.
+                </p>
+                <button
+                  onClick={() => setIsPaused(false)}
+                  className="w-full py-3 px-6 rounded-2xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-black text-base shadow-lg border-2 border-amber-600 active:scale-95 transition cursor-pointer"
+                >
+                  Resume Mission
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
