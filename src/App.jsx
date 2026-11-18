@@ -76,6 +76,7 @@ const { useState, useEffect, useRef } = React;
       const [specialDiscoveryPending, setSpecialDiscoveryPending] = useState(null);
       const [roverResultUnread, setRoverResultUnread] = useState(false);
       const [seenSupplySols, setSeenSupplySols] = useState(() => new Set());
+      const [collectedSupplySols, setCollectedSupplySols] = useState(() => new Set());
 
       const [seenTopics, setSeenTopics] = useState(() => new Set());
       const [activeScienceTopic, setActiveScienceTopic] = useState(null);
@@ -127,9 +128,37 @@ const { useState, useEffect, useRef } = React;
       const currentSolRatesRef = useRef({ power: 12, oxygen: 10, water: 6, food: 16 });
       const deductedInCurrentSolRef = useRef({ power: 0, oxygen: 0, water: 0, food: 0 });
 
-      const elapsedSeconds = DAY_DURATION_SECONDS - secondsLeftInDay;
-      const nightFactor = Math.max(0, Math.min(1, elapsedSeconds / DAY_DURATION_SECONDS));
-      const isNightPhase = nightFactor >= 0.55;
+      const lastTickTimeRef = useRef(Date.now());
+      const [smoothNightFactor, setSmoothNightFactor] = useState(0);
+      const nightFactor = smoothNightFactor;
+      const isNightPhase = smoothNightFactor >= 0.60;
+
+      useEffect(() => {
+        if (showCoverPage || showLaunchTransition || ending || specialDiscoveryPending || showMorningBriefing || showRandomScienceFactModal || loadingNasa || isPaused) return;
+        const frameInterval = setInterval(() => {
+          const elapsed = DAY_DURATION_SECONDS - secondsLeftInDay;
+          const subSec = Math.min(1000, Math.max(0, Date.now() - lastTickTimeRef.current)) / 1000;
+          const preciseElapsed = Math.max(0, Math.min(DAY_DURATION_SECONDS, elapsed + subSec));
+          setSmoothNightFactor(preciseElapsed / DAY_DURATION_SECONDS);
+        }, 60);
+        return () => clearInterval(frameInterval);
+      }, [showCoverPage, showLaunchTransition, ending, specialDiscoveryPending, showMorningBriefing, showRandomScienceFactModal, loadingNasa, isPaused, secondsLeftInDay]);
+
+      const handleCollectSupply = (targetSol) => {
+        if (collectedSupplySols.has(targetSol)) return;
+        const pkg = targetSol === 16 ? { water: 30, food: 20 } : { water: 40, food: 30 };
+        setResources((r) => ({
+          ...r,
+          water: Math.min(100, r.water + pkg.water),
+          food: Math.min(100, r.food + pkg.food),
+        }));
+        setCollectedSupplySols((prev) => new Set(prev).add(targetSol));
+        setSeenSupplySols((prev) => new Set(prev).add(targetSol));
+        setDailyReport((prev) => [
+          ...prev,
+          `📦 Collected supplies from Earth rocket: +${pkg.water} Water & +${pkg.food} Food!`,
+        ]);
+      };
 
       const loadWeatherForSol = async (targetSol) => {
         setLoadingNasa(true);
@@ -150,7 +179,7 @@ const { useState, useEffect, useRef } = React;
           power: c.powerCost,
           oxygen: c.oxygenCost,
           water: c.waterCost,
-          food: Math.max(16, c.foodCost),
+          food: Math.max(15, c.foodCost),
         };
       }, [weather, roverStatus]);
 
@@ -183,22 +212,22 @@ const { useState, useEffect, useRef } = React;
       };
 
       const handleRequestElectrolysis = () => {
-        if (resources.water < 10 || resources.power < 15) return;
+        if (resources.water < 10 || resources.power < 10) return;
         setPendingConfirmAction({
           icon: '🫧',
           title: 'Make Breathable Air (Oxygen)',
-          costText: '-10 💧 Water, -15 ⚡ Power',
-          gainText: '+22 🫧 Oxygen',
+          costText: '-10 💧 Water, -10 ⚡ Power',
+          gainText: '+20 🫧 Oxygen',
           note: 'We use electricity to split water into hydrogen gas and oxygen gas (electrolysis) so our astronauts have fresh air to breathe!',
           onExecute: () => {
             setResources((r) => ({
               ...r,
               water: Math.max(0, r.water - 10),
-              power: Math.max(0, r.power - 15),
-              oxygen: Math.min(100, r.oxygen + 22),
+              power: Math.max(0, r.power - 10),
+              oxygen: Math.min(100, r.oxygen + 20),
             }));
             setTotalWaterSpent((w) => w + 10);
-            setDailyReport((prev) => [...prev, '🫧 Split water with electricity: -10 Water, -15 Power → +22 Oxygen!']);
+            setDailyReport((prev) => [...prev, '🫧 Split water with electricity: -10 Water, -10 Power → +20 Oxygen!']);
           },
         });
       };
@@ -220,20 +249,20 @@ const { useState, useEffect, useRef } = React;
       };
 
       const handleRequestWaterDrill = () => {
-        if (resources.power < 12 || resources.water >= 100) return;
+        if (resources.power < 10 || resources.water >= 100) return;
         setPendingConfirmAction({
           icon: '💧',
           title: 'Mine Local Water from Well',
-          costText: '-12 ⚡ Power',
-          gainText: '+18 💧 Water',
+          costText: '-10 ⚡ Power',
+          gainText: '+20 💧 Water',
           note: 'We pump power to the underground Mars well heater to melt subsurface ice and filter fresh water for our base!',
           onExecute: () => {
             setResources((r) => ({
               ...r,
-              power: Math.max(0, r.power - 12),
-              water: Math.min(100, r.water + 18),
+              power: Math.max(0, r.power - 10),
+              water: Math.min(100, r.water + 20),
             }));
-            setDailyReport((prev) => [...prev, '💧 Extracted local water from the well: -12 Power → +18 Water!']);
+            setDailyReport((prev) => [...prev, '💧 Extracted local water from the well: -10 Power → +20 Water!']);
           },
         });
       };
@@ -308,12 +337,15 @@ const { useState, useEffect, useRef } = React;
           if (report.photo) {
             setDailyPhotoAlbum((prev) => [...prev, { sol: report.sol, photo: report.photo }]);
           }
-          if (report.sample && report.sample.id !== 'NONE') {
-            setSamples((prev) => ({ ...prev, [report.sample.id]: (prev[report.sample.id] || 0) + 1 }));
-            if (report.sample.id === 'ANCIENT_BIOSIGNATURE') {
-              setSpecialDiscoveryPending(report);
+          const sampleList = report.samples || (report.sample ? [report.sample] : []);
+          sampleList.forEach((s) => {
+            if (s && s.id !== 'NONE') {
+              setSamples((prev) => ({ ...prev, [s.id]: (prev[s.id] || 0) + 1 }));
+              if (s.id === 'ANCIENT_BIOSIGNATURE') {
+                setSpecialDiscoveryPending(report);
+              }
             }
-          }
+          });
         }
       };
 
@@ -335,7 +367,7 @@ const { useState, useEffect, useRef } = React;
             setRoverStatus('OUT_ON_MISSION');
             setTotalMissions((m) => m + 1);
 
-            const tripDuration = mode.durationSeconds || 100;
+            const tripDuration = mode.durationSeconds || 110;
             setRoverSecondsLeft(tripDuration);
             setPendingExpedition({
               dispatchedSol: sol,
@@ -386,7 +418,7 @@ const { useState, useEffect, useRef } = React;
             setRoverResultUnread(true);
             setDailyReport((prev) => [
               ...prev,
-              `⚠️ ${OUR_ROVER_NAME} returned to the garage with damage (${hazardEval.reasonText})! Requires ${hazardEval.damagedSols} day(s) repair.`,
+              `⚠️ ${OUR_ROVER_NAME} returned to the garage with damage (${hazardEval.reasonText})! Requires ${hazardEval.damagedSols} Sol(s) repair.`,
             ]);
           } else {
             if (hazardEval.wasHazardous) setBraveMissions((b) => b + 1);
@@ -399,15 +431,19 @@ const { useState, useEffect, useRef } = React;
               damageReason: '',
               photo,
               sample: found,
+              samples: found.samples || [found],
               collectedToVault: false,
             };
             setExpeditionLogs((prev) => [...prev, record]);
             setYesterdayReport(record);
             setLatestRoverReport(record);
             setRoverResultUnread(true);
+            const returnMsg = found.isDoubleDiscovery
+              ? `🛸 ${OUR_ROVER_NAME} returned with TWO mineral specimens! Tap it in the Rover Garage!`
+              : `🛸 ${OUR_ROVER_NAME} returned to the garage with findings! Tap it in the Rover Garage!`;
             setDailyReport((prev) => [
               ...prev,
-              `🛸 ${OUR_ROVER_NAME} returned to the garage with findings! Tap it in the Rover Garage!`,
+              returnMsg,
             ]);
           }
           setPendingExpedition(null);
@@ -436,7 +472,7 @@ const { useState, useEffect, useRef } = React;
         }
 
         const consumption = GameLogicModule.calculateDailyResourceConsumption(weather, roverStatus);
-        const dailyFoodCost = Math.max(16, consumption.foodCost);
+        const dailyFoodCost = Math.max(15, consumption.foodCost);
 
         const deducted = deductedInCurrentSolRef.current;
         const remPower = Math.max(0, consumption.powerCost - (deducted.power || 0));
@@ -482,14 +518,14 @@ const { useState, useEffect, useRef } = React;
         if (!pendingExpedition && damageSolLeft > 0) {
           if (justDamagedInCurrentSolRef.current) {
             justDamagedInCurrentSolRef.current = false;
-            logs.push(`🔧 Rover "${OUR_ROVER_NAME}" is undergoing repairs in the garage (${damageSolLeft} day(s) remaining).`);
+            logs.push(`🔧 Rover "${OUR_ROVER_NAME}" is undergoing repairs in the garage (${damageSolLeft} Sol(s) remaining).`);
           } else {
             nextDamageLeft = damageSolLeft - 1;
             if (nextDamageLeft === 0) {
               nextRoverStatus = 'READY';
               logs.push(`🛠️ Rover "${OUR_ROVER_NAME}" repairs finished in the garage!`);
             } else {
-              logs.push(`🔧 Rover "${OUR_ROVER_NAME}" repairs continuing in the garage (${nextDamageLeft} day(s) remaining).`);
+              logs.push(`🔧 Rover "${OUR_ROVER_NAME}" repairs continuing in the garage (${nextDamageLeft} Sol(s) remaining).`);
             }
           }
         }
@@ -500,9 +536,12 @@ const { useState, useEffect, useRef } = React;
             if (uncollected.photo) {
               setDailyPhotoAlbum((prev) => [...prev, { sol: uncollected.sol, photo: uncollected.photo }]);
             }
-            if (uncollected.sample && uncollected.sample.id !== 'NONE') {
-              setSamples((prev) => ({ ...prev, [uncollected.sample.id]: (prev[uncollected.sample.id] || 0) + 1 }));
-            }
+            const sampleList = uncollected.samples || (uncollected.sample ? [uncollected.sample] : []);
+            sampleList.forEach((s) => {
+              if (s && s.id !== 'NONE') {
+                setSamples((prev) => ({ ...prev, [s.id]: (prev[s.id] || 0) + 1 }));
+              }
+            });
           }
           setResources({ oxygen: nextOxygen, power: nextPower, water: nextWater, food: nextFood });
           setEnding('NORMAL_20_SOL');
@@ -513,10 +552,17 @@ const { useState, useEffect, useRef } = React;
         let finalWater = nextWater;
         let finalFood = nextFood;
 
-        if (nextSol % 6 === 0) {
-          finalWater = Math.min(100, nextWater + 30);
-          finalFood = Math.min(100, nextFood + 30);
-          logs.push(`📦 [Day ${nextSol} Supply Rocket Landed!] +30 Water & +30 Food delivered from Earth!`);
+        // If player didn't click rocket before Sol rollover, base crew retrieves cargo overnight
+        if ((sol === 6 || sol === 12 || sol === 16) && !collectedSupplySols.has(sol)) {
+          const pkg = sol === 16 ? { water: 30, food: 20 } : { water: 40, food: 30 };
+          finalWater = Math.min(100, finalWater + pkg.water);
+          finalFood = Math.min(100, finalFood + pkg.food);
+          logs.push(`📦 [Sol ${sol} Supplies Stored] Base crew retrieved the uncollected rocket cargo (+${pkg.water} Water, +${pkg.food} Food)!`);
+          setCollectedSupplySols((prev) => new Set(prev).add(sol));
+        }
+
+        if (nextSol === 6 || nextSol === 12 || nextSol === 16) {
+          logs.push(`📦 [Sol ${nextSol} Supply Rocket Landed!] Tap the rocket outside to collect supplies!`);
         }
 
         setResources({ oxygen: nextOxygen, power: nextPower, water: finalWater, food: finalFood });
@@ -525,6 +571,8 @@ const { useState, useEffect, useRef } = React;
         setYesterdayConsumption(consumption);
         setSol(nextSol);
         setSecondsLeftInDay(DAY_DURATION_SECONDS);
+        lastTickTimeRef.current = Date.now();
+        setSmoothNightFactor(0);
         deductedInCurrentSolRef.current = { power: 0, oxygen: 0, water: 0, food: 0 };
         setSolarCollectedToday(false);
         setTodayTempOption(null);
@@ -550,9 +598,9 @@ const { useState, useEffect, useRef } = React;
 
           // Continuous real-time tomato growth (100s full growth cycle) & 70s rot timer
           const lampBonus = todayTempOptionRef.current
-            ? (todayTempOptionRef.current.id === 'TEMP_WARM' ? 0.03 : 0.015)
+            ? (todayTempOptionRef.current.id === 'TEMP_WARM' ? 0.06 : 0.0225)
             : 0;
-          const baseGrowthRate = 0.09; // Exactly 100s to grow from seedling (1) to ripe (10) (delta 9 / 100s = 0.09/s)
+          const baseGrowthRate = 0.09; // Exactly 100s unboosted, 80s with ECO (+0.0225), 60s with WARM (+0.06)
           const growthRate = baseGrowthRate + lampBonus;
 
           setTomatoProgresses((prevProgresses) => {
@@ -653,6 +701,7 @@ const { useState, useEffect, useRef } = React;
               });
             }
 
+            lastTickTimeRef.current = Date.now();
             return nextSec;
           });
         }, 1000);
@@ -707,6 +756,9 @@ const { useState, useEffect, useRef } = React;
         setSpecialDiscoveryPending(null);
         setRoverResultUnread(false);
         setSeenSupplySols(new Set());
+        setCollectedSupplySols(new Set());
+        lastTickTimeRef.current = Date.now();
+        setSmoothNightFactor(0);
         setShowGuidePage(false);
         setShowCoverPage(true);
         loadWeatherForSol(1);
@@ -762,7 +814,7 @@ const { useState, useEffect, useRef } = React;
             return { category: 'Water-Saving', tier: 'Gold', icon: '💧', title: 'Hydro Guardian', desc: `Saved ${resources.water}% water with ultra-low usage!` };
           }
           if (sol >= 3 && resources.water >= 45 && avgWaterPerSol <= 7) {
-            return { category: 'Water-Saving', tier: 'Silver', icon: '🌊', title: 'Smart Water Saver', desc: `Kept ${resources.water}% water reserve (Gold: 65%+ & ≤5/day)` };
+            return { category: 'Water-Saving', tier: 'Silver', icon: '🌊', title: 'Smart Water Saver', desc: `Kept ${resources.water}% water reserve (Gold: 65%+ & ≤5/Sol)` };
           }
           if (resources.water >= 25) {
             return { category: 'Water-Saving', tier: 'Bronze', icon: '🚰', title: 'Water Keeper', desc: `Ended with ${resources.water}% water (Silver: 45%+)` };
@@ -779,15 +831,15 @@ const { useState, useEffect, useRef } = React;
 
         const getSurvivalBadge = () => {
           if (sol >= 20 && ending !== 'EMERGENCY_ABORT') {
-            return { category: 'Survival', tier: 'Gold', icon: '🏅', title: '20-Day Mars Hero', desc: 'Survived all 20 days on Mars!' };
+            return { category: 'Survival', tier: 'Gold', icon: '🏅', title: '20-Sol Mars Hero', desc: 'Survived all 20 Sols on Mars!' };
           }
           if (sol >= 12) {
-            return { category: 'Survival', tier: 'Silver', icon: '🚀', title: 'Seasoned Astronaut', desc: `Survived ${sol} days on Mars (Gold at 20 days)` };
+            return { category: 'Survival', tier: 'Silver', icon: '🚀', title: 'Seasoned Astronaut', desc: `Survived ${sol} Sols on Mars (Gold at 20 Sols)` };
           }
           if (sol >= 5) {
-            return { category: 'Survival', tier: 'Bronze', icon: '🧑‍🚀', title: 'Mars Pioneer', desc: `Survived ${sol} days on Mars (Silver at 12 days)` };
+            return { category: 'Survival', tier: 'Bronze', icon: '🧑‍🚀', title: 'Mars Pioneer', desc: `Survived ${sol} Sols on Mars (Silver at 12 Sols)` };
           }
-          return { category: 'Survival', tier: 'Locked', icon: '🏅', title: 'Survival Badge', desc: 'Survive 5+ days on Mars to unlock Bronze' };
+          return { category: 'Survival', tier: 'Locked', icon: '🏅', title: 'Survival Badge', desc: 'Survive 5+ Sols on Mars to unlock Bronze' };
         };
 
         const unlockedBadges = [
@@ -842,12 +894,13 @@ const { useState, useEffect, useRef } = React;
               <div className="flex items-center gap-2">
                 <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3.5 py-1.5 shadow-sm flex items-center gap-2.5">
                   <span className="text-base">{isNightPhase ? '🌙' : '☀️'}</span>
-                  <span className="font-black text-sm md:text-base text-[#4a3525]">Day {sol}</span>
+                  <span className="font-black text-sm md:text-base text-[#4a3525]">{`Sol ${sol}`}</span>
                   <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center border-2 ${
+                    className={`w-7 h-7 rounded-full flex items-center justify-center border-2 notranslate ${
                       isNightPhase ? 'bg-indigo-950 border-indigo-400' : 'bg-amber-100 border-amber-500'
                     }`}
-                    title="Day Progress Clock"
+                    title="Sol Progress Clock"
+                    translate="no"
                   >
                     <svg viewBox="0 0 32 32" className="w-6 h-6">
                       <circle
@@ -909,7 +962,7 @@ const { useState, useEffect, useRef } = React;
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full items-stretch">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full items-stretch notranslate" translate="no">
               <TopResourcePill label="Air" value={resources.oxygen} barColor="bg-sky-400" icon="🫧" />
               <TopResourcePill label="Power" value={resources.power} barColor="bg-amber-400" icon="⚡" />
               <TopResourcePill label="Water" value={resources.water} barColor="bg-blue-500" icon="💧" />
@@ -931,7 +984,9 @@ const { useState, useEffect, useRef } = React;
                 hasRipeTomatoes={hasRipeTomatoes}
                 hasRottenTomatoes={hasRottenTomatoes}
                 seenSupplySols={seenSupplySols}
+                collectedSupplySols={collectedSupplySols}
                 onDismissSupplyAlert={(targetSol) => setSeenSupplySols((prev) => new Set(prev).add(targetSol))}
+                onCollectSupply={handleCollectSupply}
                 onEnterRoom={(room) => setCurrentScene(room)}
                 onOpenRandomScienceFact={handleOpenRandomScienceFact}
               />
@@ -1067,5 +1122,45 @@ const { useState, useEffect, useRef } = React;
       );
     }
 
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+      }
+      static getDerivedStateFromError() {
+        return { hasError: true };
+      }
+      componentDidCatch(error, info) {
+        console.warn('ErrorBoundary captured translation or rendering error:', error, info);
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="min-h-screen bg-[#fdf6e9] flex flex-col items-center justify-center p-4 text-center">
+              <div className="bg-white border-2 border-[#e6d5bc] rounded-3xl p-6 max-w-sm shadow-xl space-y-3">
+                <span className="text-3xl">🚀</span>
+                <h2 className="text-xl font-black text-[#4a3525]">LITTLE MARSONAUT</h2>
+                <p className="text-xs text-amber-800 font-bold leading-relaxed">
+                  Display refreshed after browser translation.
+                  <br />（瀏覽器翻譯已作用，點擊下方即可恢復畫面）
+                </p>
+                <button
+                  onClick={() => this.setState({ hasError: false })}
+                  className="w-full py-3 px-6 rounded-2xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-black text-sm shadow cursor-pointer border-2 border-amber-600 active:scale-95 transition"
+                >
+                  Resume / 繼續遊戲
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    root.render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    );

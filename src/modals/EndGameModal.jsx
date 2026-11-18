@@ -151,7 +151,7 @@ function EndGameModule({
                         className="w-full h-28 object-contain bg-slate-900"
                       />
                       <div className="p-2 space-y-1 flex-1">
-                        <div className="text-[10px] font-black text-amber-700">Day {entry.sol} Photo</div>
+                        <div className="text-[10px] font-black text-amber-700">Sol {entry.sol} Photo</div>
                         <div className="text-[10px] font-bold text-[#4a3525] line-clamp-1">{entry.photo.title}</div>
                         <div className="text-[10px] text-[#7a5a40] line-clamp-2">{entry.photo.nasaCaption}</div>
                       </div>

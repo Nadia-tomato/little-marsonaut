@@ -142,14 +142,8 @@
               </div>
 
               {finished && (
-                <div className="inset-0 absolute bg-[#2d1e12]/85 flex flex-col items-center justify-center p-4 text-center space-y-2">
-                  <div className="text-xs font-bold text-amber-100">
-                    You caught {caughtCount} sunbeams!
-                  </div>
-                  <div className={`text-base font-black bg-white px-3 py-0.5 rounded-full ${gradeInfo.color}`}>
-                    {gradeInfo.label}
-                  </div>
-                  <div className="text-2xl font-black text-yellow-300">
+                <div className="inset-0 absolute bg-[#2d1e12]/85 flex flex-col items-center justify-center p-4 text-center space-y-4">
+                  <div className="text-3xl font-black text-yellow-300">
                     Power Made: +{livePowerPreview} ⚡
                   </div>
                   <button

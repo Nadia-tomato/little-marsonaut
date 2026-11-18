@@ -17,7 +17,7 @@ function MorningBriefingModule({
                 LITTLE MARSONAUT • SIMULATED MARS CONDITIONS
               </span>
               <h2 className="text-xl md:text-2xl font-black text-[#4a3525]">
-                Day {sol} — Mars Environment Report
+                {`Sol ${sol} — Mars Environment Report`}
               </h2>
               <p className="text-xs text-amber-800 font-medium leading-relaxed">
                 Mars conditions are simulated for gameplay. Space weather is inspired by NASA data.
@@ -36,17 +36,17 @@ function MorningBriefingModule({
               </div>
             )}
 
-            {sol % 6 === 0 && (
+            {(sol === 6 || sol === 12 || sol === 16) && (
               <div className="bg-amber-200 border-2 border-amber-500 rounded-2xl p-3 text-xs font-black text-amber-950 flex items-center gap-2.5">
                 <span className="text-2xl">🚀</span>
-                <span>Day {sol} Supply Rocket Landed! +30 Water and +30 Food delivered from Earth!</span>
+                <span>{`Sol ${sol} Supply Rocket Landed! ${sol === 16 ? '+30 Water & +20 Food' : '+40 Water & +30 Food'} waiting to be collected!`}</span>
               </div>
             )}
 
             {sol > 1 && yesterdayConsumption && (
               <div className="bg-amber-50 p-3.5 rounded-2xl border-2 border-amber-300 space-y-2">
                 <div className="text-xs font-black text-amber-900">
-                  📊 Day {sol - 1} Supplies Used
+                  {`📊 Sol ${sol - 1} Supplies Used`}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="bg-white px-3 py-2 rounded-xl border border-amber-200 flex items-center justify-center">
@@ -66,11 +66,11 @@ function MorningBriefingModule({
             )}
 
             <div className="bg-white p-3.5 rounded-2xl border-2 border-[#eadbc5] space-y-2">
-              <div className="text-xs font-black text-[#5a3e28]">🌡️ Day {sol} Mars Weather</div>
+              <div className="text-xs font-black text-[#5a3e28]">{`🌡️ Sol ${sol} Mars Weather`}</div>
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="bg-[#fdf6e9] p-2 rounded-xl border border-[#eadbc5]">
                   <div className="text-[#7a5a40]">Day / Night</div>
-                  <div className="font-black text-sm mt-0.5">{weather.tempMax}°C / {weather.tempMin}°C</div>
+                  <div className="font-black text-sm mt-0.5">{`${weather.tempMax}°C / ${weather.tempMin}°C`}</div>
                 </div>
                 <div className="bg-[#fdf6e9] p-2 rounded-xl border border-[#eadbc5]">
                   <div className="text-[#7a5a40]">Wind</div>
@@ -94,7 +94,7 @@ function MorningBriefingModule({
               onClick={onConfirm}
               className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-white font-black text-base shadow-md"
             >
-              {sol === 1 ? 'Start Day 1!' : `Start Day ${sol}!`}
+              {sol === 1 ? 'Start Sol 1!' : `Start Sol ${sol}!`}
             </button>
           </div>
         </div>

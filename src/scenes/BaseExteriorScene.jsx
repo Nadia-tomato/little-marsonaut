@@ -19,14 +19,18 @@
       hasRipeTomatoes = false,
       hasRottenTomatoes = false,
       seenSupplySols,
+      collectedSupplySols,
       onDismissSupplyAlert,
+      onCollectSupply,
     }) {
       const [showSupplyModal, setShowSupplyModal] = useState(false);
 
       const palette = getDayNightPalette(nightFactor);
-      const isNight = nightFactor >= 0.55;
-      const isSupplyDay = sol % 6 === 0;
-      const supplyUnread = isSupplyDay && !(seenSupplySols && seenSupplySols.has(sol));
+      const isNight = nightFactor >= 0.60;
+      const isSupplyDay = sol === 6 || sol === 12 || sol === 16;
+      const supplyPackage = sol === 16 ? { water: 30, food: 20 } : { water: 40, food: 30 };
+      const isCollected = Boolean(collectedSupplySols && collectedSupplySols.has(sol));
+      const supplyUnread = isSupplyDay && !isCollected;
 
       return (
         <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden border-4 border-[#e6d5bc] shadow-xl bg-[#f3a678]">
@@ -193,7 +197,7 @@
             {/* Supply Rocket Ship (Landed on bottom-right beside Rover Garage) */}
             {isSupplyDay && (
               <g transform="translate(735, 435) scale(0.68)">
-                <g className="animate-supply-hover">
+                <g>
                   <ellipse cx="95" cy="185" rx="80" ry="16" fill="#2d1e12" opacity="0.38" />
                   <path d="M55,140 L28,182 M135,140 L162,182 M95,148 L95,186" stroke="#475569" strokeWidth="6" strokeLinecap="round" />
                   <polygon points="68,142 82,142 86,158 64,158" fill="#334155" />
@@ -220,7 +224,7 @@
 
           <div className="top-3 left-3 absolute bg-[#fdf6e9]/95 border-2 border-[#d9c2a3] px-3.5 py-1 rounded-full font-black text-xs md:text-sm text-[#5a3e28] shadow">
             {isSupplyDay
-              ? `Day ${sol} Supply Rocket Landed (+30 Water, +30 Food)`
+              ? `Sol ${sol} Supply Rocket Landed (+${supplyPackage.water} Water, +${supplyPackage.food} Food)`
               : weather?.isDustStorm
               ? 'Dust Storm Active — Visibility Hazy'
               : isNight
@@ -333,6 +337,10 @@
           {showSupplyModal && (
             <SupplyRocketModal
               sol={sol}
+              isCollected={isCollected}
+              onCollect={() => {
+                if (onCollectSupply) onCollectSupply(sol);
+              }}
               onClose={() => setShowSupplyModal(false)}
             />
           )}

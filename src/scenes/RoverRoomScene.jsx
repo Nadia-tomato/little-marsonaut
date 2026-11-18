@@ -212,16 +212,6 @@
                     Tap {OUR_ROVER_NAME} for Findings!
                   </span>
                 </div>
-              ) : roverStatus !== 'READY' ? (
-                <div className="flex flex-col items-center gap-1 animate-pulse">
-                  <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-50/95 border-2 border-amber-500 shadow-md text-amber-950 font-black text-xs">
-                    <span className="text-sm">🔧</span>
-                    <span>Under Maintenance ({damageSolLeft} Sol left)</span>
-                  </div>
-                  <span className="text-[10px] font-bold text-amber-800 bg-white/95 px-2.5 py-0.5 rounded-full border border-amber-300 shadow-sm">
-                    Tap rover for report
-                  </span>
-                </div>
               ) : null}
             </div>
           )}
@@ -336,46 +326,51 @@
             >
               {latestRoverResult?.sample?.id === 'ANCIENT_BIOSIGNATURE' && <ConfettiRibbonCelebration />}
               <div
-                className="bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl max-w-sm w-full p-4 md:p-5 shadow-2xl space-y-3 relative z-10"
+                className="bg-[#fdf6e9] border-4 border-[#d9c2a3] rounded-3xl max-w-md w-full p-4 md:p-5 shadow-2xl space-y-3 relative z-10"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex items-center gap-2 border-b-2 border-[#eadbc5] pb-2">
-                  <h3 className="text-lg font-black text-[#4a3525]">
-                    {latestRoverResult
-                      ? `Rover "${OUR_ROVER_NAME}" Findings`
-                      : `Rover "${OUR_ROVER_NAME}" in Garage`}
+                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 border-b-2 border-[#eadbc5] pb-2.5">
+                  <h3 className="text-base sm:text-lg font-black text-[#4a3525] flex items-center gap-1.5">
+                    <span>🛸</span>
+                    <span>{latestRoverResult ? `${OUR_ROVER_NAME} Findings` : `${OUR_ROVER_NAME} in Garage`}</span>
                   </h3>
-                  {latestRoverResult?.sample?.id === 'ANCIENT_BIOSIGNATURE' && (
-                    <span className="ml-auto px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 font-black text-[10px] animate-pulse">
+                  {latestRoverResult?.samples?.some((s) => s.id === 'ANCIENT_BIOSIGNATURE') || latestRoverResult?.sample?.id === 'ANCIENT_BIOSIGNATURE' ? (
+                    <span className="shrink-0 whitespace-nowrap px-3 py-1 rounded-full bg-amber-400 text-amber-950 font-black text-xs animate-pulse shadow-sm flex items-center gap-1">
                       ⭐ Major Discovery!
                     </span>
-                  )}
+                  ) : latestRoverResult?.isDoubleDiscovery || (latestRoverResult?.samples && latestRoverResult.samples.length > 1) ? (
+                    <span className="shrink-0 whitespace-nowrap px-3 py-1 rounded-full bg-emerald-600 text-white font-black text-xs shadow-sm flex items-center gap-1">
+                      ✨ 2x Minerals Found!
+                    </span>
+                  ) : null}
                 </div>
 
                 {latestRoverResult ? (
                   <>
                     {latestRoverResult.damagedSols > 0 ? (
                       <div className="bg-red-100 border-2 border-red-300 p-3 rounded-2xl text-xs text-red-900 font-bold">
-                        Oh no! {OUR_ROVER_NAME} got hurt by {latestRoverResult.damageReason} and needs {latestRoverResult.damagedSols} day(s) of repair in the garage!
+                        Oh no! {OUR_ROVER_NAME} got hurt by {latestRoverResult.damageReason} and needs {latestRoverResult.damagedSols} Sol(s) of repair in the garage!
                       </div>
-                    ) : latestRoverResult.sample && latestRoverResult.sample.id !== 'NONE' ? (
-                      <div className={`bg-white border-2 ${latestRoverResult.sample.id === 'ANCIENT_BIOSIGNATURE' ? 'border-amber-400 ring-2 ring-amber-300/80 bg-amber-50/50' : 'border-emerald-200'} rounded-2xl p-2.5 flex items-center gap-3 shadow-sm`}>
-                        <RockSpecimenIcon rock={latestRoverResult.sample} size={46} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-center gap-1">
-                            <h4 className="font-black text-xs sm:text-sm text-[#4a3525] truncate">{latestRoverResult.sample.name}</h4>
+                    ) : (latestRoverResult.samples || (latestRoverResult.sample ? [latestRoverResult.sample] : [])).map((rockItem, rIdx) => (
+                      rockItem && rockItem.id !== 'NONE' ? (
+                        <div key={rIdx} className={`bg-white border-2 ${rockItem.id === 'ANCIENT_BIOSIGNATURE' ? 'border-amber-400 ring-2 ring-amber-300/80 bg-amber-50/50' : 'border-emerald-200'} rounded-2xl p-2.5 flex items-center gap-3 shadow-sm`}>
+                          <RockSpecimenIcon rock={rockItem} size={46} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-center gap-1">
+                              <h4 className="font-black text-xs sm:text-sm text-[#4a3525] truncate">{rockItem.name}</h4>
+                            </div>
+                            <p className="text-[11px] text-[#4a3525] font-semibold leading-snug mt-0.5">
+                              {rockItem.chosenExplanation}
+                            </p>
+                            <p className="text-[10px] text-sky-800 mt-0.5">{rockItem.scientificNote}</p>
                           </div>
-                          <p className="text-[11px] text-[#4a3525] font-semibold leading-snug mt-0.5">
-                            {latestRoverResult.sample.chosenExplanation}
-                          </p>
-                          <p className="text-[10px] text-sky-800 mt-0.5">{latestRoverResult.sample.scientificNote}</p>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="bg-white border border-[#e6d5bc] rounded-xl p-2.5 text-xs text-[#7a5a40] text-center">
-                        {latestRoverResult.sample?.chosenExplanation || 'No solid rock found on this trip.'}
-                      </div>
-                    )}
+                      ) : (
+                        <div key={rIdx} className="bg-white border border-[#e6d5bc] rounded-xl p-2.5 text-xs text-[#7a5a40] text-center">
+                          {rockItem?.chosenExplanation || 'No solid rock found on this trip.'}
+                        </div>
+                      )
+                    ))}
 
                     {latestRoverResult.photo && (
                       <div className="bg-white border-2 border-sky-200 rounded-2xl p-2.5 space-y-1 shadow-sm">

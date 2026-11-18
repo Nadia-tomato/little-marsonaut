@@ -129,11 +129,15 @@ body {
 .animate-supply-hover {
   animation: supplyHover 2.8s ease-in-out infinite;
 }
+linearGradient stop,
 .smooth-sky-grad stop {
-  transition: stop-color 1.2s linear;
+  transition: stop-color 0.15s linear;
 }
-.smooth-sky-fill {
-  transition: fill 1.2s linear;
+.smooth-sky-fill,
+polygon,
+rect,
+path {
+  transition: fill 0.15s linear, stroke 0.15s linear;
 }
 .smooth-dust-fog {
   transition: opacity 1.8s ease-in-out;

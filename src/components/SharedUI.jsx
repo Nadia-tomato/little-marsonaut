@@ -271,7 +271,18 @@ function TopResourcePill({ label, value, barColor, icon }) {
       );
     }
 
-    function SupplyRocketModal({ sol, onClose }) {
+    function SupplyRocketModal({ sol, isCollected = false, onCollect, onClose }) {
+      const waterAmount = sol === 16 ? 30 : 40;
+      const foodAmount = sol === 16 ? 20 : 30;
+
+      const handleButtonClick = () => {
+        if (!isCollected && onCollect) {
+          onCollect();
+        } else {
+          onClose();
+        }
+      };
+
       return (
         <div
           className="fixed inset-0 z-50 bg-[#2d1e12]/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
@@ -287,7 +298,7 @@ function TopResourcePill({ label, value, barColor, icon }) {
 
             <div>
               <h3 className="text-xl font-black text-[#4a3525]">
-                Day {sol} Supply Rocket
+                Sol {sol} Supply Rocket
               </h3>
               <p className="text-xs font-bold text-amber-900 mt-0.5">
                 Emergency supplies safely delivered from Earth!
@@ -297,26 +308,28 @@ function TopResourcePill({ label, value, barColor, icon }) {
             <div className="grid grid-cols-2 gap-3 py-1">
               <div className="bg-white border-2 border-sky-300 rounded-2xl p-3 shadow-sm flex flex-col items-center">
                 <span className="text-2xl">💧</span>
-                <span className="text-base font-black text-sky-950 mt-1">+30 Water</span>
+                <span className="text-base font-black text-sky-950 mt-1">+{waterAmount} Water</span>
                 <span className="text-[10px] font-bold text-sky-700">Drinking & Plants</span>
               </div>
 
               <div className="bg-white border-2 border-red-300 rounded-2xl p-3 shadow-sm flex flex-col items-center">
                 <span className="text-2xl">🍅</span>
-                <span className="text-base font-black text-red-950 mt-1">+30 Food</span>
+                <span className="text-base font-black text-red-950 mt-1">+{foodAmount} Food</span>
                 <span className="text-[10px] font-bold text-red-700">Crew Rations</span>
               </div>
             </div>
 
             <p className="text-[11px] font-semibold text-[#6d5138]">
-              Base life-support reserves have been replenished.
+              {isCollected
+                ? 'Supplies have been stored in base life-support reserves.'
+                : 'Tap below to add emergency supplies to base reserves!'}
             </p>
 
             <button
-              onClick={onClose}
+              onClick={handleButtonClick}
               className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-black text-xs shadow-md active:scale-95 transition cursor-pointer"
             >
-              Collect Supplies
+              {isCollected ? 'Close' : 'Collect Supplies'}
             </button>
           </div>
         </div>

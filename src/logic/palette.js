@@ -54,7 +54,7 @@
         skyMid = lerpHexColor('#8c5368', '#23304a', u);
         skyBot = lerpHexColor('#a85548', '#3d2522', u);
         mountainFill = lerpHexColor('#7a423b', '#3d2522', u);
-        groundTop = lerpHexColor('#6e3a28', '#6e3a28', u);
+        groundTop = lerpHexColor('#9e523f', '#6e3a28', u);
         groundBot = lerpHexColor('#6b3323', '#3d1e14', u);
         craterFill = lerpHexColor('#5e2719', '#381810', u);
         starOpacity = 0.5 + u * 0.5;

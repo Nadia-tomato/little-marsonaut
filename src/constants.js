@@ -6,15 +6,15 @@
     const TEST_CLOCK_SECONDS = IS_LOCAL_TEST_HOST
       ? Math.max(0, Number(new URLSearchParams(window.location.search).get('testClock')) || 0)
       : 0;
-    const DAY_DURATION_SECONDS = TEST_CLOCK_SECONDS || 100; // 1 Sol = 100s (1:40)
+    const DAY_DURATION_SECONDS = TEST_CLOCK_SECONDS || 90; // 1 Sol = 90s (1:30)
     const ROVER_POWER_PER_BAR = 10;
     const OUR_ROVER_NAME = 'Curiosity Jr.'; // Named after NASA's Curiosity Rover!
 
     const INITIAL_RESOURCES = {
-      oxygen: 70,
+      oxygen: 80,
       power: 70,
       water: 100,
-      food: 60,
+      food: 80,
     };
 
     // Elementary-school friendly explanations triggered by Big Question Mark (?) buttons
@@ -80,29 +80,29 @@
       'Sunsets on Mars look blue instead of orange because fine red dust scatters the sunlight!',
     ];
 
-    // Updated Rover trip durations: 10 ⚡ = 70s, 20 ⚡ = 100s, 30 ⚡ = 130s
+    // Updated Rover trip durations: 10 ⚡ = 70s, 20 ⚡ = 90s, 30 ⚡ = 110s
     const ROVER_DISPATCH_MODES = {
       1: {
         barsCost: 1,
         durationSeconds: 70,
         name: 'Short Walk (10 ⚡)',
-        desc: '70s quick trip near base. Saves power, but fewer rare rock finds.',
+        desc: '70s quick trip near base. Saves power, standard rocks.',
         discoveryMultiplier: 0.6,
         rareBonus: 0.5,
       },
       2: {
         barsCost: 2,
-        durationSeconds: 100,
+        durationSeconds: 90,
         name: 'Crater Trip (20 ⚡)',
-        desc: '100s drive to nearby crater. Balanced exploration and good rock variety!',
+        desc: '90s drive to nearby crater (1% life-clue stone chance, standard mineral rocks).',
         discoveryMultiplier: 1.0,
         rareBonus: 1.0,
       },
       3: {
         barsCost: 3,
-        durationSeconds: 130,
+        durationSeconds: 110,
         name: 'Far Riverbed Dig (30 ⚡)',
-        desc: '130s deep expedition to ancient riverbed. Highest chance for rare minerals & biosignatures!',
+        desc: '110s deep expedition (5% life-clue stone chance, 50% chance to find 2 mineral rocks)!',
         discoveryMultiplier: 1.35,
         rareBonus: 1.8,
       },

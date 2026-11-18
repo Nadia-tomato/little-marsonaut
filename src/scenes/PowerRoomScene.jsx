@@ -13,7 +13,7 @@
       onRequestWaterDrill,
     }) {
       const palette = getDayNightPalette(nightFactor);
-      const isNight = nightFactor >= 0.55;
+      const isNight = nightFactor >= 0.60;
 
       return (
         <div className="relative w-full aspect-[16/10] rounded-3xl overflow-hidden border-4 border-[#d9c2a3] shadow-xl bg-[#dce6f2]">
@@ -143,20 +143,20 @@
 
           <button
             onClick={onRequestElectrolysis}
-            disabled={resources.water < 10 || resources.power < 15 || resources.oxygen >= 100}
+            disabled={resources.water < 10 || resources.power < 10 || resources.oxygen >= 100}
             style={{ left: '21%', top: '41%', width: '24%', height: '42%' }}
             className="absolute rounded-2xl border-2 border-transparent hover:border-sky-300 hover:bg-sky-300/20 disabled:opacity-75 transition cursor-pointer flex flex-col items-center justify-end pb-3 px-1 z-10"
           >
             <span
               className={`${
-                resources.oxygen < 100 && resources.water >= 10 && resources.power >= 15
+                resources.oxygen < 100 && resources.water >= 10 && resources.power >= 10
                   ? 'animate-float ring-2 ring-white/90 shadow-xl'
                   : ''
               } px-3 py-1 rounded-full bg-sky-500 text-white border-2 border-white text-xs font-black shadow-lg text-center max-w-full`}
             >
               {resources.oxygen >= 100 ? '🫧 Oxygen Full (100%)' : '🫧 Make Oxygen'}
               <br />
-              <span className="text-[10px] text-sky-100 font-extrabold">-10 Water, -15 Power</span>
+              <span className="text-[10px] text-sky-100 font-extrabold">-10 Water, -10 Power → +20 Oxygen</span>
             </span>
           </button>
 
@@ -170,20 +170,20 @@
 
           <button
             onClick={onRequestWaterDrill}
-            disabled={resources.power < 12 || resources.water >= 100}
+            disabled={resources.power < 10 || resources.water >= 100}
             style={{ left: '55%', top: '41%', width: '24%', height: '42%' }}
             className="absolute rounded-2xl border-2 border-transparent hover:border-blue-300 hover:bg-blue-300/20 disabled:opacity-75 transition cursor-pointer flex flex-col items-center justify-end pb-3 px-1 z-10"
           >
             <span
               className={`${
-                resources.water < 100 && resources.power >= 12
+                resources.water < 100 && resources.power >= 10
                   ? 'animate-float ring-2 ring-white/90 shadow-xl'
                   : ''
               } px-3 py-1 rounded-full bg-blue-600 text-white border-2 border-white text-xs font-black shadow-lg text-center max-w-full`}
             >
               {resources.water >= 100 ? '💧 Water Full (100%)' : '💧 Mine Local Water'}
               <br />
-              <span className="text-[10px] text-blue-100 font-extrabold">-12 Power → +18 Water</span>
+              <span className="text-[10px] text-blue-100 font-extrabold">-10 Power → +20 Water</span>
             </span>
           </button>
 

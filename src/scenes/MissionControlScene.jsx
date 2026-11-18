@@ -205,7 +205,7 @@
                         <rect x={sx} y="0" width={slotWidth} height="90" rx="8" fill="#ffffff" stroke="#94a3b8" strokeWidth="2" />
                         <image href={item.photo.imageUrl} x={sx + 4} y="4" width={slotWidth - 8} height="64" preserveAspectRatio="xMidYMid meet" rx="4" />
                         <text x={sx + slotWidth / 2} y="82" textAnchor="middle" fill="#334155" fontSize="10" fontWeight="900">
-                          Day {item.sol}
+                          Sol {item.sol}
                         </text>
                       </g>
                     );
@@ -230,7 +230,7 @@
               <span>Back</span>
             </button>
             <div className="bg-white/95 border-2 border-[#d9c2a3] px-3.5 py-1 rounded-full text-xs font-black text-[#5a3e28] shadow">
-              📡 Base Center • Day {sol}
+              📡 Base Center • Sol {sol}
             </div>
           </div>
 
@@ -344,7 +344,7 @@
                           className="w-full h-28 object-contain bg-slate-900"
                         />
                         <figcaption className="p-2 text-[10px] text-[#4a3525] leading-tight">
-                          <b>Day {entry.sol}</b> · {entry.photo.title}
+                          <b>Sol {entry.sol}</b> · {entry.photo.title}
                         </figcaption>
                       </figure>
                     ))}
@@ -377,7 +377,7 @@
                   className="w-full max-h-[60vh] object-contain rounded-2xl bg-slate-900"
                 />
                 <h3 className="font-black text-lg text-[#4a3525]">
-                  Day {selectedPhoto.sol} · {selectedPhoto.photo.title}
+                  Sol {selectedPhoto.sol} · {selectedPhoto.photo.title}
                 </h3>
                 <p className="text-xs text-[#5a4636] leading-relaxed">{selectedPhoto.photo.nasaCaption}</p>
                 <button

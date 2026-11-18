@@ -104,7 +104,7 @@ const NasaService = (() => {
     }
 
     const baseWeather = HISTORICAL_MARS_WEATHER[Math.floor(Math.random() * HISTORICAL_MARS_WEATHER.length)];
-    const stormChance = sol <= 5 ? 0.20 : sol <= 10 ? 0.35 : sol <= 15 ? 0.50 : 0.60;
+    const stormChance = sol <= 5 ? 0.15 : sol <= 10 ? 0.25 : sol <= 15 ? 0.40 : 0.50;
     const isDustStorm = Math.random() < stormChance;
 
     const activityBias = Math.min(2, Math.floor(cachedSepEventsCount / 2));
