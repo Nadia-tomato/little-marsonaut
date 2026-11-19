@@ -77,6 +77,10 @@ const { useState, useEffect, useRef } = React;
       const [roverResultUnread, setRoverResultUnread] = useState(false);
       const [seenSupplySols, setSeenSupplySols] = useState(() => new Set());
       const [collectedSupplySols, setCollectedSupplySols] = useState(() => new Set());
+      const [showTutorial, setShowTutorial] = useState(false);
+      const [hasCompletedTutorial, setHasCompletedTutorial] = useState(false);
+      const hasCompletedTutorialRef = useRef(hasCompletedTutorial);
+      hasCompletedTutorialRef.current = hasCompletedTutorial;
 
       const [seenTopics, setSeenTopics] = useState(() => new Set());
       const [activeScienceTopic, setActiveScienceTopic] = useState(null);
@@ -134,7 +138,7 @@ const { useState, useEffect, useRef } = React;
       const isNightPhase = smoothNightFactor >= 0.60;
 
       useEffect(() => {
-        if (showCoverPage || showLaunchTransition || ending || specialDiscoveryPending || showMorningBriefing || showRandomScienceFactModal || loadingNasa || isPaused) return;
+        if (showCoverPage || showLaunchTransition || ending || specialDiscoveryPending || showMorningBriefing || showRandomScienceFactModal || loadingNasa || isPaused || showTutorial) return;
         const frameInterval = setInterval(() => {
           const elapsed = DAY_DURATION_SECONDS - secondsLeftInDay;
           const subSec = Math.min(1000, Math.max(0, Date.now() - lastTickTimeRef.current)) / 1000;
@@ -142,7 +146,7 @@ const { useState, useEffect, useRef } = React;
           setSmoothNightFactor(preciseElapsed / DAY_DURATION_SECONDS);
         }, 60);
         return () => clearInterval(frameInterval);
-      }, [showCoverPage, showLaunchTransition, ending, specialDiscoveryPending, showMorningBriefing, showRandomScienceFactModal, loadingNasa, isPaused, secondsLeftInDay]);
+      }, [showCoverPage, showLaunchTransition, ending, specialDiscoveryPending, showMorningBriefing, showRandomScienceFactModal, loadingNasa, isPaused, showTutorial, secondsLeftInDay]);
 
       const handleCollectSupply = (targetSol) => {
         if (collectedSupplySols.has(targetSol)) return;
@@ -165,7 +169,9 @@ const { useState, useEffect, useRef } = React;
         const env = await NasaService.generateDailyMarsEnvironment(targetSol);
         setWeather(env);
         setLoadingNasa(false);
-        setShowMorningBriefing(true);
+        if (targetSol > 1 || hasCompletedTutorialRef.current) {
+          setShowMorningBriefing(true);
+        }
       };
 
       useEffect(() => {
@@ -583,7 +589,7 @@ const { useState, useEffect, useRef } = React;
       executeEndSolRef.current = executeEndSol;
 
       useEffect(() => {
-        if (showCoverPage || showLaunchTransition || ending || specialDiscoveryPending || showMorningBriefing || showRandomScienceFactModal || loadingNasa || isPaused) return;
+        if (showCoverPage || showLaunchTransition || ending || specialDiscoveryPending || showMorningBriefing || showRandomScienceFactModal || loadingNasa || isPaused || showTutorial) return;
         const interval = setInterval(() => {
           setRoverSecondsLeft((prevRoverSec) => {
             if (prevRoverSec <= 0) return 0;
@@ -706,7 +712,7 @@ const { useState, useEffect, useRef } = React;
           });
         }, 1000);
         return () => clearInterval(interval);
-      }, [showCoverPage, showLaunchTransition, ending, specialDiscoveryPending, showMorningBriefing, showRandomScienceFactModal, loadingNasa, isPaused]);
+      }, [showCoverPage, showLaunchTransition, ending, specialDiscoveryPending, showMorningBriefing, showRandomScienceFactModal, loadingNasa, isPaused, showTutorial]);
 
       const handleRestart = () => {
         deductedInCurrentSolRef.current = { power: 0, oxygen: 0, water: 0, food: 0 };
@@ -760,6 +766,7 @@ const { useState, useEffect, useRef } = React;
         lastTickTimeRef.current = Date.now();
         setSmoothNightFactor(0);
         setShowGuidePage(false);
+        setShowTutorial(false);
         setShowCoverPage(true);
         loadWeatherForSol(1);
       };
@@ -789,11 +796,21 @@ const { useState, useEffect, useRef } = React;
             fact={launchFact}
             onSkip={() => {
               setShowLaunchTransition(false);
-              setShowMorningBriefing(true);
+              if (!hasCompletedTutorial) {
+                setShowMorningBriefing(false);
+                setShowTutorial(true);
+              } else {
+                setShowMorningBriefing(true);
+              }
             }}
             onComplete={() => {
               setShowLaunchTransition(false);
-              setShowMorningBriefing(true);
+              if (!hasCompletedTutorial) {
+                setShowMorningBriefing(false);
+                setShowTutorial(true);
+              } else {
+                setShowMorningBriefing(true);
+              }
             }}
           />
         );
@@ -892,7 +909,7 @@ const { useState, useEffect, useRef } = React;
           <header className="px-3 md:px-6 pt-3 pb-2 max-w-5xl w-full mx-auto space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3.5 py-1.5 shadow-sm flex items-center gap-2.5">
+                <div className="bg-white border-2 border-[#e6d5bc] rounded-2xl px-3.5 py-1.5 shadow-sm flex items-center gap-2.5" data-tour="clock">
                   <span className="text-base">{isNightPhase ? '🌙' : '☀️'}</span>
                   <span className="font-black text-sm md:text-base text-[#4a3525]">{`Sol ${sol}`}</span>
                   <div
@@ -943,6 +960,13 @@ const { useState, useEffect, useRef } = React;
                   Weather
                 </button>
                 <button
+                  onClick={() => { setCurrentScene('EXTERIOR'); setShowTutorial(true); }}
+                  className="bg-amber-300 hover:bg-amber-400 border-2 border-amber-500 rounded-2xl px-3 py-1.5 text-xs font-black text-amber-950 shadow-sm"
+                  title="新手操作引導教學"
+                >
+                  Tour
+                </button>
+                <button
                   onClick={() => { setShowGuidePage(true); setShowCoverPage(true); }}
                   className="bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-2xl px-3 py-1.5 text-xs font-black shadow-sm"
                 >
@@ -962,7 +986,7 @@ const { useState, useEffect, useRef } = React;
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full items-stretch notranslate" translate="no">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full items-stretch notranslate" translate="no" data-tour="resources">
               <TopResourcePill label="Air" value={resources.oxygen} barColor="bg-sky-400" icon="🫧" />
               <TopResourcePill label="Power" value={resources.power} barColor="bg-amber-400" icon="⚡" />
               <TopResourcePill label="Water" value={resources.water} barColor="bg-blue-500" icon="💧" />
@@ -1091,11 +1115,32 @@ const { useState, useEffect, useRef } = React;
           )}
 
           <MorningBriefingModule
-            visible={showMorningBriefing && !loadingNasa}
+            visible={showMorningBriefing && !loadingNasa && !showTutorial}
             sol={sol}
             weather={weather}
             yesterdayConsumption={yesterdayConsumption}
             onConfirm={() => setShowMorningBriefing(false)}
+          />
+
+          <TutorialWalkthroughModal
+            visible={showTutorial}
+            sol={sol}
+            onComplete={() => {
+              setShowTutorial(false);
+              const wasFirstTime = !hasCompletedTutorial;
+              setHasCompletedTutorial(true);
+              if (wasFirstTime || sol === 1) {
+                setShowMorningBriefing(true);
+              }
+            }}
+            onSkip={() => {
+              setShowTutorial(false);
+              const wasFirstTime = !hasCompletedTutorial;
+              setHasCompletedTutorial(true);
+              if (wasFirstTime || sol === 1) {
+                setShowMorningBriefing(true);
+              }
+            }}
           />
 
           {/* Pause Modal Overlay */}

@@ -241,7 +241,7 @@
             title="Learn a Mars Science Fact!"
             className="top-3 right-3 absolute bg-[#fdf6e9]/95 hover:bg-white border-2 border-[#d9c2a3] px-3 py-1 rounded-full font-black text-xs md:text-sm text-[#5a3e28] shadow flex items-center gap-1.5 active:scale-95 transition cursor-pointer z-30"
           >
-            <span className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-amber-400 text-amber-950 font-black text-[11px] md:text-xs flex items-center justify-center shadow-inner">
+            <span className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-amber-400 text-amber-950 font-black text-xs flex items-center justify-center shadow-inner">
               ?
             </span>
             <span>Science Fact</span>
@@ -249,6 +249,7 @@
 
           <button
             onClick={() => onEnterRoom('CONTROL')}
+            data-tour="control"
             style={{ left: '35%', top: '22%', width: '30%', height: '35%' }}
             className="absolute rounded-3xl border-0 outline-none hover:border-2 hover:border-indigo-300 hover:bg-indigo-300/20 active:scale-95 transition cursor-pointer"
             title="Open Base Center"
@@ -256,6 +257,7 @@
 
           <button
             onClick={() => onEnterRoom('POWER')}
+            data-tour="power"
             style={{ left: '9%', top: '34%', width: '22%', height: '31%' }}
             className="absolute rounded-3xl border-0 outline-none hover:border-2 hover:border-yellow-300 hover:bg-yellow-200/25 active:scale-95 transition cursor-pointer flex items-start justify-end p-2"
           >
@@ -269,6 +271,7 @@
 
           <button
             onClick={() => onEnterRoom('GREENHOUSE')}
+            data-tour="greenhouse"
             style={{ left: '68%', top: '33%', width: '24%', height: '32%' }}
             className="absolute rounded-3xl border-0 outline-none hover:border-2 hover:border-emerald-300 hover:bg-emerald-200/25 active:scale-95 transition cursor-pointer flex flex-col items-end justify-between p-2"
           >
@@ -292,6 +295,7 @@
           {/* Rover Garage Button: Plain red dot is h-5 w-5 (same size as others); turns into "!" when rover has collected findings */}
           <button
             onClick={() => onEnterRoom('ROVER')}
+            data-tour="rover"
             style={{ left: '34%', top: '66%', width: '32%', height: '28%' }}
             className="absolute rounded-3xl border-0 outline-none hover:border-2 hover:border-sky-300 hover:bg-sky-200/25 active:scale-95 transition cursor-pointer flex items-start justify-end p-2"
           >
